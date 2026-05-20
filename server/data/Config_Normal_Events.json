@@ -1,0 +1,229 @@
+{
+  "pools": {
+    "common": {
+      "weight": 70,
+      "events": [
+        {
+          "id": "n_001",
+          "template": "你在{location}打坐入定，{result_text}。",
+          "locations": ["山门外的歪脖子树下", "后山寒潭边的避雨石", "废弃已久的杂物破庙", "灵脉边缘的瓜田里", "藏经阁最底层的夹缝中"],
+          "results": [
+            {"text": "灵气平稳汇入丹田，感觉自己今天强得可怕", "cultivation_delta": [10, 20], "weight": 50},
+            {"text": "隐约触碰到一丝'偷懒道韵'，修为竟然离奇增长", "cultivation_delta": [25, 45], "weight": 20},
+            {"text": "突然感觉裤裆发痒，定睛一看是只寻灵蚁，气息微乱", "cultivation_delta": [2, 5], "weight": 30}
+          ]
+        },
+        {
+          "id": "n_002",
+          "template": "你在潜修时，突然{incident}，{reaction}。一番折腾后，{outcome}。",
+          "incidents": [
+            "一只野生的大肥灵鸡撞死在你面前的石头上",
+            "隔壁洞府的王师兄练功走火入魔、正光着屁股满山跑",
+            "天空中突然掉下一块疑似上界仙人的洗脚布",
+            "山下农家小红送你的情书不小心被风吹走了"
+          ],
+          "reactions": [
+            "你大吃一惊，大喊一声'善哉善哉'",
+            "你冷笑一声，决定装作什么都没发生",
+            "你道心大震，急忙上去推波助澜"
+          ],
+          "outcome": [
+            {"text": "你对人生的荒谬有了更深的领悟，修为小涨", "cultivation_delta": [15, 30]},
+            {"text": "由于用力过猛闪了腰，道基隐隐有些酸痛", "cultivation_delta": [1, 5]}
+          ]
+        },
+        {
+          "id": "n_003",
+          "template": "你尝试阅读古籍《{book_name}》，{result_text}。",
+          "book_name": ["修仙界富婆通讯录", "仙子产后护理指南", "关于天道是个乐子人这档事", "五年修仙三年模拟", "辟邪剑谱（体验版）"],
+          "results": [
+            {"text": "看得面红耳赤，虽然毫无卵用，但神识隐隐有些刺痛", "cultivation_delta": [5, 12], "weight": 60},
+            {"text": "字里行间全是密码，你顿悟了无上摸鱼大法", "cultivation_delta": [40, 60], "weight": 40}
+          ]
+        },
+        {
+          "id": "n_004",
+          "template": "你路过{location2}，{result_text}。",
+          "location2": ["灵兽园的围栏边", "炼丹房的通风口", "外门弟子食堂的后厨", "演武场旁边的小树林"],
+          "results": [
+            {"text": "顺手捡到了几枚散落的灵石", "cultivation_delta": [3, 8], "weight": 50},
+            {"text": "目睹了一场外门弟子之间的菜鸡互啄，感悟颇深", "cultivation_delta": [8, 18], "weight": 30},
+            {"text": "被路过的长老误认为偷懒，罚你去扫了一个时辰的藏经阁", "cultivation_delta": [0, 2], "weight": 20}
+          ]
+        },
+        {
+          "id": "n_005",
+          "template": "你{action}，{result_text}。",
+          "action": ["对着石头练了一套基础拳法", "尝试用意念隔空取物", "给灵田里的药草浇水", "用树枝在地上演算阵法"],
+          "results": [
+            {"text": "虽然姿势极其难看，但筋骨活动开了，气血微微翻涌", "cultivation_delta": [5, 15], "weight": 60},
+            {"text": "动作太大撕裂了裤子，羞愧难当之余灵台一片清明", "cultivation_delta": [10, 25], "weight": 40}
+          ]
+        }
+      ]
+    },
+    "realm_specific": {
+      "1": {
+        "realm_name": "练气期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_lq_001",
+            "template": "你作为一个练气期萌新，{behavior}，结果{result_text}。",
+            "behavior": ["试图御剑飞行却因灵力不济大头朝下栽进泥里", "去厨房偷吃灵米被外门执事追了三条山沟", "向心仪的小师妹表白却得知对方早已结成金丹"],
+            "results": [
+              {"text": "受到了极大的精神刺激，化悲愤为力量，疯狂周天运转", "cultivation_delta": [10, 25]}
+            ]
+          },
+          {
+            "id": "r_lq_002",
+            "template": "宗门发放了本月的{thing}，你{reaction}。",
+            "thing": ["三颗下品凝气丹", "一本皱巴巴的基础功法残卷", "一只半死不活的低阶灵兽幼崽"],
+            "reaction": ["如获至宝，连夜苦修", "嫌弃地翻了个白眼但还是收下了", "直接塞进嘴里嚼了"],
+            "results": [
+              {"text": "修为终于又往前挣扎了一小步", "cultivation_delta": [8, 20]}
+            ]
+          }
+        ]
+      },
+      "2": {
+        "realm_name": "筑基期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_zj_001",
+            "template": "你体内的液态灵力{liquid_status}，你急忙{action_text}。",
+            "liquid_status": ["突然像开了锅一样疯狂沸腾", "因为你昨晚吃了生冷灵果而开始结冰", "隐约凝聚成一个'寄'字"],
+            "action_text": ["运转真元死死压制，顺便淬炼了一下由于久坐导致的腰椎间盘突出", "屏息凝神以丹田之火缓缓调和"],
+            "results": [
+              {"text": "液态灵力重新稳定下来，修为随之增长", "cultivation_delta": [100, 250]}
+            ]
+          },
+          {
+            "id": "r_zj_002",
+            "template": "你在筑基修士的交流会上{action}，{result_text}。",
+            "action": ["与一位散修激烈争论功法优劣", "低调地在角落里蹭吃蹭喝", "不小心打翻了前辈的灵酒"],
+            "results": [
+              {"text": "从争论中获得了新的修炼灵感", "cultivation_delta": [80, 200]}
+            ]
+          }
+        ]
+      },
+      "3": {
+        "realm_name": "金丹期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_jd_001",
+            "template": "你的本命金丹{phenomenon}，{result_text}。",
+            "phenomenon": ["正在丹田内缓慢旋转，散发出温暖的金色光芒", "表面突然浮现出一行模糊的道纹", "温度骤降，金丹表面覆盖了一层寒霜"],
+            "results": [
+              {"text": "你对'我命由我不由天'又多了三分领悟，修为渐进", "cultivation_delta": [500, 1500]}
+            ]
+          },
+          {
+            "id": "r_jd_002",
+            "template": "你尝试用神识{action}，{result_text}。",
+            "action": ["穿透后山的禁制窥探长老的丹房", "与隔壁洞府的道友进行灵魂层面的友好交流", "内视自己的金丹结构"],
+            "results": [
+              {"text": "神识得到了充分的锻炼，修为有所精进", "cultivation_delta": [400, 1200]}
+            ]
+          }
+        ]
+      },
+      "4": {
+        "realm_name": "元婴期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_yy_001",
+            "template": "你的元婴小人{baby_action}，你不得不{counter}。",
+            "baby_action": ["偷偷从天灵盖溜出去网恋被你当场抓获", "在丹田里蹦迪，导致你气血倒流", "双手托腮，陷入了空前的中年危机"],
+            "counter": ["好一顿无情铁手的大力教育，天地灵力在其惨叫声中疯狂汇聚", "赶紧用神识将其哄回来，许诺今晚给它多喂两颗金丹"],
+            "results": [
+              {"text": "元婴安分下来后，修为随之暴涨", "cultivation_delta": [5000, 15000]}
+            ]
+          },
+          {
+            "id": "r_yy_002",
+            "template": "你感到一阵{illusion}，{result_text}。",
+            "illusion": ["域外天魔在你耳边低语，诱惑你放弃道心", "心魔化为你已故的初恋在脑海中反复重播回忆", "幻觉中你已被天道抛弃，修为尽废"],
+            "results": [
+              {"text": "你以钢铁般的意志挺过了心魔劫，道基更加稳固", "cultivation_delta": [3000, 10000]}
+            ]
+          }
+        ]
+      },
+      "5": {
+        "realm_name": "化神期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_hs_001",
+            "template": "你尝试扭曲身周的一小片{target}法则，{result_text}。",
+            "target": ["重力", "时间流速", "因果"],
+            "results": [
+              {"text": "法则微微扭曲，你从中汲取了一丝天地本源之力", "cultivation_delta": [20000, 60000]},
+              {"text": "法则剧烈反弹，把你弹飞三丈远，但摔得不重", "cultivation_delta": [5000, 15000]}
+            ]
+          },
+          {
+            "id": "r_hs_002",
+            "template": "你以化神期大能的身份{action}，{result_text}。",
+            "action": ["巡视宗门，接受众弟子的朝拜", "与域外降临的异界修士进行友好的法则交流", "在后山开辟了一方小世界当私人菜园"],
+            "results": [
+              {"text": "心境愈发圆融，修为水涨船高", "cultivation_delta": [15000, 50000]}
+            ]
+          }
+        ]
+      },
+      "6": {
+        "realm_name": "渡劫期",
+        "weight": 20,
+        "events": [
+          {
+            "id": "r_dj_001",
+            "template": "天雷{nth}次劈在你身上，{result_text}。",
+            "nth": ["第", "又"],
+            "results": [
+              {"text": "你已经习惯了雷霆洗脸的节奏，甚至觉得今天的雷打得你筋骨舒坦", "cultivation_delta": [100000, 300000]}
+            ]
+          },
+          {
+            "id": "r_dj_002",
+            "template": "你感到九天十地都在{action}，{result_text}。",
+            "action": ["微微震颤，法则在为你重新编织命运的丝线", "注视着你，等待你踏出最后一步"],
+            "results": [
+              {"text": "渡劫期的修为在这股天地共鸣中稳步攀升", "cultivation_delta": [80000, 250000]}
+            ]
+          }
+        ]
+      }
+    },
+    "sin_conditional": {
+      "weight": 10,
+      "triggers": [
+        {
+          "min_sin": 50,
+          "events": [
+            {
+              "id": "s_high_001",
+              "template": "【警告】你感到天穹之上隐隐有微弱雷鸣，天道似乎在拿本子记录你的无耻行径。",
+              "flavor": "warning"
+            }
+          ]
+        },
+        {
+          "min_sin": 80,
+          "events": [
+            {
+              "id": "s_crit_001",
+              "template": "【极危】由于你的作死值过高，你头顶的乌云已经凝聚成了一个'靠'字。大模型天罚随时降临！",
+              "flavor": "danger"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

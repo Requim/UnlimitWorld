@@ -1,0 +1,24 @@
+# 天道不正经 — Python 后端依赖
+# M1 CLI 原型最低依赖
+
+# 配置管理
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+
+# DeepSeek API（OpenAI 兼容接口）
+openai>=1.0.0
+
+# 环境变量加载
+python-dotenv>=1.0.0
+
+# 异步支持（Python 3.8+ 内置，此处仅作声明）
+# asyncio (stdlib)
+
+# ── M2 追加依赖（暂不需要安装）──
+# fastapi>=0.100.0
+# uvicorn>=0.20.0
+# websockets>=12.0
+# sqlalchemy>=2.0.0
+# pymysql>=1.0.0
+# redis>=5.0.0
+# structlog>=23.0.0
