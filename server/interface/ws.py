@@ -3,15 +3,19 @@ WebSocket 路由 + 连接管理 + 每连接 tick loop
 
 M2 网络层核心：Action Frame 协议路由、自动挂机循环、LLM 流式推送。
 每个 WebSocket 连接拥有独立的 GameEngine 实例（session 隔离）。
+
+Phase 2D：注入 SharedState + 超时检测 + 断线重连 + 会话持久化。
 """
 
 import asyncio
+import json
+import time
 from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from server.config import settings
-from server.domain.player import PlayerState, get_realm_name
+from server.domain.player import PlayerState, ActiveSession, get_realm_name
 from server.domain.event import EventTrigger, EventSettlement
 from server.application.game_engine import GameEngine, Stage, TickResult
 from server.infrastructure.llm_client import LLMOrchestrator
@@ -40,12 +44,27 @@ class Action:
 # ═══════════════════════════════════════════════════════════════
 
 class ConnectionManager:
-    """管理所有活跃 WebSocket 连接及其 GameEngine 实例"""
+    """管理所有活跃 WebSocket 连接及其 GameEngine 实例。
 
-    def __init__(self):
+    Phase 2D：持有 SharedState 引用，在创建 GameEngine 时注入。
+    """
+
+    def __init__(
+        self,
+        dead_registry=None,
+        immortal_hall=None,
+        redis_client=None,
+        active_session_repo=None,
+    ):
         self._connections: dict[str, WebSocket] = {}
         self._engines: dict[str, GameEngine] = {}
         self._tick_tasks: dict[str, asyncio.Task] = {}
+
+        # Phase 2D：全服共享状态引用
+        self._dead_registry = dead_registry
+        self._immortal_hall = immortal_hall
+        self._redis = redis_client
+        self._active_session_repo = active_session_repo
 
     @property
     def active_count(self) -> int:
@@ -53,12 +72,16 @@ class ConnectionManager:
 
     async def connect(self, player_id: str, ws: WebSocket) -> GameEngine:
         await ws.accept()
-        engine = GameEngine()
+        engine = GameEngine(
+            dead_registry=self._dead_registry,
+            immortal_hall=self._immortal_hall,
+        )
         self._connections[player_id] = ws
         self._engines[player_id] = engine
         return engine
 
     async def disconnect(self, player_id: str):
+        # 取消 tick 任务
         task = self._tick_tasks.pop(player_id, None)
         if task and not task.done():
             task.cancel()
@@ -66,6 +89,11 @@ class ConnectionManager:
                 await task
             except asyncio.CancelledError:
                 pass
+
+        # Phase 2D：断开前保存活跃会话（用于重连恢复）
+        engine = self._engines.get(player_id)
+        if engine and engine.session and engine.stage != Stage.GAME_OVER:
+            await self._save_active_session(player_id, engine)
 
         ws = self._connections.pop(player_id, None)
         if ws:
@@ -85,6 +113,38 @@ class ConnectionManager:
     async def shutdown(self):
         for player_id in list(self._connections.keys()):
             await self.disconnect(player_id)
+
+    # ── Phase 2D：会话持久化与重连 ──
+
+    async def try_restore_session(self, player_id: str) -> dict | None:
+        """尝试从 active_session 表恢复玩家会话快照。"""
+        if self._active_session_repo:
+            session = await self._active_session_repo.get(player_id)
+            if session and session.session_json:
+                try:
+                    return json.loads(session.session_json)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        return None
+
+    async def _save_active_session(self, player_id: str, engine: GameEngine):
+        """持久化当前游戏状态到 active_session 表"""
+        if not self._active_session_repo:
+            return
+        state = engine.get_game_state()
+        if not state:
+            return
+        try:
+            session_data = ActiveSession(
+                player_id=player_id,
+                session_json=json.dumps(state, default=str),
+                stage=engine.stage,
+                trigger_json=json.dumps(state.get("current_trigger"), default=str)
+                if state.get("current_trigger") else None,
+            )
+            await self._active_session_repo.upsert(session_data)
+        except Exception:
+            pass
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -156,7 +216,6 @@ async def game_websocket(
     engine = await mgr.connect(player_id, ws)
 
     try:
-        # 阶段 0：等待 CS_START_GAME
         await _handle_lifecycle(ws, engine, mgr, player_id)
     except WebSocketDisconnect:
         pass
@@ -170,9 +229,9 @@ async def _handle_lifecycle(
     mgr: ConnectionManager,
     player_id: str,
 ):
-    """处理单个玩家的完整生命周期：START → tick loop → decision → GAME_OVER"""
+    """处理单个玩家的完整生命周期：START（含重连）→ tick loop → decision → GAME_OVER"""
 
-    # ── 等待开局 ──
+    # ── 等待开局（Phase 2D：支持断线重连） ──
     while engine.stage == Stage.INIT:
         try:
             data = await asyncio.wait_for(ws.receive_json(), timeout=120.0)
@@ -185,8 +244,39 @@ async def _handle_lifecycle(
             continue
 
         player_name = data.get("player_name", "无名修士")
-        session = engine.new_game(player_name=player_name, player_id=player_id)
 
+        # Phase 2D：检查是否有可恢复的会话
+        saved_state = await mgr.try_restore_session(player_id)
+        if saved_state and saved_state.get("stage") not in (Stage.GAME_OVER, Stage.INIT):
+            restored = engine.restore_game(saved_state)
+            if restored:
+                await ws.send_json({
+                    "action": "SC_GAME_LOG",
+                    "log_text": f"[重连成功] 欢迎回来，{restored.player_name}！天道人格：【{restored.heaven_persona}】",
+                    "cultivation": restored.cultivation,
+                    "sin_value": restored.sin_value,
+                    "luck": restored.luck,
+                    "foundation": restored.foundation,
+                    "realm": get_realm_name(restored.realm_code),
+                    "sin_phase": restored.sin_phase(),
+                    "stage": engine.stage,
+                })
+                if engine.stage == Stage.EVENT_TRIGGER and engine._current_trigger:
+                    await ws.send_json(_build_event_trigger(TickResult(
+                        stage=engine.stage,
+                        trigger=engine._current_trigger,
+                        cultivation=restored.cultivation,
+                        sin_value=restored.sin_value,
+                        luck=restored.luck,
+                        foundation=restored.foundation,
+                        realm=get_realm_name(restored.realm_code),
+                        sin_phase=restored.sin_phase(),
+                        waiting_for_decision=True,
+                    )))
+                break  # 重连成功，跳出等待开局循环
+
+        # 新一局
+        session = engine.new_game(player_name=player_name, player_id=player_id)
         await ws.send_json({
             "action": "SC_GAME_LOG",
             "log_text": f"[开局成功] 天道人格：【{session.heaven_persona}】",
@@ -199,12 +289,20 @@ async def _handle_lifecycle(
             "stage": engine.stage,
         })
 
-    # ── 主循环：tick 自动推进 + 消息接收 ──
-    tick_task = asyncio.create_task(_tick_loop(ws, engine))
+    # ── 主循环：tick 自动推进 + 消息接收 + 超时检测 ──
+    tick_task = asyncio.create_task(_tick_loop(ws, engine, mgr, player_id))
     mgr.set_tick_task(player_id, tick_task)
 
     try:
         while engine.stage != Stage.GAME_OVER:
+            # Phase 2D：决策超时检测
+            if engine.is_decision_timeout():
+                result = await engine.auto_timeout_submit()
+                await ws.send_json(_build_story_stream("", is_last=True))
+                await ws.send_json(_build_event_settlement(result))
+                await mgr._save_active_session(player_id, engine)
+                continue
+
             try:
                 data = await asyncio.wait_for(ws.receive_json(), timeout=1.0)
             except asyncio.TimeoutError:
@@ -223,7 +321,6 @@ async def _handle_lifecycle(
                 choice_id = data.get("choice_id", "A")
                 custom_text = data.get("custom_text", "")
 
-                # 流式推送 chunk → SC_STORY_STREAM
                 async def on_chunk(chunk: str):
                     await ws.send_json(_build_story_stream(chunk, is_last=False))
 
@@ -233,7 +330,6 @@ async def _handle_lifecycle(
                     on_chunk=on_chunk,
                 )
 
-                # 将结算中的 story_text 逐段流式推送给前端（打字机效果）
                 story = result.settlement.story_text if result.settlement else ""
                 if story:
                     chunk_size = 4
@@ -243,11 +339,11 @@ async def _handle_lifecycle(
                         )
                         await asyncio.sleep(0.04)
 
-                # 流式结束标记
                 await ws.send_json(_build_story_stream("", is_last=True))
-
-                # 发送结算帧
                 await ws.send_json(_build_event_settlement(result))
+
+                # 持久化状态变更
+                await mgr._save_active_session(player_id, engine)
 
             else:
                 await ws.send_json({"action": Action.SC_ERROR, "message": f"未知 action: {action}"})
@@ -262,29 +358,40 @@ async def _handle_lifecycle(
             pass
 
 
-async def _tick_loop(ws: WebSocket, engine: GameEngine):
-    """自动挂机循环：每 tick_interval 秒推进一次 tick，下行推送 SC_GAME_LOG / SC_HEAVEN_EVENT_TRIGGER"""
+async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None):
+    """自动挂机循环 + 超时检测 + 会话持久化"""
     while engine.stage != Stage.GAME_OVER:
         if engine.stage == Stage.IDLE:
             await asyncio.sleep(settings.tick_interval)
             if engine.stage != Stage.IDLE:
-                continue  # 休眠期间状态已改变（如收到决策消息）
+                continue
 
             result = await engine.tick()
 
             if result.waiting_for_decision:
                 await ws.send_json(_build_event_trigger(result))
+                # Phase 2D：进入决策阶段，立即持久化（含 trigger）
+                if mgr and player_id:
+                    await mgr._save_active_session(player_id, engine)
             elif result.game_over:
                 await ws.send_json(_build_event_settlement(result))
+                if mgr and player_id:
+                    await mgr._save_active_session(player_id, engine)
             else:
                 await ws.send_json(_build_game_log(result))
 
         elif engine.stage == Stage.EVENT_TRIGGER:
-            # 等待玩家决策，由消息接收协程处理
-            await asyncio.sleep(1.0)
+            # Phase 2D：超时检测（1s 粒度为 ws 消息循环，这里也保持一致）
+            if engine.is_decision_timeout():
+                result = await engine.auto_timeout_submit()
+                await ws.send_json(_build_story_stream("", is_last=True))
+                await ws.send_json(_build_event_settlement(result))
+                if mgr and player_id:
+                    await mgr._save_active_session(player_id, engine)
+            else:
+                await asyncio.sleep(1.0)
 
         elif engine.stage == Stage.LLM_PROCESSING:
-            # submit_decision 正在处理中
             await asyncio.sleep(0.1)
 
         else:

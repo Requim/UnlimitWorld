@@ -229,7 +229,7 @@ M1 的 `_process_local_event()` 仅从本地 JSON 池抽取。M2 需在抽取前
 2. **Phase 2A' — 小程序骨架：** `client/` 项目脚手架 + `utils/ws.ts` 单例 + game 页面基础布局 + WS 联调（与后端 Phase 2A 联动验证）
 3. **Phase 2B — 持久化层：✅ 完成** `db.py` + `models.py` + `redis.py` + `storage.py`（五表建表 + 读写）
 4. **Phase 2C — 全服怨念池：✅ 完成** `shared_state.py` + `karma_pool.py`（怨念抽取、清洗定时任务）
-5. **Phase 2D — GameEngine 改造：** 注入 SharedState + 怨念路由集成 + 断线重连 + 超时处理
+5. **Phase 2D — GameEngine 改造：✅ 完成** 注入 SharedState + 怨念路由集成 + 断线重连 + 超时处理
 6. **Phase 2E — 测试与并发验证：** `test_ws.py`（5 并发 + 重连恢复）
 
 ---
@@ -281,6 +281,32 @@ M1 的 `_process_local_event()` 仅从本地 JSON 池抽取。M2 需在抽取前
 - **怨念池清洗流程**：分布式锁 → RENAME 原子弹出 Redis candidates → 合并 MySQL unselected → 评分取 top 250 → 替换 Redis Set → 标记 MySQL is_selected → 释放锁
 - **DeadRegistryManager 与 GameEngine 解耦**：从 GameEngine 实例级 list 提升为全服单例，Phase 2D 通过构造函数依赖注入获取引用
 - **random_karma() 双轨 fallback**：优先 Redis SRANDMEMBER（精品缓存），miss 时 fallback 到 MySQL ORDER BY RAND()
+
+---
+
+### 4.12 Phase 2D 实施记录
+
+> 完成日期：2026-05-21 | 实施人：Claude Code | 测试：212 passed
+
+#### 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `server/application/game_engine.py` | 注入 SharedState（dead_registry + immortal_hall 可选参数）；`_fetch_random_karma/_process_local_event/_settle` 等 8 个方法改为 async；新增怨念路由（5% LLM 心魔试炼 + 10% 血红日志）；新增 `restore_game()` 断线重连 + `auto_timeout_submit()` 超时自动提交 + `is_decision_timeout()` 超时检测；`_dead_registry` → `_dead_list`（CLI fallback） |
+| `server/interface/ws.py` | ConnectionManager 注入 SharedState + Redis/ActiveSession；`connect()` 创建 GameEngine 时传递 SharedState；`_handle_lifecycle` 增加断线重连检测（`try_restore_session`）+ 决策超时自动提交；`_tick_loop` 增加超时检测 + 状态变更持久化 |
+| `server/interface/app.py` | lifespan 中初始化 RedisClient + MySQL engine + DeadRegistryManager + ImmortalHallManager + KarmaPoolManager；启动怨念池清洗后台任务（每 600s）；ConnectionManager 注入全服单例；基础设施不可用时降级运行 |
+| `server/tests/test_game_engine.py` | _settle/_fetch_random_karma 测试改为 async/await；_dead_registry → _dead_list；_immortal_hall → _hall_list |
+| `server/tests/test_integration.py` | 适配 _dead_list 重命名 + async _fetch_random_karma |
+| `server/tests/test_e2e_ws.py` | tick 测试适配怨念路由随机的多种 action 类型 |
+
+#### 设计决策
+
+- **CLI 向后兼容**：`dead_registry` / `immortal_hall` 为 GameEngine 构造函数的可选参数，CLI 模式不传则回退到 M1 内存列表（`_dead_list` / `_hall_list`）
+- **_fetch_random_karma() 双轨制**：优先走 DeadRegistryManager（全服 MySQL + Redis），返回空字符串时 fallback 到本地 `_dead_list`（CLI 兼容）
+- **怨念路由概率**：每 tick 在 `_process_local_event()` 中 roll 1-100：5% → LLM 心魔试炼（RESENTMENT type + EventTrigger），10% → 本地血红日志（日志带怨念色彩），85% → 原有日常逻辑
+- **超时检测粒度**：GameEngine 记录 `_decision_deadline`（event trigger 时设置），ws.py 在消息循环和 tick loop 中每秒检查 `is_decision_timeout()`，超时调用 `auto_timeout_submit()`（10% 修为惩罚 + 自动选 A）
+- **断线重连**：disconnect 时持久化到 MySQL active_session 表；重连时 `try_restore_session()` → `restore_game()` 恢复完整状态（含 stage/player/current_trigger）；若处于 EVENT_TRIGGER 阶段重新推送 trigger
+- **基础设施降级**：app.py lifespan 中 MySQL/Redis 初始化失败不阻止启动，ConnectionManager 在无基础设施时仍可工作（纯内存模式）
 
 ---
 

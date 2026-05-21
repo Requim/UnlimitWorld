@@ -162,8 +162,8 @@ class TestBlackBoxIntegration:
 
         # 检查死亡池（可能死也可能活，由公式决定）
         if result.is_dead:
-            assert len(engine._dead_registry) >= 1
-            record = engine._dead_registry[-1]
+            assert len(engine._dead_list) >= 1
+            record = engine._dead_list[-1]
             assert record.player_name == "短命鬼"
             assert record.dead_title
             print(f"  [PASS] 死亡已记录: {record.dead_title}")
@@ -185,13 +185,13 @@ class TestBlackBoxIntegration:
         if result.waiting_for_decision:
             result = await engine.submit_decision("A", "")
 
-        if result.is_dead and len(engine._dead_registry) > 0:
+        if result.is_dead and len(engine._dead_list) > 0:
             # 新游戏应能引用前世的死因
             engine2 = GameEngine()
-            engine2._dead_registry = engine._dead_registry  # 模拟全服池
+            engine2._dead_list = engine._dead_list  # 模拟全服池
             engine2.new_game(player_name="后世有缘人")
 
-            karma = engine2._fetch_random_karma()
+            karma = await engine2._fetch_random_karma()
             assert karma, "应从死亡池中获取因果文本"
             assert "前世倒霉蛋" in karma
             print(f"  [PASS] 跨时空因果引用: {karma[:80]}...")

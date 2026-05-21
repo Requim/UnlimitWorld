@@ -435,39 +435,43 @@ class TestSettle:
         )
         return llm_output, trigger
 
-    def test_settle_alive_continues(self):
+    @pytest.mark.asyncio
+    async def test_settle_alive_continues(self):
         engine = GameEngine()
         engine.new_game()
         engine.session.cultivation = 500
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=False)
-        result = engine._settle(llm_output, trigger, False, False, "测试故事")
+        result = await engine._settle(llm_output, trigger, False, False, "测试故事")
         assert result.is_dead is False
         assert result.game_over is False
         assert engine.stage == Stage.IDLE
         assert engine.session.cultivation == 600
 
-    def test_settle_dead_game_over(self):
+    @pytest.mark.asyncio
+    async def test_settle_dead_game_over(self):
         engine = GameEngine()
         engine.new_game()
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=True)
-        result = engine._settle(llm_output, trigger, True, False, "死了")
+        result = await engine._settle(llm_output, trigger, True, False, "死了")
         assert result.is_dead is True
         assert result.game_over is True
         assert engine.stage == Stage.GAME_OVER
-        assert len(engine._dead_registry) == 1
-        assert engine._dead_registry[0].player_name == "无名修士"
+        assert len(engine._dead_list) == 1
+        assert engine._dead_list[0].player_name == "无名修士"
 
-    def test_settle_ascension_success(self):
+    @pytest.mark.asyncio
+    async def test_settle_ascension_success(self):
         engine = GameEngine()
         engine.new_game()
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=False)
-        result = engine._settle(llm_output, trigger, False, True, "飞升成功")
+        result = await engine._settle(llm_output, trigger, False, True, "飞升成功")
         assert result.game_over is True
         assert result.is_dead is False
         assert result.heaven_points_earned > 0
-        assert len(engine._immortal_hall) == 1
+        assert len(engine._hall_list) == 1
 
-    def test_settle_ascension_dies(self):
+    @pytest.mark.asyncio
+    async def test_settle_ascension_dies(self):
         engine = GameEngine()
         engine.new_game()
         llm_output = LLMOutput(
@@ -479,22 +483,24 @@ class TestSettle:
             next_action_required="GAME_OVER",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="ASCENSION")
-        result = engine._settle(llm_output, trigger, True, True, "飞升陨落")
+        result = await engine._settle(llm_output, trigger, True, True, "飞升陨落")
         assert result.is_dead is True
-        assert len(engine._dead_registry) == 1
-        assert len(engine._immortal_hall) == 0
+        assert len(engine._dead_list) == 1
+        assert len(engine._hall_list) == 0
 
-    def test_settle_karma_shield_intercepts_death(self):
+    @pytest.mark.asyncio
+    async def test_settle_karma_shield_intercepts_death(self):
         engine = GameEngine()
         engine.new_game(karma_shield=1)
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=True)
-        result = engine._settle(llm_output, trigger, True, False, "原应死亡")
+        result = await engine._settle(llm_output, trigger, True, False, "原应死亡")
         assert result.is_dead is False
         assert result.settlement.intercepted_by_shield is True
         assert engine.session.karma_shield == 0
         assert "因果遮蔽卡" in result.settlement.story_text
 
-    def test_settle_attribute_clamping(self):
+    @pytest.mark.asyncio
+    async def test_settle_attribute_clamping(self):
         engine = GameEngine()
         engine.new_game()
         engine.session.sin_value = 95
@@ -510,28 +516,31 @@ class TestSettle:
             next_action_required="IDLE",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
-        engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试")
         assert 0 <= engine.session.sin_value <= 100
         assert 0 <= engine.session.luck <= 100
         assert 0 <= engine.session.foundation <= 100
 
-    def test_settle_resets_prd_counter(self):
+    @pytest.mark.asyncio
+    async def test_settle_resets_prd_counter(self):
         engine = GameEngine()
         engine.new_game()
         engine.session.prd_counter = 500
         llm_output, trigger = self._make_settle_inputs()
-        engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试")
         assert engine.session.prd_counter == 0
 
-    def test_settle_clears_current_trigger(self):
+    @pytest.mark.asyncio
+    async def test_settle_clears_current_trigger(self):
         engine = GameEngine()
         engine.new_game()
         engine._current_trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
         llm_output, trigger = self._make_settle_inputs()
-        engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试")
         assert engine._current_trigger is None
 
-    def test_settle_realm_change_on_cultivation_gain(self):
+    @pytest.mark.asyncio
+    async def test_settle_realm_change_on_cultivation_gain(self):
         """属性变化导致跨境界"""
         engine = GameEngine()
         engine.new_game()
@@ -546,7 +555,7 @@ class TestSettle:
             next_action_required="IDLE",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
-        engine._settle(llm_output, trigger, False, False, "突破")
+        await engine._settle(llm_output, trigger, False, False, "突破")
         assert engine.session.cultivation >= 1150
 
 
@@ -587,20 +596,22 @@ class TestHandleTimeout:
 # ══════════════════════════════════════════════════════════
 
 class TestFetchRandomKarma:
-    def test_empty_registry_returns_empty_string(self):
+    @pytest.mark.asyncio
+    async def test_empty_registry_returns_empty_string(self):
         engine = GameEngine()
-        result = engine._fetch_random_karma()
+        result = await engine._fetch_random_karma()
         assert result == ""
 
-    def test_non_empty_registry_returns_formatted_string(self):
+    @pytest.mark.asyncio
+    async def test_non_empty_registry_returns_formatted_string(self):
         engine = GameEngine()
-        engine._dead_registry = [
+        engine._dead_list = [
             DeadRecord(
                 player_id="p1", player_name="倒霉蛋", realm="练气期",
                 realm_code=1, dead_title="摔死了",
             )
         ]
-        result = engine._fetch_random_karma()
+        result = await engine._fetch_random_karma()
         assert "倒霉蛋" in result
         assert "摔死了" in result
 

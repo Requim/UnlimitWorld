@@ -328,7 +328,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 2A' | 微信小程序骨架 + WS 客户端 | ✅ |
 | 2B | MySQL 持久化 + Redis 缓存 | ✅ |
 | 2C | 全服因果池 | ✅ |
-| 2D | GameEngine 重构注入 | ⏳ |
+| 2D | GameEngine 重构注入 | ✅ |
 | 2E | 并发压力测试 | ⏳ |
 
 ---
@@ -355,6 +355,9 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | `server/infrastructure/storage.py` | ✅ Phase 2B |
 | `server/infrastructure/shared_state.py` | ✅ Phase 2C |
 | `server/infrastructure/karma_pool.py` | ✅ Phase 2C |
+| `server/application/game_engine.py` | ✅ Phase 2D（注入 SharedState + 怨念路由 + 重连 + 超时） |
+| `server/interface/ws.py` | ✅ Phase 2D（超时检测 + 断线重连 + 会话持久化） |
+| `server/interface/app.py` | ✅ Phase 2D（SharedState 初始化 + 怨念池后台任务） |
 | 并发压力测试 | ⏳ Phase 2E |
 
 **测试总计：212 项全部通过**

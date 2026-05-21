@@ -105,16 +105,22 @@ class TestTickLoop:
             prev_cult = 0
             for i in range(3):
                 tick = ws.receive_json()
-                assert tick["action"] == "SC_GAME_LOG"
+                assert tick["action"] in ("SC_GAME_LOG", "SC_HEAVEN_EVENT_TRIGGER"), \
+                    f"第 {i+1} 个 tick 收到异常 action: {tick.get('action')}"
                 assert tick["cultivation"] > prev_cult, f"第 {i+1} 个 tick 修为未增长"
                 prev_cult = tick["cultivation"]
 
     def test_tick_fields_match_frontend_contract(self, client, fast_tick):
         """SC_GAME_LOG 字段名与前端 game.ts _onGameLog 期望一致"""
+        from unittest.mock import patch
+
         with client.websocket_connect("/ws/game?player_id=e2e_contract") as ws:
             ws.send_json({"action": "CS_START_GAME", "player_name": "契约测试"})
             ws.receive_json()  # 开局帧
-            tick = ws.receive_json()
+
+            # Phase 2D 怨念路由有 15% 概率触发 resentment 事件，强制走正常本地路径
+            with patch("server.application.game_engine.random.randint", return_value=50):
+                tick = ws.receive_json()
 
             # 前端 game.ts _onGameLog 读取的字段名
             assert "log_text" in tick, "缺少 log_text"
@@ -264,10 +270,11 @@ class TestMultiConnection:
                 resp = ws.receive_json()
                 assert resp["action"] == "SC_GAME_LOG", f"玩家 {i + 1} 开局失败"
 
-            # 每人至少收到 1 个 tick
+            # 每人至少收到 1 个 tick（Phase 2D 怨念路由可能发送不同 action）
             for i, ws in enumerate(sockets):
                 tick = ws.receive_json()
-                assert tick["action"] == "SC_GAME_LOG", f"玩家 {i + 1} 未收到 tick"
+                assert tick["action"] in ("SC_GAME_LOG", "SC_HEAVEN_EVENT_TRIGGER"), \
+                    f"玩家 {i + 1} 收到异常 action: {tick.get('action')}"
                 assert tick["cultivation"] > 0
 
     def test_player_disconnect_cleanup(self, client, fast_tick):
