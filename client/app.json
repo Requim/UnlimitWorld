@@ -6,15 +6,15 @@
   ],
   "window": {
     "navigationBarTitleText": "天道不正经",
-    "navigationBarBackgroundColor": "#1a1a2e",
+    "navigationBarBackgroundColor": "#080814",
     "navigationBarTextStyle": "white",
-    "backgroundColor": "#0f0f23",
+    "backgroundColor": "#080814",
     "backgroundTextStyle": "light"
   },
   "tabBar": {
-    "color": "#888",
-    "selectedColor": "#c9a96e",
-    "backgroundColor": "#1a1a2e",
+    "color": "#5a6080",
+    "selectedColor": "#c9a050",
+    "backgroundColor": "#0c101c",
     "borderStyle": "black",
     "list": [
       {

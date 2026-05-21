@@ -1,0 +1,74 @@
+version: "3.9"
+
+# 天道不正经 — Docker Compose 编排
+# 启动: docker compose up -d
+# 停止: docker compose down
+# 查看日志: docker compose logs -f app
+
+services:
+  # ═══ MySQL 8.0 ═══
+  mysql:
+    image: mysql:8.0
+    container_name: tiandao-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tiandao123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tiandao}
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-tiandao123}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ═══ Redis 7 ═══
+  redis:
+    image: redis:7-alpine
+    container_name: tiandao-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ═══ FastAPI 服务 ═══
+  app:
+    build:
+      context: ./server
+    container_name: tiandao-app
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8000}:8000"
+    env_file:
+      - ./server/.env
+    environment:
+      # Docker 内部覆盖（优先级高于 .env）
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-tiandao123}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-tiandao}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8000
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
+  redis_data:

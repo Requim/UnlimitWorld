@@ -47,8 +47,12 @@ async def lifespan(app: FastAPI):
 
     try:
         from server.infrastructure.db import get_engine, get_session_factory
+        from server.infrastructure.models import Base
         engine = get_engine()
         session_factory = get_session_factory()
+        # 自动建表（幂等，不覆盖已有表）
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
     except Exception:
         pass  # MySQL 不可用时降级运行
 

@@ -1,23 +1,65 @@
 /**
- * 挂机页面样式
+ * 挂机修炼页面 — 水墨宇宙风格
  */
 
+/* ═══════════════════════════════════════════
+   页面容器
+   ═══════════════════════════════════════════ */
 .page {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background-color: var(--bg-primary);
+  background:
+    radial-gradient(ellipse 70% 50% at 30% 85%, rgba(20, 28, 50, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 30% at 80% 10%, rgba(18, 22, 38, 0.5) 0%, transparent 50%),
+    var(--ink-black);
+  position: relative;
 }
 
-/* ── 状态栏 ── */
+/* 页面暗纹纹理 */
+.page::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 3rpx,
+      rgba(180, 150, 100, 0.006) 3rpx,
+      rgba(180, 150, 100, 0.006) 5rpx
+    );
+}
+
+/* ═══════════════════════════════════════════
+   状态栏 — 修仙六维面板
+   ═══════════════════════════════════════════ */
 .status-bar {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-around;
-  padding: 12rpx 16rpx;
-  background-color: var(--bg-secondary);
-  border-bottom: 1rpx solid var(--border-color);
+  padding: 16rpx 12rpx 14rpx;
+  background: linear-gradient(180deg, rgba(17, 22, 39, 0.98) 0%, rgba(22, 26, 43, 0.95) 100%);
+  border-bottom: 1rpx solid var(--border-ink-light);
   flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+/* 底边金线灵气 */
+.status-bar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  width: 80%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.2), rgba(200, 160, 80, 0.5), rgba(200, 160, 80, 0.2), transparent);
 }
 
 .status-item {
@@ -25,30 +67,44 @@
   flex-direction: column;
   align-items: center;
   min-width: 100rpx;
-  padding: 4rpx 8rpx;
+  padding: 6rpx 8rpx;
+  position: relative;
 }
 
 .status-label {
-  font-size: 20rpx;
-  color: var(--text-secondary);
+  font-size: 18rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 3rpx;
+  text-transform: uppercase;
 }
 
 .status-value {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: var(--accent-gold);
+  font-size: 28rpx;
+  font-weight: 700;
+  color: var(--gold-pale);
+  letter-spacing: 1rpx;
 }
 
+/* 天谴值 — 朱砂色 */
 .status-sin {
-  color: var(--accent-red);
+  color: var(--cinnabar) !important;
 }
 
-/* ── 内容区 ── */
+/* 天谴满值时脉动警告 */
+.status-sin.danger {
+  animation: cinnabar-pulse 1.2s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   内容区
+   ═══════════════════════════════════════════ */
 .content-area {
   flex: 1;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
+  z-index: 1;
 }
 
 .center-area {
@@ -57,129 +113,240 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 32rpx;
+  gap: 36rpx;
+  position: relative;
+  z-index: 1;
 }
 
-/* ── 连接中 ── */
-.loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 48rpx 48rpx 24rpx;
+/* ═══════════════════════════════════════════
+   状态 1：连接中
+   ═══════════════════════════════════════════ */
+
+/* 太极旋转加载 */
+.taiji-spinner {
+  width: 80rpx;
+  height: 80rpx;
+  border: 3rpx solid var(--border-ink-light);
+  border-top-color: var(--gold-leaf);
+  border-radius: 50%;
+  animation: taiji-spin 1.2s cubic-bezier(0.6, 0.2, 0.4, 0.8) infinite;
+  margin-bottom: 16rpx;
+}
+
+@keyframes taiji-spin {
+  to { transform: rotate(360deg); }
 }
 
 .loading-text {
   font-size: 32rpx;
-  color: var(--text-secondary);
+  color: var(--text-mist);
+  letter-spacing: 8rpx;
+  animation: qi-pulse 2.5s ease-in-out infinite;
 }
 
-/* ── 道号输入 ── */
+/* 道号输入 */
 .name-input-area {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12rpx;
-  padding: 0 48rpx 32rpx;
+  gap: 16rpx;
+  padding: 0 48rpx 36rpx;
   width: 100%;
   box-sizing: border-box;
+  animation: fade-in 0.6s ease-out;
 }
 
 .name-input-label {
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--text-mist);
+  letter-spacing: 6rpx;
 }
 
 .name-input {
-  background-color: var(--bg-card);
-  color: var(--accent-gold);
-  border: 1rpx solid var(--border-color);
-  border-radius: 8rpx;
-  padding: 12rpx 24rpx;
-  font-size: 30rpx;
+  background: var(--paper-dark);
+  color: var(--gold-leaf);
+  border: 1rpx solid var(--border-ink-light);
+  border-radius: var(--radius-sm);
+  padding: 16rpx 28rpx;
+  font-size: 32rpx;
   text-align: center;
-  width: 60%;
+  width: 70%;
   box-sizing: border-box;
+  letter-spacing: 4rpx;
+  transition: border-color 0.3s;
 }
 
-/* ── 日志容器 ── */
+.name-input:focus {
+  border-color: var(--gold-dim);
+}
+
+/* ═══════════════════════════════════════════
+   状态 2：挂机中（IDLE）— 修炼日志
+   ═══════════════════════════════════════════ */
 .log-container {
   flex: 1;
-  padding: 16rpx 24rpx;
+  padding: 20rpx 24rpx;
   overflow-y: auto;
 }
 
 .log-entry {
-  padding: 10rpx 0;
-  border-bottom: 1rpx solid var(--border-color);
+  padding: 14rpx 4rpx;
+  border-bottom: 1rpx solid rgba(30, 38, 60, 0.4);
   font-size: 26rpx;
-  color: var(--text-secondary);
+  color: var(--text-mist);
   word-break: break-all;
-  line-height: 1.5;
+  line-height: 1.65;
+  letter-spacing: 1rpx;
+  animation: fade-in 0.35s ease-out;
 }
 
 .log-entry:last-child {
   border-bottom: none;
 }
 
-/* ── 事件卡片 ── */
+/* 日志中金/红高亮 */
+.log-entry .highlight-gold {
+  color: var(--gold-pale);
+}
+
+.log-entry .highlight-red {
+  color: var(--cinnabar);
+}
+
+/* ═══════════════════════════════════════════
+   状态 3：事件触发（AWAIT_DECISION）— 天道符诏
+   ═══════════════════════════════════════════ */
+
+/* 事件卡片 — 仿古卷轴 */
 .event-card {
-  margin: 16rpx 24rpx;
+  margin: 20rpx 24rpx 8rpx;
+  background: linear-gradient(175deg, rgba(22, 26, 43, 0.98), rgba(28, 32, 54, 0.95));
+  border: 1rpx solid rgba(200, 160, 80, 0.3);
+  border-radius: var(--radius-md);
+  padding: 28rpx 24rpx 24rpx;
+  position: relative;
+  animation: ink-reveal 0.6s ease-out;
+  box-shadow: var(--shadow-card), var(--shadow-gold);
+}
+
+/* 卷轴四角装饰 */
+.event-card::before {
+  content: "◆";
+  position: absolute;
+  top: 10rpx;
+  left: 16rpx;
+  font-size: 14rpx;
+  color: rgba(200, 160, 80, 0.25);
+}
+
+.event-card::after {
+  content: "◆";
+  position: absolute;
+  top: 10rpx;
+  right: 16rpx;
+  font-size: 14rpx;
+  color: rgba(200, 160, 80, 0.25);
 }
 
 .event-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
 }
 
 .event-title {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: var(--accent-gold);
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--gold-leaf);
+  letter-spacing: 4rpx;
 }
 
+/* 倒计时 — 朱砂色紧迫感 */
 .event-countdown {
-  font-size: 24rpx;
-  color: var(--accent-red);
-  padding: 4rpx 12rpx;
-  border: 1rpx solid var(--accent-red);
+  font-size: 22rpx;
+  color: var(--cinnabar-bright);
+  padding: 6rpx 16rpx;
+  border: 1rpx solid rgba(212, 61, 61, 0.4);
   border-radius: 4rpx;
+  letter-spacing: 2rpx;
+  font-weight: 600;
+}
+
+.event-countdown.urgent {
+  animation: cinnabar-pulse 0.8s ease-in-out infinite;
 }
 
 .event-description {
   font-size: 28rpx;
-  color: var(--text-primary);
-  line-height: 1.7;
+  color: var(--text-parchment);
+  line-height: 1.8;
+  letter-spacing: 1rpx;
 }
 
-/* ── 决策按钮 ── */
+/* 底部双角 */
+.event-footer-corners {
+  margin-top: 16rpx;
+  display: flex;
+  justify-content: space-between;
+  opacity: 0.2;
+  font-size: 14rpx;
+  color: var(--gold-pale);
+}
+
+/* 决策按钮区 */
 .decision-area {
-  padding: 0 24rpx;
+  padding: 8rpx 24rpx;
   display: flex;
   flex-direction: column;
-  gap: 16rpx;
+  gap: 14rpx;
 }
 
 .decision-btn {
   width: 100%;
+  animation: fade-in 0.5s ease-out;
 }
 
-/* ── 自定义输入 ── */
+/* 自由对线入口 — 特殊样式 */
+.free-input-toggle {
+  background: transparent;
+  color: var(--text-mist);
+  border: 1rpx dashed rgba(120, 130, 150, 0.35);
+  border-radius: var(--radius-sm);
+  padding: 18rpx 36rpx;
+  font-size: 28rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+  animation: fade-in 0.55s ease-out;
+}
+
+.free-input-toggle:active {
+  border-color: var(--gold-dim);
+  color: var(--gold-pale);
+}
+
+/* 自定义输入区 */
 .custom-input-area {
   margin: 16rpx 24rpx;
+  animation: fade-in 0.35s ease-out;
 }
 
 .custom-textarea {
-  background-color: var(--bg-card);
-  color: var(--text-primary);
-  border: 1rpx solid var(--border-color);
-  border-radius: 8rpx;
-  padding: 16rpx;
+  background: var(--paper-dark);
+  color: var(--text-parchment);
+  border: 1rpx solid var(--border-ink-light);
+  border-radius: var(--radius-sm);
+  padding: 18rpx;
   font-size: 28rpx;
   width: 100%;
   box-sizing: border-box;
   min-height: 120rpx;
+  letter-spacing: 1rpx;
+  line-height: 1.6;
+}
+
+.custom-textarea:focus {
+  border-color: var(--gold-dim);
 }
 
 .custom-input-btns {
@@ -192,83 +359,168 @@
   flex: 1;
 }
 
-/* ── 流式故事 ── */
+/* ═══════════════════════════════════════════
+   状态 4：流式故事（STREAMING）— 天道宣纸
+   ═══════════════════════════════════════════ */
 .story-scroll {
   flex: 1;
+  padding: 20rpx 24rpx !important;
 }
 
 .story-area {
-  background-color: var(--bg-secondary);
-  border: 1rpx solid var(--border-glow);
-  border-radius: 8rpx;
-  padding: 20rpx;
+  background: linear-gradient(180deg, rgba(22, 26, 43, 0.95), rgba(28, 32, 54, 0.9));
+  border: 1rpx solid rgba(200, 160, 80, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 28rpx 24rpx;
   min-height: 120rpx;
+  position: relative;
+  /* 宣纸纹理 */
+  box-shadow:
+    inset 0 0 60rpx rgba(0, 0, 0, 0.15),
+    0 0 30rpx rgba(200, 160, 80, 0.06);
+}
+
+/* 竖排暗纹仿古卷 */
+.story-area::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 4rpx,
+      rgba(200, 160, 80, 0.015) 4rpx,
+      rgba(200, 160, 80, 0.015) 6rpx
+    );
+  border-radius: var(--radius-sm);
 }
 
 .story-text {
   font-size: 30rpx;
-  color: var(--text-primary);
-  line-height: 1.8;
+  color: var(--text-parchment-light);
+  line-height: 2;
   word-break: break-all;
+  letter-spacing: 1rpx;
+  position: relative;
+  z-index: 1;
 }
 
+/* 天道编故事提示 */
 .streaming-hint {
   text-align: center;
-  padding: 16rpx;
-  color: var(--text-muted);
+  padding: 18rpx;
+  color: var(--text-mist-dim);
   font-size: 24rpx;
+  letter-spacing: 4rpx;
 }
 
-/* ── 结算面板 ── */
+.streaming-hint text {
+  animation: qi-pulse 2.5s ease-in-out infinite;
+}
+
+/* ═══════════════════════════════════════════
+   状态 5：结算（SETTLEMENT）— 天道裁决
+   ═══════════════════════════════════════════ */
 .settlement-panel {
   margin: 24rpx;
-  background: linear-gradient(180deg, var(--bg-card), var(--bg-secondary));
-  border: 1rpx solid var(--accent-gold);
-  border-radius: 12rpx;
-  padding: 24rpx;
+  background: linear-gradient(175deg, rgba(22, 26, 43, 0.98), rgba(28, 36, 56, 0.95));
+  border: 1rpx solid rgba(200, 160, 80, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 32rpx 24rpx;
+  position: relative;
+  animation: ink-reveal 0.7s ease-out;
+  box-shadow: var(--shadow-card), var(--shadow-gold);
+}
+
+/* 顶部金线装饰 */
+.settlement-panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20rpx;
+  right: 20rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, var(--gold-dim) 30%, var(--gold-leaf) 50%, var(--gold-dim) 70%, transparent);
+}
+
+/* 底部金线装饰 */
+.settlement-panel::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 20rpx;
+  right: 20rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, var(--gold-dim) 30%, var(--gold-leaf) 50%, var(--gold-dim) 70%, transparent);
 }
 
 .settlement-header {
-  font-size: 34rpx;
-  font-weight: bold;
-  color: var(--accent-gold);
-  margin-bottom: 16rpx;
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--gold-leaf);
+  margin-bottom: 20rpx;
   text-align: center;
+  letter-spacing: 6rpx;
 }
 
 .settlement-body {
   font-size: 28rpx;
-  color: var(--text-primary);
-  line-height: 1.8;
+  color: var(--text-parchment);
+  line-height: 1.9;
+  letter-spacing: 1rpx;
+  text-align: justify;
 }
 
 .settlement-points {
-  margin-top: 16rpx;
-  font-size: 32rpx;
-  font-weight: bold;
-  color: var(--accent-gold);
+  margin-top: 20rpx;
+  padding-top: 16rpx;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--gold-bright);
   text-align: center;
+  letter-spacing: 4rpx;
 }
 
-/* ── 游戏结束 ── */
+/* ═══════════════════════════════════════════
+   状态 6：游戏结束（GAME_OVER）— 道陨
+   ═══════════════════════════════════════════ */
 .game-over-panel {
-  border-color: var(--accent-red);
+  border-color: rgba(212, 61, 61, 0.4) !important;
+  box-shadow: var(--shadow-card), 0 0 36rpx rgba(180, 40, 40, 0.12) !important;
+  animation: ink-reveal 0.8s ease-out, tremor 0.5s ease-in-out 0.8s !important;
+}
+
+.game-over-panel::before {
+  background: linear-gradient(90deg, transparent, var(--cinnabar-dark), var(--cinnabar), var(--cinnabar-dark), transparent) !important;
+}
+
+.game-over-panel::after {
+  background: linear-gradient(90deg, transparent, var(--cinnabar-dark), var(--cinnabar), var(--cinnabar-dark), transparent) !important;
 }
 
 .game-over-icon {
-  font-size: 64rpx;
+  font-size: 72rpx;
   text-align: center;
-  margin-bottom: 12rpx;
+  margin-bottom: 8rpx;
+  filter: grayscale(30%);
 }
 
 .game-over-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: var(--accent-red);
+  font-size: 40rpx;
+  font-weight: 700;
+  color: var(--cinnabar-bright);
   text-align: center;
-  margin-bottom: 16rpx;
+  margin-bottom: 18rpx;
+  letter-spacing: 8rpx;
 }
 
+/* 再来一局 */
 .new-game-btn {
   margin: 24rpx;
+  animation: fade-in 0.6s ease-out 0.4s both;
 }

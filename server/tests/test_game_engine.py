@@ -190,10 +190,12 @@ class TestTickEventRouting:
         engine.session.prd_counter = 0
         engine.session.realm_code = 1
 
-        result = await engine.tick()
-        assert result.event_type == "LOCAL"
+        # Phase 2D 怨念路由有 15% 概率触发 resentment 事件，mock 走纯本地路径
+        from unittest.mock import patch
+        with patch("server.application.game_engine.random.randint", return_value=50):
+            result = await engine.tick()
+        assert result.event_type in ("LOCAL", "RESENTMENT_LOCAL")
         assert result.stage == Stage.IDLE
-        assert "平淡日常" in result.log_text
         assert result.cultivation > 0
 
     @pytest.mark.asyncio

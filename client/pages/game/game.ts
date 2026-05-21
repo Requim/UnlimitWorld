@@ -48,6 +48,7 @@ Page({
     foundation: 10,
     realm: '练气期' as string,
     sinPhase: '清白' as string,
+    sinMax: 50 as number,
     /* 日志 */
     logs: [] as string[],
     /* 事件触发 */
@@ -158,6 +159,7 @@ Page({
       foundation: 10,
       realm: '练气期',
       sinPhase: '清白',
+      sinMax: 50,
     });
     this.onStartGame();
   },
@@ -250,8 +252,7 @@ Page({
         { id: 'B', label: '选项 B' },
       );
     }
-    // 始终追加自由对线选项 C
-    mappedOptions.push({ id: 'C', label: '自由对线 (自定义骚话)' });
+    // 自由对线选项 C 由模板中独立按钮处理，不再加入固定选项列表
 
     // karma_brief 为空时给默认描述
     const rawKarma = trigger?.karma_brief;

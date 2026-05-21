@@ -7,7 +7,7 @@
 ## 2. 核心系统需求
 
 ### 2.1 微信原生小程序开发（Frontend）
-
+- **UI设计：**：使用frontend-design skill 进行设计。
 - **组件树落地：**
   - **game 挂机主页：** 实现顶部【天谴值进度条】（包含 WXSS @keyframes 抖动火焰粒子特效）与【滚动日志流】。
   - **InteractionModal 对线弹窗：** 负责接收并组装 SC_STORY_STREAM 的流式文本，每收到一个 Chunk 触发一次 `wx.vibrateShort({type: 'light'})` 物理震动。

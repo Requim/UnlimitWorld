@@ -1,59 +1,60 @@
 <!--
-  挂机主页面模板
-  六态切换：connecting / idle / await_decision / streaming / settlement / game_over
+  挂机主页面 — 水墨宇宙 · 六态切换
+  connecting / idle / await_decision / streaming / settlement / game_over
 -->
 
 <view class="page">
 
-  <!-- ═══ 状态栏（始终显示） ═══ -->
+  <!-- ═══ 状态栏 · 修仙六维面板（始终显示） ═══ -->
   <view class="status-bar">
     <view class="status-item">
-      <text class="status-label">境界</text>
+      <text class="status-label">境 界</text>
       <text class="status-value">{{realm}}</text>
     </view>
     <view class="status-item">
-      <text class="status-label">修为</text>
+      <text class="status-label">修 为</text>
       <text class="status-value">{{cultivation}}</text>
     </view>
     <view class="status-item">
-      <text class="status-label">天谴</text>
-      <text class="status-value status-sin">{{sinValue}}</text>
+      <text class="status-label">天 谴</text>
+      <text class="status-value status-sin {{sinValue >= sinMax ? 'danger' : ''}}">{{sinValue}}</text>
     </view>
     <view class="status-item">
-      <text class="status-label">气运</text>
+      <text class="status-label">气 运</text>
       <text class="status-value">{{luck}}</text>
     </view>
     <view class="status-item">
-      <text class="status-label">根基</text>
+      <text class="status-label">根 基</text>
       <text class="status-value">{{foundation}}</text>
     </view>
     <view class="status-item">
-      <text class="status-label">天道</text>
+      <text class="status-label">天 道</text>
       <text class="status-value">{{sinPhase}}</text>
     </view>
   </view>
 
   <!-- ═══ 主内容区 ═══ -->
 
-  <!-- 状态 1：连接中 / 初始 -->
+  <!-- 状态 1：连接中 / 初始 · 太极入境 -->
   <view wx:if="{{uiState === 'connecting'}}" class="center-area">
     <view class="loading">
-      <text class="loading-text">等待连接...</text>
+      <view class="taiji-spinner"></view>
+      <text class="loading-text">等 待 天 道 连 接</text>
     </view>
     <view class="name-input-area" wx:if="{{!gameOver}}">
-      <text class="name-input-label">道号</text>
+      <text class="name-input-label">— 道 号 —</text>
       <input
         class="name-input"
         value="{{playerName}}"
-        placeholder="请输入道号"
+        placeholder="赐名"
         maxlength="12"
         bindinput="onNameInput"
       />
     </view>
-    <button wx:if="{{!gameOver}}" class="btn-gold" bindtap="onStartGame">踏入仙途</button>
+    <button wx:if="{{!gameOver}}" class="btn-gold" bindtap="onStartGame">踏 入 仙 途</button>
   </view>
 
-  <!-- 状态 2：挂机中（IDLE） -->
+  <!-- 状态 2：挂机中（IDLE）· 修炼手札 -->
   <view wx:if="{{uiState === 'idle'}}" class="content-area">
     <scroll-view class="log-container" scroll-y scroll-top="{{logScrollTop}}" scroll-into-view="log-end">
       <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
@@ -61,44 +62,54 @@
     </scroll-view>
   </view>
 
-  <!-- 状态 3：事件触发（AWAIT_DECISION） -->
+  <!-- 状态 3：事件触发（AWAIT_DECISION）· 天道符诏 -->
   <view wx:if="{{uiState === 'await_decision'}}" class="content-area">
-    <view class="card event-card">
-      <view class="event-header">
-        <text class="event-title">{{triggerTitle}}</text>
-        <text class="event-countdown">剩余 {{decisionCountdown}}s</text>
+    <scroll-view scroll-y style="flex:1;">
+      <view class="event-card">
+        <view class="event-header">
+          <text class="event-title">{{triggerTitle}}</text>
+          <text class="event-countdown {{decisionCountdown <= 10 ? 'urgent' : ''}}">⏳ {{decisionCountdown}}s</text>
+        </view>
+        <view class="event-description">{{triggerDescription}}</view>
+        <view class="event-footer-corners">
+          <text>◆</text>
+          <text>◆</text>
+        </view>
       </view>
-      <view class="event-description">{{triggerDescription}}</view>
-    </view>
 
-    <view class="decision-area">
-      <button
-        wx:for="{{triggerOptions}}"
-        wx:key="id"
-        class="btn-gold decision-btn"
-        data-id="{{item.id}}"
-        bindtap="onChooseOption"
-      >{{item.label}}</button>
-    </view>
-
-    <!-- 选项 C 自定义输入 -->
-    <view wx:if="{{showCustomInput}}" class="custom-input-area">
-      <textarea
-        class="custom-textarea"
-        value="{{customText}}"
-        placeholder="对天道说点什么..."
-        maxlength="200"
-        bindinput="onCustomInput"
-        auto-height
-      />
-      <view class="custom-input-btns">
-        <button class="btn-dark" bindtap="onCancelCustom">取消</button>
-        <button class="btn-gold" bindtap="onSendCustom">发送</button>
+      <view class="decision-area">
+        <button
+          wx:for="{{triggerOptions}}"
+          wx:key="id"
+          class="btn-gold decision-btn"
+          data-id="{{item.id}}"
+          bindtap="onChooseOption"
+        >{{item.label}}</button>
       </view>
-    </view>
+
+      <!-- 自由对线 · 自定义骚话 -->
+      <button wx:if="{{!showCustomInput}}" class="free-input-toggle" bindtap="onChooseCustom">
+        自 由 对 线 · 对 天 道 说 点 什 么
+      </button>
+
+      <view wx:if="{{showCustomInput}}" class="custom-input-area">
+        <textarea
+          class="custom-textarea"
+          value="{{customText}}"
+          placeholder="在此书写你的天道骚话..."
+          maxlength="200"
+          bindinput="onCustomInput"
+          auto-height
+        />
+        <view class="custom-input-btns">
+          <button class="btn-dark" bindtap="onCancelCustom">收 回</button>
+          <button class="btn-gold" bindtap="onSendCustom">直 谏 天 道</button>
+        </view>
+      </view>
+    </scroll-view>
   </view>
 
-  <!-- 状态 4：流式输出（STREAMING） -->
+  <!-- 状态 4：流式输出（STREAMING）· 天道宣纸 -->
   <view wx:if="{{uiState === 'streaming'}}" class="content-area">
     <scroll-view class="log-container story-scroll" scroll-y>
       <view class="story-area">
@@ -107,32 +118,36 @@
       </view>
     </scroll-view>
     <view class="streaming-hint">
-      <text>天道正在编故事...</text>
+      <text>天 道 正 在 编 故 事</text>
     </view>
   </view>
 
-  <!-- 状态 5：结算（SETTLEMENT） -->
+  <!-- 状态 5：结算（SETTLEMENT）· 天道裁决 -->
   <view wx:if="{{uiState === 'settlement'}}" class="content-area">
-    <view class="settlement-panel">
-      <view class="settlement-header">事件结算</view>
-      <view class="settlement-body">{{settlementText}}</view>
-      <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
-        天道点 +{{heavenPointsEarned}}
+    <scroll-view scroll-y style="flex:1;">
+      <view class="settlement-panel">
+        <view class="settlement-header">天 道 裁 决</view>
+        <view class="settlement-body">{{settlementText}}</view>
+        <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
+          天 道 点  +{{heavenPointsEarned}}
+        </view>
       </view>
-    </view>
+    </scroll-view>
   </view>
 
-  <!-- 状态 6：游戏结束（GAME_OVER） -->
+  <!-- 状态 6：游戏结束（GAME_OVER）· 道陨 -->
   <view wx:if="{{uiState === 'game_over'}}" class="content-area">
-    <view class="settlement-panel game-over-panel">
-      <view class="game-over-icon">💀</view>
-      <view class="game-over-title">{{gameOverTitle}}</view>
-      <view class="settlement-body">{{settlementText}}</view>
-      <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
-        天道点 +{{heavenPointsEarned}}
+    <scroll-view scroll-y style="flex:1;">
+      <view class="settlement-panel game-over-panel">
+        <view class="game-over-icon">☠</view>
+        <view class="game-over-title">道 陨</view>
+        <view class="settlement-body">{{settlementText}}</view>
+        <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
+          天 道 点  +{{heavenPointsEarned}}
+        </view>
       </view>
-    </view>
-    <button class="btn-gold new-game-btn" bindtap="onNewGame">再来一局</button>
+    </scroll-view>
+    <button class="btn-gold new-game-btn" bindtap="onNewGame">再 入 仙 途</button>
   </view>
 
 </view>

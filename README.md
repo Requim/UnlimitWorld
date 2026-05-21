@@ -247,7 +247,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 前端 | 微信原生小程序 TypeScript（M2 Phase 2A' ✅） |
 | 部署 | 腾讯云/阿里云国内节点（M3） |
 | 配置管理 | .env + pydantic-settings |
-| 测试 | pytest (212 项，含 E2E WebSocket 26 项） |
+| 测试 | pytest (225 项，含 E2E WebSocket 26 项 + 并发压力 13 项） |
 
 ---
 
@@ -329,7 +329,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 2B | MySQL 持久化 + Redis 缓存 | ✅ |
 | 2C | 全服因果池 | ✅ |
 | 2D | GameEngine 重构注入 | ✅ |
-| 2E | 并发压力测试 | ⏳ |
+| 2E | 并发压力测试 | ✅ |
 
 ---
 
@@ -358,15 +358,49 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | `server/application/game_engine.py` | ✅ Phase 2D（注入 SharedState + 怨念路由 + 重连 + 超时） |
 | `server/interface/ws.py` | ✅ Phase 2D（超时检测 + 断线重连 + 会话持久化） |
 | `server/interface/app.py` | ✅ Phase 2D（SharedState 初始化 + 怨念池后台任务） |
-| 并发压力测试 | ⏳ Phase 2E |
+| `server/tests/test_concurrency.py` | ✅ Phase 2E（13 项：5并发 + 高频刷新 + 流式 + 断线重连） |
+| `server/tests/test_e2e_ws.py` | ✅ Phase 2E（26 项 E2E WebSocket） |
 
-**测试总计：212 项全部通过**
+**测试总计：225 项全部通过**
 
 ---
 
 ## 十七、快速启动
 
-### M1 CLI 原型
+### Docker Compose 一键部署（推荐）
+
+全栈一键启动：FastAPI + MySQL 8.0 + Redis 7，自动建表、健康检查、数据持久化。
+
+```bash
+# 1. 配置环境变量（API Key 等）
+cp server/.env.example server/.env
+# 编辑 server/.env，填入 DEEPSEEK_API_KEY
+
+# 2. 构建并启动所有服务
+docker compose up -d
+
+# 3. 查看日志
+docker compose logs -f app
+
+# 4. 验证
+curl http://localhost:8000/docs
+```
+
+**数据持久化：** MySQL 和 Redis 数据通过 Docker Volume 保存在宿主机，`docker compose down` 不会丢失数据。如需彻底清除：
+
+```bash
+docker compose down -v
+```
+
+**环境变量覆盖：** `docker-compose.yml` 自动将容器内 `MYSQL_HOST=mysql`、`REDIS_HOST=redis` 注入 `server/.env` 之外，无需手动修改数据库连接地址。
+
+**无 API Key 运行：** 不配置 `DEEPSEEK_API_KEY` 时，LLM 调用自动降级为本地 mock 故事生成器，状态机、暴毙公式、事件池仍可完整测试。
+
+---
+
+### 手动启动（开发调试）
+
+**M1 CLI 原型：**
 
 ```bash
 cd server
@@ -375,15 +409,27 @@ cd ..
 python -m server.main
 ```
 
-### M2 WebSocket 服务器
+**M2 WebSocket 服务器：**
 
 ```bash
+# 先启动 MySQL 和 Redis（可单独 docker compose up mysql redis -d）
 cd server
 pip install -r requirements.txt
 cd ..
 python -m server.main --server
 # 监听 0.0.0.0:8000，WebSocket 端点 /ws/game?player_id=xxx
 ```
+
+**仅启动依赖服务（MySQL + Redis），应用在宿主机运行：**
+
+```bash
+docker compose up -d mysql redis
+cd server && pip install -r requirements.txt
+# 修改 server/.env 中 mysql_host=127.0.0.1, redis_host=127.0.0.1
+python -m server.main --server
+```
+
+---
 
 ### 运行测试
 
@@ -403,8 +449,6 @@ python -m tests.smoke_test_ws
 ### 微信小程序
 
 使用微信开发者工具打开 `client/` 目录，修改 `app.ts` 中的 WebSocket 地址指向后端服务器。
-
-无 API Key 时，LLM 调用将使用本地模拟模式（mock stream），不影响状态机、公式、事件池等功能测试。
 
 ---
 
