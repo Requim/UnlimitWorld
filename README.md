@@ -274,7 +274,9 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 │   │   ├── db.py                    # SQLAlchemy async engine (aiomysql)
 │   │   ├── models.py                # ORM 五表定义
 │   │   ├── redis.py                 # Redis 异步连接池 + 怨念池操作
-│   │   └── storage.py               # Repository 层（5 子仓储 + GameRepository 聚合）
+│   │   ├── storage.py               # Repository 层（5 子仓储 + GameRepository 聚合）
+│   │   ├── shared_state.py          # 全服单例：DeadRegistryManager + ImmortalHallManager
+│   │   └── karma_pool.py            # 怨念池清洗/评分/抽取 + 分布式锁
 │   ├── interface/                   # 接口适配器
 │   │   ├── __init__.py
 │   │   ├── cli.py                   # M1 控制台交互
@@ -325,7 +327,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 2A | WebSocket 服务器 + Action Frame 协议 | ✅ |
 | 2A' | 微信小程序骨架 + WS 客户端 | ✅ |
 | 2B | MySQL 持久化 + Redis 缓存 | ✅ |
-| 2C | 全服因果池 | ⏳ |
+| 2C | 全服因果池 | ✅ |
 | 2D | GameEngine 重构注入 | ⏳ |
 | 2E | 并发压力测试 | ⏳ |
 
@@ -351,7 +353,8 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | `server/infrastructure/models.py` | ✅ Phase 2B |
 | `server/infrastructure/redis.py` | ✅ Phase 2B |
 | `server/infrastructure/storage.py` | ✅ Phase 2B |
-| 因果池/SharedState | ⏳ Phase 2C |
+| `server/infrastructure/shared_state.py` | ✅ Phase 2C |
+| `server/infrastructure/karma_pool.py` | ✅ Phase 2C |
 | 并发压力测试 | ⏳ Phase 2E |
 
 **测试总计：212 项全部通过**

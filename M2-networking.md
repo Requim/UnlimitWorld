@@ -228,7 +228,7 @@ M1 的 `_process_local_event()` 仅从本地 JSON 池抽取。M2 需在抽取前
 1. **Phase 2A — 网络层骨架：** `app.py` + `ws.py` + 基本的 WebSocket 连接管理 + tick loop（沿用 M1 内存存储）
 2. **Phase 2A' — 小程序骨架：** `client/` 项目脚手架 + `utils/ws.ts` 单例 + game 页面基础布局 + WS 联调（与后端 Phase 2A 联动验证）
 3. **Phase 2B — 持久化层：✅ 完成** `db.py` + `models.py` + `redis.py` + `storage.py`（五表建表 + 读写）
-4. **Phase 2C — 全服怨念池：** `shared_state.py` + `karma_pool.py`（怨念抽取、清洗定时任务）
+4. **Phase 2C — 全服怨念池：✅ 完成** `shared_state.py` + `karma_pool.py`（怨念抽取、清洗定时任务）
 5. **Phase 2D — GameEngine 改造：** 注入 SharedState + 怨念路由集成 + 断线重连 + 超时处理
 6. **Phase 2E — 测试与并发验证：** `test_ws.py`（5 并发 + 重连恢复）
 
@@ -261,6 +261,26 @@ M1 的 `_process_local_event()` 仅从本地 JSON 池抽取。M2 需在抽取前
 - **怨念候选原子清空**：`pop_resentment_candidates()` 使用 RENAME→LRANGE→DEL 三连避免并发写入丢失
 - **聚合仓储**：`GameRepository` 统一持有 5 个子仓储 + RedisClient，简化上层依赖注入
 - **ActiveSession.stage** 存储状态机阶段字符串，供 Phase 2D 断线重连判断使用
+
+---
+
+### 4.11 Phase 2C 实施记录
+
+> 完成日期：2026-05-21 | 实施人：Claude Code | 测试：212 passed
+
+#### 新建文件
+
+| 文件 | 说明 |
+|------|------|
+| `server/infrastructure/shared_state.py` | 全服共享状态单例：DeadRegistryManager（死亡因果池读写 + Redis 怨念推送）+ ImmortalHallManager（飞升名人堂读写） |
+| `server/infrastructure/karma_pool.py` | 怨念池管理器：死因精品评分函数 score_dead_title() + KarmaPoolManager（清洗/评分/Redis Set 注入/分布式锁防重） |
+
+#### 设计决策
+
+- **死因精品评分算法**：三维评分 —— 长度（5-80 字符最佳）+ 高价值修仙关键词（+15，如天谴/神罚/飞升）+ 趣味词（+5，如骚话/翻车/作死），满分 100
+- **怨念池清洗流程**：分布式锁 → RENAME 原子弹出 Redis candidates → 合并 MySQL unselected → 评分取 top 250 → 替换 Redis Set → 标记 MySQL is_selected → 释放锁
+- **DeadRegistryManager 与 GameEngine 解耦**：从 GameEngine 实例级 list 提升为全服单例，Phase 2D 通过构造函数依赖注入获取引用
+- **random_karma() 双轨 fallback**：优先 Redis SRANDMEMBER（精品缓存），miss 时 fallback 到 MySQL ORDER BY RAND()
 
 ---
 
