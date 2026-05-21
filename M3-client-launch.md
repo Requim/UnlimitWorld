@@ -147,15 +147,27 @@ M2 Phase 2D 已实现：
 | Canvas 战报图兼容性 | 使用新版 Canvas 2D API，低版本微信降级为纯文本分享 |
 | 道具系统数值平衡 | 因果遮蔽卡定价 = 1 局天道点收益期望值 |
 
-### 5.5 建议 Phase 拆分
+### 5.5 前端设计强制规范
+
+**所有涉及前端 UI 的 Phase（3B/3C/3D/3E），必须在编码前调用 `frontend-design` skill 进行设计评审。** 该 skill 要求：
+
+- **设计思维先行：** 明确 Purpose → Tone → Constraints → Differentiation，确定大胆的美学方向后再编码
+- **避免 AI 俗套：** 禁止 Inter/Roboto/Arial 字体、紫色渐变、通用布局模式
+- **保持「水墨宇宙」主题一致性：** 在 M2 Phase 2A' 已建立的 5 层色彩体系（void/ink/paper/gold/cinnabar/jade）基础上深化，不可偏离
+- **微信小程序兼容：** WXSS 不支持外链字体、高级 CSS 选择器、CSS Grid；动画仅限 `@keyframes` + `transition`
+- **每个 Phase 的设计产出物：** design-direction.md（美学方向决策）+ 实际 WXML/WXSS/TS 代码
+
+M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行）、game/shop/hall 三页面 WXSS 重写，效果显著。M3 延续此流程。
+
+### 5.6 建议 Phase 拆分
 
 基于以上分析，M3 建议拆分为 6 个 Phase：
 
-| Phase | 内容 | 预估工作量 |
-|-------|------|-----------|
-| **3A** | 微信登录 + openid 绑定 + msgSecCheck 内容安全 | 后端为主 |
-| **3B** | 局外商店后端（模型/API/购买/道具生效） | 全栈 |
-| **3C** | 名人堂读 API + 前端排行榜 + 战报图分享 | 全栈 |
-| **3D** | 前端 UI 进阶（进度条/Modal/震动/TabBar 图标/环境配置） | 前端为主 |
-| **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 道具系统集成测试 | 全栈 |
-| **3F** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps |
+| Phase | 内容 | 类型 | 前端设计 |
+|-------|------|------|----------|
+| **3A** | 微信登录 + openid 绑定 + msgSecCheck 内容安全 | 后端为主 | — |
+| **3B** | 局外商店（模型/API/购买/道具生效 + 前端商店页面） | 全栈 | ✅ `frontend-design` |
+| **3C** | 名人堂读 API + 前端排行榜 + Canvas 战报图分享 | 全栈 | ✅ `frontend-design` |
+| **3D** | 前端 UI 进阶（进度条/Modal/震动/TabBar 图标/环境配置） | 前端为主 | ✅ `frontend-design` |
+| **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 集成测试 | 全栈 | ✅ `frontend-design` |
+| **3F** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — |
