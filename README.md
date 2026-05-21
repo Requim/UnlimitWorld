@@ -83,9 +83,10 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 | 天道因果轨道 | ~5% | PRD ≥ 80 / 大境界突破 / 天谴满 100 | 调用 DeepSeek，异步推演 |
 
 ### PRD 参数
-- 每 tick 累加 random(1-10)
-- 阈值 80 时触发 LLM 事件并归零
-- 优先级链：天谴满100 > 大境界突破 > PRD触发 > 本地日常
+- 每 tick 累加 random(2-12)
+- **动态阈值（按境界）**：练气:60, 筑基:70, 金丹:85, 元婴:100, 化神:110, 渡劫:120, 大乘:999
+- 优先级链：飞升 > 天谴满 > PRD ≥ 境界阈值 > 大境界突破 > 本地日常
+- PRD 作为"命运拦截器"优先于突破，防止突破必定触发 LLM 的设计死锁
 
 ---
 
@@ -117,7 +118,7 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 
 ---
 
-## 七、六阶段状态机
+## 七、七阶段状态机
 
 ```
 [0: INIT] → [1: IDLE] → [2: EVENT_TRIGGER] → [3: AWAIT_DECISION]
@@ -127,8 +128,9 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
   结算天道点 → 写入因果池/名人堂 → 回到局外
 ```
 
+- **只能前向转换**，不可逆退
 - 60s 对线超时：自动选 A + 扣除当前修为 10%（道心蒙尘）
-- 因果遮蔽卡：后端拦截 is_dead=true，推送固定拯救文案
+- 因果遮蔽卡：后端拦截 `is_dead=true`，推送固定拯救文案
 - 飞升：修为满 5000W 时强行阻断挂机，触发终极大考
 
 ---
@@ -200,24 +202,36 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 
 ---
 
-## 十一、WebSocket 协议（M2）
+## 十一、WebSocket Action Frame 协议（M2 ✅）
 
-action 路由帧结构，核心消息类型：
-- `CS_PING` / `SC_PONG` — 心跳（10s 间隔，3 次失败释放连接）
-- `SC_GAME_LOG` — 日常挂机日志推送
-- `SC_HEAVEN_EVENT_TRIGGER` — 天道事件弹窗
-- `CS_PLAYER_DECISION` — 玩家提交选择/骚话
-- `SC_STORY_STREAM` — 逐字流式输出（打字机特效）
-- `SC_EVENT_SETTLEMENT` — 因果结算
-- `CS_RESUME_SESSION` — 断线重连（5 分钟窗口）
+全部 7 种消息类型已实现并测试通过：
+
+**上行（Client → Server）**
+| Action | 说明 |
+|--------|------|
+| `CS_START_GAME` | 开局，携带 player_name |
+| `CS_PING` | 心跳保活 |
+| `CS_PLAYER_DECISION` | 玩家对线决策（choice_id + custom_text） |
+
+**下行（Server → Client）**
+| Action | 说明 |
+|--------|------|
+| `SC_GAME_LOG` | 日常挂机日志 + 状态快照（cultivation/sin/luck/foundation/realm/sin_phase） |
+| `SC_HEAVEN_EVENT_TRIGGER` | 天道事件触发（fixed_options、karma_brief、heaven_persona） |
+| `SC_STORY_STREAM` | LLM 流式推送 chunk（is_last 标志收尾） |
+| `SC_EVENT_SETTLEMENT` | 事件结算（settlement 含 dead_title/story_text/heaven_points_earned） |
+| `SC_PONG` | 心跳响应 |
+| `SC_ERROR` | 错误信息 |
+
+**前端优化：** STORY_STREAM 80ms 帧合并、状态栏 1s 节流、日志上限 200 条
 
 ---
 
-## 十二、数据库 Schema（M2，MySQL + Redis 三级缓存）
+## 十二、数据库 Schema（M2 — 待实施 Phase 2B）
 
 5 张表：`player_account` / `dead_registry` / `immortal_hall` / `active_session` / `heaven_overlord_pool`
 
-缓存：内存(Dict) → Redis(Hash) → MySQL(异步 30s 快照)
+缓存策略：内存(Dict) → Redis(Hash) → MySQL(异步 30s 快照)
 
 ---
 
@@ -225,12 +239,13 @@ action 路由帧结构，核心消息类型：
 
 | 层 | 选型 |
 |----|------|
-| 后端框架 | FastAPI + Pydantic v2 |
-| 大模型 | DeepSeek（国内节点） |
-| 数据库 | MySQL + Redis（M2） |
-| 前端 | 微信原生小程序（M2） |
+| 后端框架 | FastAPI + Pydantic v2 + uvicorn |
+| 大模型 | DeepSeek（国内节点，OpenAI 兼容 API） |
+| 数据库 | MySQL + Redis（M2 Phase 2B） |
+| 前端 | 微信原生小程序 TypeScript（M2 Phase 2A' ✅） |
 | 部署 | 腾讯云/阿里云国内节点（M3） |
 | 配置管理 | .env + pydantic-settings |
+| 测试 | pytest (212 项，含 E2E WebSocket 26 项） |
 
 ---
 
@@ -238,27 +253,53 @@ action 路由帧结构，核心消息类型：
 
 ```
 /
-├── server/                       # Python 后端
-│   ├── config.py                 # 配置管理（pydantic-settings）
-│   ├── main.py                   # M1 入口
-│   ├── domain/                   # 领域层：纯对象与公式
+├── server/                          # Python 后端
+│   ├── config.py                    # 配置管理（pydantic-settings）
+│   ├── main.py                      # 入口（--server 启动 WebSocket / 默认 CLI）
+│   ├── requirements.txt             # Python 依赖
+│   ├── domain/                      # 领域层：纯对象与公式
 │   │   ├── __init__.py
-│   │   ├── player.py             # 玩家属性、境界、暴毙公式
-│   │   └── event.py              # 事件模型、LLM 契约
-│   ├── application/              # 应用层：状态机编排
+│   │   ├── player.py                # 玩家属性、境界、暴毙公式
+│   │   └── event.py                 # 事件模型、LLM 契约（EventTrigger/EventSettlement）
+│   ├── application/                 # 应用层：状态机编排
 │   │   ├── __init__.py
-│   │   ├── game_engine.py        # 核心 Tick、状态机、结算
-│   │   └── heaven_persona.py     # 4 大天道人格 Prompt 工厂
-│   ├── infrastructure/           # 基础设施层：外部 IO
+│   │   ├── game_engine.py           # 核心 Tick、7 阶段状态机、事件结算
+│   │   └── heaven_persona.py        # 4 大天道人格 Prompt 工厂
+│   ├── infrastructure/              # 基础设施层：外部 IO
 │   │   ├── __init__.py
-│   │   ├── llm_client.py         # DeepSeek 异步流式客户端
-│   │   └── event_config.py       # 本地事件加载与组装
-│   ├── interface/                # 接口适配器
+│   │   ├── llm_client.py            # DeepSeek 异步流式客户端 + LLMOrchestrator
+│   │   └── event_config.py          # 本地事件加载与三池路由
+│   ├── interface/                   # 接口适配器
 │   │   ├── __init__.py
-│   │   └── cli.py                # M1 控制台交互
+│   │   ├── cli.py                   # M1 控制台交互
+│   │   ├── app.py                   # FastAPI 应用工厂 + ConnectionManager
+│   │   └── ws.py                    # WebSocket 路由 + 每连接 tick loop
+│   ├── tests/                       # 测试套件（212 项）
+│   │   ├── test_player.py           # 领域层单元测试
+│   │   ├── test_game_engine.py      # 引擎单元测试
+│   │   ├── test_llm_client.py       # LLM 客户端测试
+│   │   ├── test_heaven_persona.py   # 人格系统测试
+│   │   ├── test_event_config.py     # 事件配置测试
+│   │   ├── test_router.py           # 事件路由测试
+│   │   ├── test_integration.py      # 黑盒集成测试
+│   │   ├── smoke_test_ws.py         # WebSocket 冒烟测试（4 项）
+│   │   └── test_e2e_ws.py           # 端到端测试（26 项）
 │   └── data/
 │       └── Config_Normal_Events.json
-├── client/                       # 微信小程序前端（M2）
+├── client/                          # 微信小程序前端（M2 Phase 2A' ✅）
+│   ├── app.ts                       # 入口：WsManager 单例、player_id 生成
+│   ├── app.json                     # 页面路由注册
+│   ├── app.wxss                     # 全局样式（修仙暗黑主题）
+│   ├── utils/
+│   │   ├── ws.ts                    # WebSocket 管理器（自动重连+心跳+消息回调）
+│   │   └── actions.ts               # Action Frame 常量 + UIState 枚举
+│   └── pages/
+│       ├── game/                    # 挂机主页面（6 态切换）
+│       │   ├── game.ts              # WS 消息路由 + 状态机 + setData 优化
+│       │   ├── game.wxml            # 模板：状态栏/日志/事件卡片/流式/结算
+│       │   └── game.wxss            # 样式：修仙暗黑主题
+│       ├── shop/                    # 商店页面（占位）
+│       └── hall/                    # 名人堂页面（占位）
 └── README.md
 ```
 
@@ -266,64 +307,90 @@ action 路由帧结构，核心消息类型：
 
 ## 十五、Milestone 开发排期
 
-| 里程碑 | 天数 | 交付 |
-|--------|------|------|
-| M1 核心因果流 | 3 天 | Python 后端 + CLI 原型闭环 |
-| M2 弱联机连接 | 3 天 | WebSocket + MySQL + 极简小程序 |
-| M3 数值调优与视觉 | 4 天 | 火焰进度条/打字机动效/抽卡/内测上线 |
+| 里程碑 | 天数 | 状态 | 交付 |
+|--------|------|------|------|
+| M1 核心因果流 | 3 天 | ✅ 完成 | Python 后端 + CLI 原型闭环 |
+| M2 弱联机连接 | 3 天 | 🔄 进行中 | WebSocket + MySQL + 极简小程序 |
+| M3 数值调优与视觉 | 4 天 | ⏳ 待开始 | 火焰进度条/打字机动效/抽卡/内测上线 |
+
+**M2 子阶段进度：**
+| Phase | 内容 | 状态 |
+|-------|------|------|
+| 2A | WebSocket 服务器 + Action Frame 协议 | ✅ |
+| 2A' | 微信小程序骨架 + WS 客户端 | ✅ |
+| 2B | MySQL 持久化 + Redis 缓存 | ⏳ |
+| 2C | 全服因果池 | ⏳ |
+| 2D | GameEngine 重构注入 | ⏳ |
+| 2E | 并发压力测试 | ⏳ |
 
 ---
 
 ## 十六、当前进度
 
-### M1 模块状态
+### M1 模块状态 ✅
+
+全部 17 个模块完成，单元测试通过。
+
+### M2 模块状态 🔄
 
 | 模块 | 状态 |
 |------|------|
-| `config.py` | ✅ 通过 |
-| `domain/__init__.py` | ✅ 通过 |
-| `domain/player.py` | ✅ 通过 |
-| `domain/event.py` | ✅ 通过 |
-| `application/__init__.py` | ✅ 通过 |
-| `application/heaven_persona.py` | ✅ 通过 |
-| `application/game_engine.py` | ✅ 通过 |
-| `infrastructure/__init__.py` | ✅ 通过 |
-| `infrastructure/llm_client.py` | ✅ 通过 |
-| `infrastructure/event_config.py` | ✅ 通过 |
-| `data/Config_Normal_Events.json` | ✅ 通过 |
-| `interface/__init__.py` | ✅ 通过 |
-| `interface/cli.py` | ✅ 通过 |
-| `main.py` | ✅ 通过 |
-| `.env.example` | ✅ 通过 |
-| `requirements.txt` | ✅ 通过 |
-| `.gitignore` | ✅ 通过 |
+| `server/interface/app.py` | ✅ Phase 2A |
+| `server/interface/ws.py` | ✅ Phase 2A |
+| `server/main.py --server` | ✅ Phase 2A |
+| `server/tests/smoke_test_ws.py` | ✅ Phase 2A (4 项) |
+| `server/tests/test_e2e_ws.py` | ✅ Phase 2A (26 项) |
+| `client/` (17 文件) | ✅ Phase 2A' |
+| `server/infrastructure/db.py` | ⏳ Phase 2B |
+| `server/infrastructure/models.py` | ⏳ Phase 2B |
+| `server/infrastructure/redis.py` | ⏳ Phase 2B |
+| `server/infrastructure/storage.py` | ⏳ Phase 2B |
+| 因果池/SharedState | ⏳ Phase 2C |
+| 并发压力测试 | ⏳ Phase 2E |
 
-**全部 17 个模块导入验证通过，核心函数单元测试通过。**
+**测试总计：212 项全部通过**
 
 ---
 
-## 十七、M1 快速启动
+## 十七、快速启动
+
+### M1 CLI 原型
 
 ```bash
-# 1. 进入 server 目录
 cd server
-
-# 2. 创建虚拟环境（可选）
-python -m venv .venv
-.venv\Scripts\activate   # Windows
-# source .venv/bin/activate  # macOS/Linux
-
-# 3. 安装依赖
 pip install -r requirements.txt
-
-# 4. 配置 API Key
-cp .env.example .env
-# 编辑 .env 填入 DEEPSEEK_API_KEY
-
-# 5. 启动 CLI 原型
 cd ..
 python -m server.main
 ```
+
+### M2 WebSocket 服务器
+
+```bash
+cd server
+pip install -r requirements.txt
+cd ..
+python -m server.main --server
+# 监听 0.0.0.0:8000，WebSocket 端点 /ws/game?player_id=xxx
+```
+
+### 运行测试
+
+```bash
+cd server
+
+# 全量测试（212 项）
+python -m pytest tests/ -v
+
+# 仅 WebSocket E2E（26 项）
+python -m pytest tests/test_e2e_ws.py -v
+
+# WebSocket 冒烟测试（4 项，独立脚本）
+python -m tests.smoke_test_ws
+```
+
+### 微信小程序
+
+使用微信开发者工具打开 `client/` 目录，修改 `app.ts` 中的 WebSocket 地址指向后端服务器。
 
 无 API Key 时，LLM 调用将使用本地模拟模式（mock stream），不影响状态机、公式、事件池等功能测试。
 
