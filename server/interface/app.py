@@ -5,19 +5,26 @@ M2 网络层入口，挂载 WebSocket 路由。
 通过 lifespan 管理连接管理器、SharedState、怨念池清洗后台任务。
 
 Phase 2D：SharedState 初始化 + KarmaPool 定时清洗 + ConnectionManager 注入。
+Phase 3A：WeChat 客户端初始化 + /api/auth/login 端点。
 """
 
 import asyncio
+import logging
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from server.config import settings
 from server.interface.ws import ConnectionManager, router as ws_router
+from server.infrastructure.wechat import WeChatClient
+
+logger = logging.getLogger("uvicorn")
 
 # 全服单例（在 lifespan 中初始化）
 _connection_manager: ConnectionManager | None = None
 _karma_pool_task: asyncio.Task | None = None
+_wechat_client: WeChatClient | None = None
 
 
 def get_connection_manager() -> ConnectionManager:
@@ -27,9 +34,23 @@ def get_connection_manager() -> ConnectionManager:
     return _connection_manager
 
 
+def get_wechat_client() -> WeChatClient:
+    global _wechat_client
+    if _wechat_client is None:
+        _wechat_client = WeChatClient()
+    return _wechat_client
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global _connection_manager, _karma_pool_task
+    global _connection_manager, _karma_pool_task, _wechat_client
+
+    # ── Phase 3A：微信客户端初始化 ──
+    _wechat_client = WeChatClient()
+    if _wechat_client.enabled:
+        logger.info("[WeChat] 微信 API 客户端已启用")
+    else:
+        logger.info("[WeChat] 未配置 AppID/Secret，降级为 mock 模式")
 
     # ── Phase 2D：基础设施初始化 ──
     redis_client = None
@@ -116,6 +137,9 @@ async def lifespan(app: FastAPI):
 
     await _connection_manager.shutdown()
 
+    if _wechat_client:
+        await _wechat_client.close()
+
     if redis_client:
         try:
             await redis_client.disconnect()
@@ -124,7 +148,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app() -> FastAPI:
-    app = FastAPI(title="天道不正经", version="M2", lifespan=lifespan)
+    app = FastAPI(title="天道不正经", version="M3", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,
@@ -135,6 +159,33 @@ def create_app() -> FastAPI:
     )
 
     app.include_router(ws_router)
+
+    # ── Phase 3A：微信登录接口 ──
+    @app.post("/api/auth/login")
+    async def auth_login(request: Request):
+        """wx.login code 换取 player_id。
+
+        请求体：{"code": "wx.login 返回的 code"}
+        响应体：{"player_id": str, "is_new": bool}
+        """
+        body = await request.json()
+        code = body.get("code", "")
+        if not code:
+            return JSONResponse(
+                {"error": "缺少 code 参数"}, status_code=400
+            )
+
+        wc = get_wechat_client()
+        result = await wc.code2session(code)
+        if "error" in result:
+            return JSONResponse(
+                {"error": result["error"]}, status_code=401
+            )
+
+        openid = result["openid"]
+        # openid 直接作为 player_id 使用
+        # PlayerAccount 由 GameEngine.new_game() 在 WebSocket 层创建
+        return {"player_id": openid, "is_new": False}
 
     return app
 

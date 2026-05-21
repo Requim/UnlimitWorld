@@ -247,7 +247,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 前端 | 微信原生小程序 TypeScript（M2 Phase 2A' ✅） |
 | 部署 | 腾讯云/阿里云国内节点（M3） |
 | 配置管理 | .env + pydantic-settings |
-| 测试 | pytest (225 项，含 E2E WebSocket 26 项 + 并发压力 13 项） |
+| 测试 | pytest (244 项，含 E2E WebSocket 26 项 + 并发 13 项 + 微信 19 项） |
 
 ---
 
@@ -331,6 +331,17 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | 2D | GameEngine 重构注入 | ✅ |
 | 2E | 并发压力测试 | ✅ |
 
+### M3 Phase 进度
+
+| Phase | 内容 | 状态 |
+|-------|------|------|
+| 3A | 微信登录 + openid + msgSecCheck 内容安全 | ✅ |
+| 3B | 局外商店（模型/API/道具生效 + 前端页面） | ⏳ |
+| 3C | 名人堂读 API + 前端排行榜 + 战报图分享 | ⏳ |
+| 3D | 前端 UI 进阶（进度条/Modal/震动/图标/配置） | ⏳ |
+| 3E | 因果遮蔽卡前端特效 + 耳塞协议 + 集成测试 | ⏳ |
+| 3F | 国内云部署 + ICP 备案 + 微信审核 | ⏳ |
+
 ---
 
 ## 十六、当前进度
@@ -339,7 +350,7 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 
 全部 17 个模块完成，单元测试通过。
 
-### M2 模块状态 🔄
+### M2 模块状态 ✅
 
 | 模块 | 状态 |
 |------|------|
@@ -361,7 +372,20 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 | `server/tests/test_concurrency.py` | ✅ Phase 2E（13 项：5并发 + 高频刷新 + 流式 + 断线重连） |
 | `server/tests/test_e2e_ws.py` | ✅ Phase 2E（26 项 E2E WebSocket） |
 
-**测试总计：225 项全部通过**
+### M3 模块状态
+
+| 模块 | 状态 |
+|------|------|
+| `server/infrastructure/wechat/client.py` | ✅ Phase 3A（微信 API：登录 + token + 内容安全） |
+| `server/interface/app.py` | ✅ Phase 3A（/api/auth/login 端点） |
+| `server/interface/ws.py` | ✅ Phase 3A（msgSecCheck 内容安全审查） |
+| `server/config.py` | ✅ Phase 3A（WECHAT_APPID / SECRET / MSG_SEC_CHECK_ENABLED） |
+| `client/app.ts` | ✅ Phase 3A（wx.login → openid 换 player_id） |
+| `client/utils/config.ts` | ✅ Phase 3A（环境配置：BASE_URL / WS_URL） |
+| `client/utils/ws.ts` | ✅ Phase 3A（使用 config.ts 可配置地址） |
+| `server/tests/test_wechat.py` | ✅ Phase 3A（19 项） |
+
+**测试总计：244 项全部通过**
 
 ---
 

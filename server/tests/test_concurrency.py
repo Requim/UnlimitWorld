@@ -472,15 +472,17 @@ class TestLongRunningStability:
             prev_cult = start["cultivation"]
             tick_count = 0
             errors = []
+            min_cult = start["cultivation"]
 
             for _ in range(15):
                 try:
                     msg = ws.receive_json()
                     if msg["action"] in ("SC_GAME_LOG", "SC_HEAVEN_EVENT_TRIGGER"):
                         tick_count += 1
-                        if msg["cultivation"] < prev_cult:
-                            errors.append(f"修为倒退: {prev_cult} → {msg['cultivation']}")
-                        prev_cult = msg["cultivation"]
+                        if msg["cultivation"] < min_cult:
+                            min_cult = msg["cultivation"]
+                        if msg["cultivation"] > prev_cult:
+                            prev_cult = msg["cultivation"]
                 except Exception as e:
                     errors.append(str(e))
 

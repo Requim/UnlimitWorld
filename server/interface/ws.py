@@ -5,6 +5,7 @@ M2 网络层核心：Action Frame 协议路由、自动挂机循环、LLM 流式
 每个 WebSocket 连接拥有独立的 GameEngine 实例（session 隔离）。
 
 Phase 2D：注入 SharedState + 超时检测 + 断线重连 + 会话持久化。
+Phase 3A：msgSecCheck 内容安全审查。
 """
 
 import asyncio
@@ -320,6 +321,29 @@ async def _handle_lifecycle(
 
                 choice_id = data.get("choice_id", "A")
                 custom_text = data.get("custom_text", "")
+
+                # ── Phase 3A：内容安全审查 ──
+                if custom_text.strip() and settings.wechat_msg_sec_check_enabled:
+                    from server.interface.app import get_wechat_client
+                    wc = get_wechat_client()
+                    sec_result = await wc.msg_sec_check(custom_text, openid=player_id)
+                    if not sec_result.get("pass"):
+                        # 内容违规：扣除功德 + 警告日志，不调用 LLM
+                        if engine.session:
+                            penalty = max(5, engine.session.heaven_points // 10)
+                            engine.session.heaven_points = max(0, engine.session.heaven_points - penalty)
+                        await ws.send_json({
+                            "action": Action.SC_GAME_LOG,
+                            "log_text": f"[天道监察] 言行不端，天道震怒！扣除 {penalty if engine.session else 5} 功德。",
+                            "cultivation": engine.session.cultivation if engine.session else 0,
+                            "sin_value": engine.session.sin_value if engine.session else 0,
+                            "luck": engine.session.luck if engine.session else 50,
+                            "foundation": engine.session.foundation if engine.session else 50,
+                            "realm": get_realm_name(engine.session.realm_code) if engine.session else "练气期",
+                            "sin_phase": engine.session.sin_phase() if engine.session else "safe",
+                            "stage": engine.stage,
+                        })
+                        continue
 
                 async def on_chunk(chunk: str):
                     await ws.send_json(_build_story_stream(chunk, is_last=False))

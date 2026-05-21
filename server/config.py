@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     # ── M2 异步写回 ──
     session_flush_interval: int = 30      # Redis → MySQL 写回间隔（秒）
 
+    # ── M3 微信小程序 ──
+    wechat_appid: str = ""                # 小程序 AppID
+    wechat_secret: str = ""               # 小程序 AppSecret
+    wechat_msg_sec_check_enabled: bool = True  # 内容安全审查开关
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

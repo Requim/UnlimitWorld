@@ -6,6 +6,7 @@
  */
 
 import { CS_PING } from './actions';
+import { BASE_URL, WS_URL } from './config';
 
 /* ── 常量 ── */
 const HEARTBEAT_INTERVAL = 30_000;   // 心跳间隔 30s
@@ -50,7 +51,7 @@ export class WsManager {
     }
 
     this._playerId = playerId;
-    this._url = `ws://localhost:8000/ws/game?player_id=${playerId}`;
+    this._url = `${WS_URL}?player_id=${playerId}`;
     this._status = 'connecting';
 
     this._log(`连接中... ${this._url}`);

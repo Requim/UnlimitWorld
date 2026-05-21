@@ -163,11 +163,11 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 
 基于以上分析，M3 建议拆分为 6 个 Phase：
 
-| Phase | 内容 | 类型 | 前端设计 |
-|-------|------|------|----------|
-| **3A** | 微信登录 + openid 绑定 + msgSecCheck 内容安全 | 后端为主 | — |
-| **3B** | 局外商店（模型/API/购买/道具生效 + 前端商店页面） | 全栈 | ✅ `frontend-design` |
-| **3C** | 名人堂读 API + 前端排行榜 + Canvas 战报图分享 | 全栈 | ✅ `frontend-design` |
-| **3D** | 前端 UI 进阶（进度条/Modal/震动/TabBar 图标/环境配置） | 前端为主 | ✅ `frontend-design` |
-| **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 集成测试 | 全栈 | ✅ `frontend-design` |
-| **3F** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — |
+| Phase | 内容 | 类型 | 前端设计 | 状态 |
+|-------|------|------|----------|------|
+| **3A** | 微信登录 + openid 绑定 + msgSecCheck 内容安全 | 后端为主 | — | ✅ |
+| **3B** | 局外商店（模型/API/购买/道具生效 + 前端商店页面） | 全栈 | ✅ `frontend-design` | ⏳ |
+| **3C** | 名人堂读 API + 前端排行榜 + Canvas 战报图分享 | 全栈 | ✅ `frontend-design` | ⏳ |
+| **3D** | 前端 UI 进阶（进度条/Modal/震动/TabBar 图标/环境配置） | 前端为主 | ✅ `frontend-design` | ⏳ |
+| **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 集成测试 | 全栈 | ✅ `frontend-design` | ⏳ |
+| **3F** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — | ⏳ |
