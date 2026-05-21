@@ -170,3 +170,12 @@ class DeadRecord(BaseModel):
     sin_value: int = 0
     survived_seconds: int = 0
     created_at: datetime = Field(default_factory=datetime.now)
+
+
+class ActiveSession(BaseModel):
+    """活跃会话快照（M2 持久化到 active_session 表，支持断线重连）"""
+    player_id: str
+    session_json: str = ""        # PlayerState.model_dump_json()
+    stage: str = "IDLE"           # 当前状态机阶段
+    trigger_json: str | None = None  # 若在 AWAIT_DECISION，保存 EventTrigger JSON
+    updated_at: datetime = Field(default_factory=datetime.now)

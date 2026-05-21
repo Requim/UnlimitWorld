@@ -47,6 +47,26 @@ class Settings(BaseSettings):
     ws_heartbeat_interval: int = 30     # 服务端心跳检测间隔（秒）
     ws_connect_timeout: int = 120       # 客户端开局超时（秒）
 
+    # ── M2 MySQL ──
+    mysql_host: str = "127.0.0.1"
+    mysql_port: int = 3306
+    mysql_user: str = "root"
+    mysql_password: str = ""
+    mysql_database: str = "tiandao"
+
+    # ── M2 Redis ──
+    redis_host: str = "127.0.0.1"
+    redis_port: int = 6379
+    redis_password: str = ""
+    redis_db: int = 0
+
+    # ── M2 怨念池 ──
+    karma_pool_clean_interval: int = 600  # 怨念池清洗间隔（秒）
+    karma_pool_top_n: int = 250           # 每次清洗保留精品数
+
+    # ── M2 异步写回 ──
+    session_flush_interval: int = 30      # Redis → MySQL 写回间隔（秒）
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

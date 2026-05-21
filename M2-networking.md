@@ -227,10 +227,40 @@ M1 的 `_process_local_event()` 仅从本地 JSON 池抽取。M2 需在抽取前
 
 1. **Phase 2A — 网络层骨架：** `app.py` + `ws.py` + 基本的 WebSocket 连接管理 + tick loop（沿用 M1 内存存储）
 2. **Phase 2A' — 小程序骨架：** `client/` 项目脚手架 + `utils/ws.ts` 单例 + game 页面基础布局 + WS 联调（与后端 Phase 2A 联动验证）
-3. **Phase 2B — 持久化层：** `db.py` + `models.py` + `redis.py` + `storage.py`（五表建表 + 读写）
+3. **Phase 2B — 持久化层：✅ 完成** `db.py` + `models.py` + `redis.py` + `storage.py`（五表建表 + 读写）
 4. **Phase 2C — 全服怨念池：** `shared_state.py` + `karma_pool.py`（怨念抽取、清洗定时任务）
 5. **Phase 2D — GameEngine 改造：** 注入 SharedState + 怨念路由集成 + 断线重连 + 超时处理
 6. **Phase 2E — 测试与并发验证：** `test_ws.py`（5 并发 + 重连恢复）
+
+---
+
+### 4.10 Phase 2B 实施记录
+
+> 完成日期：2026-05-21 | 实施人：Claude Code | 测试：212 passed
+
+#### 新建文件
+
+| 文件 | 说明 |
+|------|------|
+| `server/infrastructure/db.py` | SQLAlchemy 2.0 async engine（aiomysql 驱动）+ async_sessionmaker，懒加载模式 |
+| `server/infrastructure/models.py` | 五表 ORM：PlayerAccountModel / DeadRegistryModel / ImmortalHallModel / ActiveSessionModel / HeavenOverlordPoolModel |
+| `server/infrastructure/redis.py` | Redis 异步连接池 + player:session Hash / dead:resentment Set+List / 分布式锁 |
+| `server/infrastructure/storage.py` | 5 个子 Repository + GameRepository 聚合入口，ORM→Domain 映射 |
+
+#### 修改文件
+
+| 文件 | 变更 |
+|------|------|
+| `server/config.py` | 新增 mysql_* / redis_* / karma_pool_* / session_flush_interval 配置 |
+| `server/requirements.txt` | 激活 sqlalchemy / aiomysql / redis / structlog |
+| `server/domain/player.py` | 新增 ActiveSession Pydantic 模型（session_json + stage + trigger_json） |
+
+#### 设计决策
+
+- **懒加载引擎**：`get_engine()` 首次调用时才创建连接池，避免导入时数据库不可用就崩溃
+- **怨念候选原子清空**：`pop_resentment_candidates()` 使用 RENAME→LRANGE→DEL 三连避免并发写入丢失
+- **聚合仓储**：`GameRepository` 统一持有 5 个子仓储 + RedisClient，简化上层依赖注入
+- **ActiveSession.stage** 存储状态机阶段字符串，供 Phase 2D 断线重连判断使用
 
 ---
 

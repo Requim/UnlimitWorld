@@ -15,10 +15,10 @@ fastapi>=0.100.0
 uvicorn>=0.20.0
 websockets>=12.0
 
-# ── M2 持久化层（Phase 2B 激活）──
-# sqlalchemy>=2.0.0
-# pymysql>=1.0.0
-# redis>=5.0.0
+# ── M2 持久化层 ──
+sqlalchemy>=2.0.0
+aiomysql>=0.2.0
+redis>=5.0.0
 
-# ── 结构化日志（Phase 2B 激活）──
-# structlog>=23.0.0
+# ── 结构化日志 ──
+structlog>=23.0.0

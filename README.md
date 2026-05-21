@@ -227,11 +227,13 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 
 ---
 
-## 十二、数据库 Schema（M2 — 待实施 Phase 2B）
+## 十二、数据库 Schema（M2 — Phase 2B ✅）
 
-5 张表：`player_account` / `dead_registry` / `immortal_hall` / `active_session` / `heaven_overlord_pool`
+5 张表 ORM 定义完成：`player_account` / `dead_registry` / `immortal_hall` / `active_session` / `heaven_overlord_pool`
 
-缓存策略：内存(Dict) → Redis(Hash) → MySQL(异步 30s 快照)
+缓存策略：内存(Dict) → Redis(Hash, Set, List) → MySQL(异步 30s 快照)
+
+Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `ImmortalHallRepository` / `ActiveSessionRepository` / `HeavenOverlordPoolRepository` + `GameRepository` 聚合入口
 
 ---
 
@@ -241,7 +243,7 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 |----|------|
 | 后端框架 | FastAPI + Pydantic v2 + uvicorn |
 | 大模型 | DeepSeek（国内节点，OpenAI 兼容 API） |
-| 数据库 | MySQL + Redis（M2 Phase 2B） |
+| 数据库 | MySQL + Redis（M2 Phase 2B ✅） |
 | 前端 | 微信原生小程序 TypeScript（M2 Phase 2A' ✅） |
 | 部署 | 腾讯云/阿里云国内节点（M3） |
 | 配置管理 | .env + pydantic-settings |
@@ -268,7 +270,11 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 │   ├── infrastructure/              # 基础设施层：外部 IO
 │   │   ├── __init__.py
 │   │   ├── llm_client.py            # DeepSeek 异步流式客户端 + LLMOrchestrator
-│   │   └── event_config.py          # 本地事件加载与三池路由
+│   │   ├── event_config.py          # 本地事件加载与三池路由
+│   │   ├── db.py                    # SQLAlchemy async engine (aiomysql)
+│   │   ├── models.py                # ORM 五表定义
+│   │   ├── redis.py                 # Redis 异步连接池 + 怨念池操作
+│   │   └── storage.py               # Repository 层（5 子仓储 + GameRepository 聚合）
 │   ├── interface/                   # 接口适配器
 │   │   ├── __init__.py
 │   │   ├── cli.py                   # M1 控制台交互
@@ -318,7 +324,7 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 |-------|------|------|
 | 2A | WebSocket 服务器 + Action Frame 协议 | ✅ |
 | 2A' | 微信小程序骨架 + WS 客户端 | ✅ |
-| 2B | MySQL 持久化 + Redis 缓存 | ⏳ |
+| 2B | MySQL 持久化 + Redis 缓存 | ✅ |
 | 2C | 全服因果池 | ⏳ |
 | 2D | GameEngine 重构注入 | ⏳ |
 | 2E | 并发压力测试 | ⏳ |
@@ -341,10 +347,10 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 | `server/tests/smoke_test_ws.py` | ✅ Phase 2A (4 项) |
 | `server/tests/test_e2e_ws.py` | ✅ Phase 2A (26 项) |
 | `client/` (17 文件) | ✅ Phase 2A' |
-| `server/infrastructure/db.py` | ⏳ Phase 2B |
-| `server/infrastructure/models.py` | ⏳ Phase 2B |
-| `server/infrastructure/redis.py` | ⏳ Phase 2B |
-| `server/infrastructure/storage.py` | ⏳ Phase 2B |
+| `server/infrastructure/db.py` | ✅ Phase 2B |
+| `server/infrastructure/models.py` | ✅ Phase 2B |
+| `server/infrastructure/redis.py` | ✅ Phase 2B |
+| `server/infrastructure/storage.py` | ✅ Phase 2B |
 | 因果池/SharedState | ⏳ Phase 2C |
 | 并发压力测试 | ⏳ Phase 2E |
 
