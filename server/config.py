@@ -41,6 +41,12 @@ class Settings(BaseSettings):
     # ── 飞升门槛 ──
     ascension_cultivation: int = 50_000_000  # 渡劫期满修为 5000W
 
+    # ── M2 服务器 ──
+    server_host: str = "0.0.0.0"
+    server_port: int = 8000
+    ws_heartbeat_interval: int = 30     # 服务端心跳检测间隔（秒）
+    ws_connect_timeout: int = 120       # 客户端开局超时（秒）
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

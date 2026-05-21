@@ -1,0 +1,138 @@
+<!--
+  挂机主页面模板
+  六态切换：connecting / idle / await_decision / streaming / settlement / game_over
+-->
+
+<view class="page">
+
+  <!-- ═══ 状态栏（始终显示） ═══ -->
+  <view class="status-bar">
+    <view class="status-item">
+      <text class="status-label">境界</text>
+      <text class="status-value">{{realm}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">修为</text>
+      <text class="status-value">{{cultivation}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">天谴</text>
+      <text class="status-value status-sin">{{sinValue}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">气运</text>
+      <text class="status-value">{{luck}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">根基</text>
+      <text class="status-value">{{foundation}}</text>
+    </view>
+    <view class="status-item">
+      <text class="status-label">天道</text>
+      <text class="status-value">{{sinPhase}}</text>
+    </view>
+  </view>
+
+  <!-- ═══ 主内容区 ═══ -->
+
+  <!-- 状态 1：连接中 / 初始 -->
+  <view wx:if="{{uiState === 'connecting'}}" class="center-area">
+    <view class="loading">
+      <text class="loading-text">等待连接...</text>
+    </view>
+    <view class="name-input-area" wx:if="{{!gameOver}}">
+      <text class="name-input-label">道号</text>
+      <input
+        class="name-input"
+        value="{{playerName}}"
+        placeholder="请输入道号"
+        maxlength="12"
+        bindinput="onNameInput"
+      />
+    </view>
+    <button wx:if="{{!gameOver}}" class="btn-gold" bindtap="onStartGame">踏入仙途</button>
+  </view>
+
+  <!-- 状态 2：挂机中（IDLE） -->
+  <view wx:if="{{uiState === 'idle'}}" class="content-area">
+    <scroll-view class="log-container" scroll-y scroll-top="{{logScrollTop}}" scroll-into-view="log-end">
+      <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
+      <view id="log-end"></view>
+    </scroll-view>
+  </view>
+
+  <!-- 状态 3：事件触发（AWAIT_DECISION） -->
+  <view wx:if="{{uiState === 'await_decision'}}" class="content-area">
+    <view class="card event-card">
+      <view class="event-header">
+        <text class="event-title">{{triggerTitle}}</text>
+        <text class="event-countdown">剩余 {{decisionCountdown}}s</text>
+      </view>
+      <view class="event-description">{{triggerDescription}}</view>
+    </view>
+
+    <view class="decision-area">
+      <button
+        wx:for="{{triggerOptions}}"
+        wx:key="id"
+        class="btn-gold decision-btn"
+        data-id="{{item.id}}"
+        bindtap="onChooseOption"
+      >{{item.label}}</button>
+    </view>
+
+    <!-- 选项 C 自定义输入 -->
+    <view wx:if="{{showCustomInput}}" class="custom-input-area">
+      <textarea
+        class="custom-textarea"
+        value="{{customText}}"
+        placeholder="对天道说点什么..."
+        maxlength="200"
+        bindinput="onCustomInput"
+        auto-height
+      />
+      <view class="custom-input-btns">
+        <button class="btn-dark" bindtap="onCancelCustom">取消</button>
+        <button class="btn-gold" bindtap="onSendCustom">发送</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- 状态 4：流式输出（STREAMING） -->
+  <view wx:if="{{uiState === 'streaming'}}" class="content-area">
+    <scroll-view class="log-container story-scroll" scroll-y>
+      <view class="story-area">
+        <text class="story-text">{{storyText}}</text>
+        <text wx:if="{{isStreaming}}" class="typing-cursor"></text>
+      </view>
+    </scroll-view>
+    <view class="streaming-hint">
+      <text>天道正在编故事...</text>
+    </view>
+  </view>
+
+  <!-- 状态 5：结算（SETTLEMENT） -->
+  <view wx:if="{{uiState === 'settlement'}}" class="content-area">
+    <view class="settlement-panel">
+      <view class="settlement-header">事件结算</view>
+      <view class="settlement-body">{{settlementText}}</view>
+      <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
+        天道点 +{{heavenPointsEarned}}
+      </view>
+    </view>
+  </view>
+
+  <!-- 状态 6：游戏结束（GAME_OVER） -->
+  <view wx:if="{{uiState === 'game_over'}}" class="content-area">
+    <view class="settlement-panel game-over-panel">
+      <view class="game-over-icon">💀</view>
+      <view class="game-over-title">{{gameOverTitle}}</view>
+      <view class="settlement-body">{{settlementText}}</view>
+      <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
+        天道点 +{{heavenPointsEarned}}
+      </view>
+    </view>
+    <button class="btn-gold new-game-btn" bindtap="onNewGame">再来一局</button>
+  </view>
+
+</view>

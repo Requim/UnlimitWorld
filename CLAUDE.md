@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+# 规则
+思考过程使用中文。
+
 ## 里程碑需求文档
 
 根据当前开发阶段，参考对应的里程碑需求文档：

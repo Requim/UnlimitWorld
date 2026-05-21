@@ -1,0 +1,274 @@
+/**
+ * 挂机页面样式
+ */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--bg-primary);
+}
+
+/* ── 状态栏 ── */
+.status-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  padding: 12rpx 16rpx;
+  background-color: var(--bg-secondary);
+  border-bottom: 1rpx solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.status-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 100rpx;
+  padding: 4rpx 8rpx;
+}
+
+.status-label {
+  font-size: 20rpx;
+  color: var(--text-secondary);
+}
+
+.status-value {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: var(--accent-gold);
+}
+
+.status-sin {
+  color: var(--accent-red);
+}
+
+/* ── 内容区 ── */
+.content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.center-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32rpx;
+}
+
+/* ── 连接中 ── */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 48rpx 24rpx;
+}
+
+.loading-text {
+  font-size: 32rpx;
+  color: var(--text-secondary);
+}
+
+/* ── 道号输入 ── */
+.name-input-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+  padding: 0 48rpx 32rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.name-input-label {
+  font-size: 26rpx;
+  color: var(--text-secondary);
+}
+
+.name-input {
+  background-color: var(--bg-card);
+  color: var(--accent-gold);
+  border: 1rpx solid var(--border-color);
+  border-radius: 8rpx;
+  padding: 12rpx 24rpx;
+  font-size: 30rpx;
+  text-align: center;
+  width: 60%;
+  box-sizing: border-box;
+}
+
+/* ── 日志容器 ── */
+.log-container {
+  flex: 1;
+  padding: 16rpx 24rpx;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 10rpx 0;
+  border-bottom: 1rpx solid var(--border-color);
+  font-size: 26rpx;
+  color: var(--text-secondary);
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.log-entry:last-child {
+  border-bottom: none;
+}
+
+/* ── 事件卡片 ── */
+.event-card {
+  margin: 16rpx 24rpx;
+}
+
+.event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.event-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: var(--accent-gold);
+}
+
+.event-countdown {
+  font-size: 24rpx;
+  color: var(--accent-red);
+  padding: 4rpx 12rpx;
+  border: 1rpx solid var(--accent-red);
+  border-radius: 4rpx;
+}
+
+.event-description {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+/* ── 决策按钮 ── */
+.decision-area {
+  padding: 0 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.decision-btn {
+  width: 100%;
+}
+
+/* ── 自定义输入 ── */
+.custom-input-area {
+  margin: 16rpx 24rpx;
+}
+
+.custom-textarea {
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 1rpx solid var(--border-color);
+  border-radius: 8rpx;
+  padding: 16rpx;
+  font-size: 28rpx;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 120rpx;
+}
+
+.custom-input-btns {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 16rpx;
+}
+
+.custom-input-btns button {
+  flex: 1;
+}
+
+/* ── 流式故事 ── */
+.story-scroll {
+  flex: 1;
+}
+
+.story-area {
+  background-color: var(--bg-secondary);
+  border: 1rpx solid var(--border-glow);
+  border-radius: 8rpx;
+  padding: 20rpx;
+  min-height: 120rpx;
+}
+
+.story-text {
+  font-size: 30rpx;
+  color: var(--text-primary);
+  line-height: 1.8;
+  word-break: break-all;
+}
+
+.streaming-hint {
+  text-align: center;
+  padding: 16rpx;
+  color: var(--text-muted);
+  font-size: 24rpx;
+}
+
+/* ── 结算面板 ── */
+.settlement-panel {
+  margin: 24rpx;
+  background: linear-gradient(180deg, var(--bg-card), var(--bg-secondary));
+  border: 1rpx solid var(--accent-gold);
+  border-radius: 12rpx;
+  padding: 24rpx;
+}
+
+.settlement-header {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: var(--accent-gold);
+  margin-bottom: 16rpx;
+  text-align: center;
+}
+
+.settlement-body {
+  font-size: 28rpx;
+  color: var(--text-primary);
+  line-height: 1.8;
+}
+
+.settlement-points {
+  margin-top: 16rpx;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: var(--accent-gold);
+  text-align: center;
+}
+
+/* ── 游戏结束 ── */
+.game-over-panel {
+  border-color: var(--accent-red);
+}
+
+.game-over-icon {
+  font-size: 64rpx;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+
+.game-over-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: var(--accent-red);
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+
+.new-game-btn {
+  margin: 24rpx;
+}

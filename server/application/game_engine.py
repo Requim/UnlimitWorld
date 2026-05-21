@@ -9,7 +9,7 @@ import random
 import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Callable, Optional, Awaitable
 
 from server.config import REALM_CONFIG, settings
 from server.domain.player import (
@@ -433,6 +433,7 @@ class GameEngine:
         self,
         choice_id: str = "A",
         custom_text: str = "",
+        on_chunk: Optional[Callable[[str], Awaitable[None]]] = None,
     ) -> TickResult:
         """
         处理玩家的对线决策（选择 A/B 或自定义骚话 C）
@@ -442,6 +443,9 @@ class GameEngine:
         2. 后端本地计算 is_dead
         3. 调用 LLM 流式推演剧情
         4. 结算属性变化
+
+        on_chunk: M2 WebSocket 流式回调，每收到一个字符即调用。
+                  M1 CLI 不传此参数，保持向后兼容。
         """
         if self.stage != Stage.EVENT_TRIGGER:
             return TickResult(stage=self.stage, log_text="[系统] 当前没有待处理的事件")
@@ -504,6 +508,8 @@ class GameEngine:
                     llm_output = chunk
                 else:
                     full_story += chunk
+                    if on_chunk:
+                        await on_chunk(chunk)
         except Exception:
             pass  # streaming 基础设施故障，走 fallback
 

@@ -1,0 +1,6 @@
+<view class="page">
+  <view class="placeholder">
+    <text class="placeholder-icon">🏪</text>
+    <text class="placeholder-text">{{message}}</text>
+  </view>
+</view>
