@@ -1,22 +1,34 @@
 /**
- * 名人堂页面 — 飞升碑林
+ * 仙尊名人堂 — 飞升碑林
+ * 美学：碑林石韵 · 古石碑铭刻 · 金/银/铜光晕
  */
 
-.page {
-  height: 100vh;
-  background:
-    radial-gradient(ellipse 60% 60% at 50% 50%, rgba(20, 28, 50, 0.5) 0%, transparent 70%),
-    radial-gradient(ellipse 30% 20% at 80% 20%, rgba(22, 26, 43, 0.35) 0%, transparent 50%),
-    var(--ink-black);
+/* ═══════════════════════════════════════════
+   页面基底
+   ═══════════════════════════════════════════ */
+.hall-page {
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding: 0 0 60rpx;
+}
+
+/* ═══════════════════════════════════════════
+   页首：碑林标题区
+   ═══════════════════════════════════════════ */
+.hall-header {
+  width: 100%;
+  padding: 60rpx 32rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   position: relative;
   overflow: hidden;
 }
 
-/* 暗纹帷幕 */
-.bg-veil {
+/* 晨雾效果 */
+.header-mist {
   position: absolute;
   top: 0;
   left: 0;
@@ -24,157 +36,462 @@
   height: 100%;
   pointer-events: none;
   background:
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 4rpx,
-      rgba(160, 140, 100, 0.01) 4rpx,
-      rgba(160, 140, 100, 0.01) 6rpx
-    );
+    linear-gradient(180deg, rgba(200, 160, 80, 0.04) 0%, transparent 40%),
+    linear-gradient(180deg, transparent 60%, rgba(12, 16, 28, 0.6) 100%);
+  animation: qi-pulse 4s ease-in-out infinite;
 }
 
-/* ── 容器 ── */
-.teaser-container {
+.header-title-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  padding: 48rpx 40rpx;
+  gap: 20rpx;
   position: relative;
   z-index: 1;
 }
 
-/* ── 碑文圆环 ── */
-.stele-circle {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 50%;
-  border: 1rpx solid rgba(180, 170, 150, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 32rpx;
-  position: relative;
-  animation: gold-breath 5s ease-in-out infinite;
+.header-seal {
+  font-size: 28rpx;
+  color: var(--gold-dim);
+  padding: 6rpx 14rpx;
+  border: 1rpx solid rgba(200, 160, 80, 0.25);
+  border-radius: 3rpx;
+  letter-spacing: 4rpx;
+  background: rgba(200, 160, 80, 0.04);
 }
 
-.stele-circle::before {
-  content: "";
-  position: absolute;
-  top: -4rpx;
-  left: -4rpx;
-  right: -4rpx;
-  bottom: -4rpx;
-  border-radius: 50%;
-  border: 1rpx solid rgba(180, 170, 150, 0.06);
-}
-
-.stele-inner {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(22, 26, 43, 0.9), var(--paper-dark));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1rpx solid rgba(180, 170, 150, 0.3);
-}
-
-.stele-glyph {
-  font-size: 56rpx;
-  color: var(--text-parchment);
-  opacity: 0.6;
-}
-
-/* ── 标题 ── */
-.teaser-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.teaser-title {
+.header-title {
   font-size: 44rpx;
   font-weight: 700;
   color: var(--text-parchment-light);
-  letter-spacing: 16rpx;
+  letter-spacing: 12rpx;
+  text-shadow: 0 0 24rpx rgba(200, 160, 80, 0.12);
 }
 
-.teaser-subtitle {
+.header-subtitle {
   font-size: 22rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 6rpx;
+  margin-top: 16rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.header-count {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 24rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.count-ornament {
+  font-size: 16rpx;
+  color: var(--gold-dim);
+}
+
+.count-text {
+  font-size: 24rpx;
+  color: var(--gold-pale);
+  letter-spacing: 3rpx;
+}
+
+/* ═══════════════════════════════════════════
+   加载态
+   ═══════════════════════════════════════════ */
+.loading-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 120rpx;
+  gap: 24rpx;
+}
+
+.loading-seal {
+  width: 100rpx;
+  height: 100rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40rpx;
+  color: var(--gold-dim);
+  border: 1rpx solid rgba(200, 160, 80, 0.2);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22, 26, 43, 0.9), var(--paper-dark));
+}
+
+.loading-text {
+  font-size: 24rpx;
   color: var(--text-mist-dim);
   letter-spacing: 6rpx;
 }
 
-/* ── 分隔 ── */
-.divider-rune {
-  margin-bottom: 24rpx;
+/* ═══════════════════════════════════════════
+   空碑状态
+   ═══════════════════════════════════════════ */
+.empty-state {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 80rpx;
 }
 
-.divider-line {
-  font-size: 24rpx;
-  color: rgba(200, 180, 140, 0.2);
-  letter-spacing: 8rpx;
+.empty-stele {
+  position: relative;
+  padding: 16rpx;
 }
 
-/* ── 描述 ── */
-.teaser-body {
+.empty-stele-inner {
+  background: linear-gradient(175deg, var(--paper-dark) 0%, #151a2e 50%, var(--paper-mid) 100%);
+  border: 2rpx solid rgba(180, 170, 150, 0.15);
+  border-radius: 8rpx;
+  padding: 60rpx 64rpx;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8rpx;
-  margin-bottom: 40rpx;
+  gap: 16rpx;
+  position: relative;
 }
 
-.teaser-desc {
-  font-size: 28rpx;
+.empty-stele-inner::before {
+  content: "";
+  position: absolute;
+  top: 20rpx;
+  left: 20rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-top: 1rpx solid rgba(200, 160, 80, 0.12);
+  border-left: 1rpx solid rgba(200, 160, 80, 0.12);
+}
+
+.empty-stele-inner::after {
+  content: "";
+  position: absolute;
+  bottom: 20rpx;
+  right: 20rpx;
+  width: 32rpx;
+  height: 32rpx;
+  border-bottom: 1rpx solid rgba(200, 160, 80, 0.12);
+  border-right: 1rpx solid rgba(200, 160, 80, 0.12);
+}
+
+.empty-glyph {
+  font-size: 64rpx;
+  color: var(--text-void);
+  margin-bottom: 8rpx;
+}
+
+.empty-title {
+  font-size: 30rpx;
   color: var(--text-mist);
+  letter-spacing: 6rpx;
+}
+
+.empty-divider {
+  width: 160rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.2), transparent);
+}
+
+.empty-sub {
+  font-size: 24rpx;
+  color: var(--text-mist-dim);
   letter-spacing: 4rpx;
 }
 
-.teaser-hint {
-  font-size: 24rpx;
-  color: var(--text-mist-dim);
-  letter-spacing: 2rpx;
-  animation: qi-pulse 3s ease-in-out infinite;
+.empty-stele-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 300rpx;
+  height: 300rpx;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200, 160, 80, 0.03) 0%, transparent 70%);
+  pointer-events: none;
+  animation: qi-pulse 4s ease-in-out infinite;
 }
 
-/* ── 空碑位 ── */
-.stele-slots {
+/* ═══════════════════════════════════════════
+   碑林列表
+   ═══════════════════════════════════════════ */
+.stele-forest {
+  width: 100%;
+  padding: 0 28rpx;
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  width: 100%;
+  gap: 24rpx;
 }
 
-.stele-slot {
+/* ── 石碑卡片基础 ── */
+.stele-card {
+  width: 100%;
+  background: linear-gradient(175deg, #1a1e32 0%, var(--paper-dark) 40%, #181c30 100%);
+  border-radius: 6rpx;
+  padding: 0;
+  position: relative;
+  animation: ink-reveal 0.5s ease-out both;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.stele-card:active {
+  transform: scale(0.97);
+}
+
+/* ── 排名特殊光晕 ── */
+
+/* 第一名 — 鎏金碑 */
+.stele-rank-1 {
+  border: 1rpx solid rgba(200, 160, 80, 0.35);
+  box-shadow:
+    0 2rpx 20rpx rgba(0, 0, 0, 0.5),
+    0 0 36rpx rgba(200, 160, 80, 0.08);
+  animation: gold-breath 3s ease-in-out infinite, ink-reveal 0.5s ease-out both;
+}
+
+.stele-rank-1::before {
+  content: "";
+  position: absolute;
+  top: -1rpx;
+  left: 24rpx;
+  right: 24rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(232, 196, 90, 0.4), rgba(200, 160, 80, 0.2), transparent);
+  z-index: 0;
+}
+
+/* 第二名 — 银霜碑 */
+.stele-rank-2 {
+  border: 1rpx solid rgba(150, 160, 180, 0.3);
+  box-shadow:
+    0 2rpx 18rpx rgba(0, 0, 0, 0.5),
+    0 0 28rpx rgba(150, 160, 180, 0.06);
+}
+
+/* 第三名 — 铜碑 */
+.stele-rank-3 {
+  border: 1rpx solid rgba(160, 130, 90, 0.28);
+  box-shadow:
+    0 2rpx 16rpx rgba(0, 0, 0, 0.5),
+    0 0 22rpx rgba(160, 130, 90, 0.05);
+}
+
+/* 其余碑 */
+.stele-rank-rest {
+  border: 1rpx solid var(--border-ink);
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.35);
+}
+
+/* 选中态 */
+.stele-selected {
+  border-color: rgba(200, 160, 80, 0.5) !important;
+  box-shadow: 0 0 40rpx rgba(200, 160, 80, 0.15) !important;
+}
+
+/* ── 碑额（顶部弧形装饰） ── */
+.stele-cap {
+  width: 100%;
+  height: 20rpx;
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.stele-cap-arch {
+  width: 75%;
+  height: 16rpx;
+  background: linear-gradient(180deg, transparent, rgba(30, 36, 60, 0.4));
+  border-radius: 0 0 4rpx 4rpx;
+}
+
+.stele-cap-ornament {
+  position: absolute;
+  top: 2rpx;
+}
+
+.stele-cap-ornament.gold .cap-dot { color: var(--gold-bright); }
+.stele-cap-ornament.silver .cap-dot { color: #b0b8c8; }
+.stele-cap-ornament.bronze .cap-dot { color: #b89068; }
+.stele-cap-ornament:not(.gold):not(.silver):not(.bronze) .cap-dot { color: var(--text-void); }
+
+.cap-dot {
+  font-size: 14rpx;
+}
+
+/* ── 排名徽记 ── */
+.stele-rank-badge {
+  display: flex;
+  justify-content: center;
+  padding: 8rpx 0 14rpx;
+  position: relative;
+  z-index: 1;
+}
+
+.rank-badge-inner {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
   display: flex;
   align-items: center;
-  padding: 18rpx 24rpx;
-  gap: 20rpx;
-  background: rgba(22, 26, 43, 0.4);
-  border: 1rpx solid var(--border-ink);
-  border-radius: var(--radius-sm);
+  justify-content: center;
+  border: 2rpx solid;
 }
 
-.slot-rank {
+/* 排名颜色 */
+.rank-color-1 {
+  background: radial-gradient(circle, rgba(200, 160, 80, 0.15), transparent);
+  border-color: var(--gold-leaf);
+}
+
+.rank-color-2 {
+  background: radial-gradient(circle, rgba(160, 170, 190, 0.12), transparent);
+  border-color: #8a8fa0;
+}
+
+.rank-color-3 {
+  background: radial-gradient(circle, rgba(180, 140, 100, 0.12), transparent);
+  border-color: #9a7a5a;
+}
+
+/* 4-10 名 */
+.rank-badge-inner:not(.rank-color-1):not(.rank-color-2):not(.rank-color-3) {
+  border-color: rgba(100, 110, 130, 0.25);
+  background: rgba(100, 110, 130, 0.04);
+}
+
+.rank-num {
   font-size: 28rpx;
   font-weight: 700;
   color: var(--text-mist-dim);
+}
+
+.rank-num.top3 {
+  font-size: 30rpx;
+  color: var(--text-parchment-light);
+}
+
+.rank-color-1 .rank-num { color: var(--gold-bright); }
+.rank-color-2 .rank-num { color: #c0c8d8; }
+.rank-color-3 .rank-num { color: #c89870; }
+
+/* ── 碑文主体 ── */
+.stele-body {
+  padding: 0 28rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+.stele-name {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: var(--text-parchment-light);
   letter-spacing: 4rpx;
-  min-width: 48rpx;
-  text-align: center;
+  margin-bottom: 8rpx;
 }
 
-.slot-line {
-  width: 1rpx;
-  height: 32rpx;
-  background: rgba(180, 170, 150, 0.15);
+.stele-title {
+  font-size: 24rpx;
+  color: var(--gold-pale);
+  letter-spacing: 2rpx;
+  margin-bottom: 14rpx;
 }
 
-.slot-empty {
-  font-size: 26rpx;
+.stele-divider {
+  width: 65%;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(42, 48, 68, 0.5), transparent);
+  margin-bottom: 16rpx;
+}
+
+.stele-stats {
+  display: flex;
+  width: 100%;
+  justify-content: space-around;
+}
+
+.stele-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.stat-label {
+  font-size: 20rpx;
   color: var(--text-mist-dim);
   letter-spacing: 4rpx;
+}
+
+.stat-value {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: var(--text-mist);
+  letter-spacing: 1rpx;
+}
+
+.stat-value.gold {
+  color: var(--gold-bright);
+}
+
+/* ── 碑座 ── */
+.stele-base {
+  width: 100%;
+  height: 12rpx;
+  background: linear-gradient(180deg, rgba(24, 30, 48, 0.6), rgba(20, 24, 40, 0.8));
+  border-radius: 0 0 4rpx 4rpx;
+}
+
+/* ── 点击提示 ── */
+.stele-tap-hint {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 6rpx;
+  z-index: 10;
+}
+
+.hint-text {
+  font-size: 26rpx;
+  color: var(--gold-pale);
+  letter-spacing: 4rpx;
+}
+
+/* ═══════════════════════════════════════════
+   底部铭文
+   ═══════════════════════════════════════════ */
+.forest-footer {
+  display: flex;
+  justify-content: center;
+  padding: 32rpx 0 16rpx;
+}
+
+.forest-footer text {
+  font-size: 22rpx;
+  color: var(--text-void);
+  letter-spacing: 6rpx;
+}
+
+/* ═══════════════════════════════════════════
+   战报 Canvas 离屏容器
+   ═══════════════════════════════════════════ */
+.canvas-offstage {
+  position: fixed;
+  left: -9999rpx;
+  top: -9999rpx;
+  width: 600rpx;
+  height: 800rpx;
+  pointer-events: none;
 }

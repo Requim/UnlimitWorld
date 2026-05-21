@@ -27,6 +27,7 @@ _karma_pool_task: asyncio.Task | None = None
 _wechat_client: WeChatClient | None = None
 _session_factory = None  # Phase 3B：供 REST API 使用
 _account_repo = None     # Phase 3B：PlayerAccountRepository
+_hall_repo = None        # Phase 3C：ImmortalHallRepository
 
 
 def get_connection_manager() -> ConnectionManager:
@@ -80,7 +81,7 @@ async def lifespan(app: FastAPI):
         pass  # MySQL 不可用时降级运行
 
     # Phase 3B：保存全局引用供 REST API
-    global _session_factory, _account_repo
+    global _session_factory, _account_repo, _hall_repo
 
     if session_factory:
         from server.infrastructure.storage import (
@@ -93,6 +94,7 @@ async def lifespan(app: FastAPI):
         _account_repo = PlayerAccountRepository(session_factory)
         dead_repo = DeadRegistryRepository(session_factory)
         hall_repo = ImmortalHallRepository(session_factory)
+        _hall_repo = hall_repo  # Phase 3C：名人堂 REST API
         heaven_pool_repo = HeavenOverlordPoolRepository(session_factory)
         active_session_repo = ActiveSessionRepository(session_factory)
 
@@ -265,6 +267,28 @@ def create_app() -> FastAPI:
                 "value": item.value,
             },
         }
+
+    # ── Phase 3C：仙尊名人堂 REST API ──
+
+    @app.get("/api/hall/top")
+    async def hall_top(request: Request):
+        """名人堂排行榜。
+
+        Query: ?limit=50（默认 50，最大 100）
+        响应: { "records": [...], "total": int }
+        """
+        limit_str = request.query_params.get("limit", "50")
+        try:
+            limit = int(limit_str)
+        except ValueError:
+            limit = 50
+        limit = max(1, min(limit, 100))
+
+        if _hall_repo is None:
+            return JSONResponse({"error": "名人堂服务暂不可用"}, status_code=503)
+
+        records = await _hall_repo.get_top(limit=limit)
+        return {"records": records, "total": len(records)}
 
     return app
 

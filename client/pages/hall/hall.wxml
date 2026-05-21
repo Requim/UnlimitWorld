@@ -1,51 +1,106 @@
-<!-- 名人堂 · 飞升碑林 -->
-<view class="page">
-  <!-- 墨韵背景层 -->
-  <view class="bg-veil"></view>
+<!--
+  仙尊名人堂 — 飞升碑林
+  美学：碑林石韵 · 古石碑铭刻 · 金/银/铜光晕
+-->
+<view class="hall-page ink-bg">
 
-  <!-- 中心内容 -->
-  <view class="teaser-container">
-    <!-- 碑文圆环 -->
-    <view class="stele-circle">
-      <view class="stele-inner">
-        <text class="stele-glyph">仙</text>
-      </view>
+  <!-- ═══ 页首：碑林标题 ═══ -->
+  <view class="hall-header">
+    <view class="header-mist"></view>
+    <view class="header-title-row">
+      <text class="header-seal">碑</text>
+      <text class="header-title">仙 尊 名 人 堂</text>
+      <text class="header-seal">林</text>
     </view>
-
-    <!-- 标题 -->
-    <view class="teaser-header">
-      <text class="teaser-title">名 人 堂</text>
-      <text class="teaser-subtitle">— 飞 升 碑 林 —</text>
-    </view>
-
-    <!-- 分隔符 -->
-    <view class="divider-rune">
-      <text class="divider-line">━ ◈ ━</text>
-    </view>
-
-    <!-- 描述 -->
-    <view class="teaser-body">
-      <text class="teaser-desc">碑林尚无铭文</text>
-      <text class="teaser-hint">静待首位飞升者刻下不朽之名...</text>
-    </view>
-
-    <!-- 空碑位 -->
-    <view class="stele-slots">
-      <view class="stele-slot">
-        <text class="slot-rank">壹</text>
-        <view class="slot-line"></view>
-        <text class="slot-empty">虚位以待</text>
-      </view>
-      <view class="stele-slot">
-        <text class="slot-rank">贰</text>
-        <view class="slot-line"></view>
-        <text class="slot-empty">虚位以待</text>
-      </view>
-      <view class="stele-slot">
-        <text class="slot-rank">叁</text>
-        <view class="slot-line"></view>
-        <text class="slot-empty">虚位以待</text>
-      </view>
+    <text class="header-subtitle">—— 飞升碑林 · 不朽铭文 ——</text>
+    <view class="header-count" wx:if="{{!empty && !loading}}">
+      <text class="count-ornament">◆</text>
+      <text class="count-text">已有 {{total}} 位修士刻名于此</text>
+      <text class="count-ornament">◆</text>
     </view>
   </view>
+
+  <!-- ═══ 加载态 ═══ -->
+  <view wx:if="{{loading}}" class="loading-state">
+    <view class="loading-seal qi-pulse">拓</view>
+    <text class="loading-text">拓印碑文...</text>
+  </view>
+
+  <!-- ═══ 空碑状态 ═══ -->
+  <view wx:elif="{{empty}}" class="empty-state">
+    <view class="empty-stele">
+      <view class="empty-stele-inner">
+        <text class="empty-glyph">碑</text>
+        <text class="empty-title">碑林尚无铭文</text>
+        <view class="empty-divider"></view>
+        <text class="empty-sub">静待首位飞升者</text>
+        <text class="empty-sub">刻下不朽之名...</text>
+      </view>
+      <view class="empty-stele-glow"></view>
+    </view>
+  </view>
+
+  <!-- ═══ 碑林列表 ═══ -->
+  <view wx:else class="stele-forest">
+    <view
+      wx:for="{{records}}"
+      wx:key="ascended_at"
+      class="stele-card stele-rank-{{index + 1 > 3 ? 'rest' : index + 1}} {{battleIndex === index ? 'stele-selected' : ''}}"
+      data-index="{{index}}"
+      bindtap="onTapRecord"
+      style="animation-delay: {{index * 0.06}}s;"
+    >
+
+      <!-- 碑额（顶部装饰） -->
+      <view class="stele-cap">
+        <view class="stele-cap-arch"></view>
+        <view class="stele-cap-ornament {{index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : ''}}">
+          <text class="cap-dot">◇</text>
+        </view>
+      </view>
+
+      <!-- 排名徽记 -->
+      <view class="stele-rank-badge rank-{{index + 1 > 3 ? 'normal' : 'top'}}">
+        <view class="rank-badge-inner rank-color-{{index + 1}}">
+          <text class="rank-num {{index < 3 ? 'top3' : ''}}">{{index + 1 > 10 ? '#' + (index + 1) : (index + 1 === 1 ? '壹' : index + 1 === 2 ? '贰' : index + 1 === 3 ? '叁' : index + 1 === 4 ? '肆' : index + 1 === 5 ? '伍' : index + 1 === 6 ? '陆' : index + 1 === 7 ? '柒' : index + 1 === 8 ? '捌' : index + 1 === 9 ? '玖' : '拾')}}</text>
+        </view>
+      </view>
+
+      <!-- 碑文主体 -->
+      <view class="stele-body">
+        <text class="stele-name">{{item.player_name}}</text>
+        <text class="stele-title">「{{item.ascension_title}}」</text>
+        <view class="stele-divider"></view>
+        <view class="stele-stats">
+          <view class="stele-stat">
+            <text class="stat-label">天道点</text>
+            <text class="stat-value gold">{{item.total_heaven_points}}</text>
+          </view>
+          <view class="stele-stat">
+            <text class="stat-label">飞升日</text>
+            <text class="stat-value">{{item.ascended_at.slice(0, 10)}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 碑座 -->
+      <view class="stele-base"></view>
+
+      <!-- 点击提示 -->
+      <view class="stele-tap-hint" wx:if="{{battleIndex === index}}">
+        <text class="hint-text">绘制战报中...</text>
+      </view>
+    </view>
+
+    <!-- 底部铭文 -->
+    <view class="forest-footer">
+      <text>—— 虚无之中 · 因果可易 ——</text>
+    </view>
+  </view>
+
+  <!-- ═══ 战报图 Canvas（离屏渲染） ═══ -->
+  <view class="canvas-offstage">
+    <canvas type="2d" id="battleReportCanvas" style="width:600rpx;height:800rpx;"></canvas>
+  </view>
+
 </view>
