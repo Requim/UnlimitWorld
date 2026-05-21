@@ -56,6 +56,25 @@ _event_loader = EventConfigLoader()
 # 动态模板渲染
 # ═══════════════════════════════════════════════════════════════
 
+def _try_find_key(placeholder: str, data: dict) -> str | None:
+    """在 data 中查找占位符对应的键，自动处理单复数不匹配。
+
+    例如模板用 {location} 但 JSON 键为 locations；模板用 {reactions} 但 JSON 键为 reaction。
+    """
+    if placeholder in data:
+        return placeholder
+    # 尝试复数形式：location → locations
+    plural = placeholder + "s"
+    if plural in data:
+        return plural
+    # 尝试单数形式：reactions → reaction（排除以 ss/us 结尾的词）
+    if placeholder.endswith("s") and not placeholder.endswith(("ss", "us")):
+        singular = placeholder[:-1]
+        if singular in data:
+            return singular
+    return None
+
+
 def _extract_placeholders(template: str) -> list:
     """提取模板中所有 {placeholder} 变量名"""
     return re.findall(r"\{(\w+)\}", template)
@@ -168,8 +187,9 @@ def generate_local_event(
         for ph in placeholders:
             if ph == "result_text":
                 continue
-            if ph in event_tpl:
-                val = event_tpl[ph]
+            key = _try_find_key(ph, event_tpl)
+            if key is not None:
+                val = event_tpl[key]
                 if isinstance(val, list):
                     picked = random.choice(val)
                     if isinstance(picked, dict):
@@ -187,14 +207,15 @@ def generate_local_event(
         cult_range = event_tpl["cultivation_delta"]
         cultivation_delta = random.randint(cult_range[0], cult_range[1])
 
-    # 6. 渲染普通占位符
+    # 6. 渲染普通占位符（跳过已在 results 分支处理的）
     for ph in placeholders:
-        if ph in ("result_text", "outcome"):
+        if ph == "result_text":
             continue
         if ph in render_dict:
             continue
-        if ph in event_tpl:
-            val = event_tpl[ph]
+        key = _try_find_key(ph, event_tpl)
+        if key is not None:
+            val = event_tpl[key]
             if isinstance(val, list) and val:
                 picked = random.choice(val)
                 if isinstance(picked, dict):

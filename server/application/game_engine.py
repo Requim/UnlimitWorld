@@ -508,8 +508,6 @@ class GameEngine:
                     llm_output = chunk
                 else:
                     full_story += chunk
-                    if on_chunk:
-                        await on_chunk(chunk)
         except Exception:
             pass  # streaming 基础设施故障，走 fallback
 
@@ -530,13 +528,14 @@ class GameEngine:
         """事件结算"""
         session = self.session
         intercepted = False
+        story_text = llm_output.story_text or full_story
 
         # 因果遮蔽卡拦截
         if backend_is_dead and session.karma_shield > 0:
             session.karma_shield -= 1
             backend_is_dead = False
             intercepted = True
-            full_story += "\n\n【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
+            story_text += "\n\n【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
 
         # 应用属性变化
         if not backend_is_dead:
@@ -601,7 +600,7 @@ class GameEngine:
             event_id=trigger.event_id,
             is_dead=backend_is_dead,
             dead_title=llm_output.dead_title if backend_is_dead else "",
-            story_text=full_story,
+            story_text=story_text,
             attribute_changes=llm_output.attribute_changes,
             intercepted_by_shield=intercepted,
             heaven_points_earned=heaven_points_earned,

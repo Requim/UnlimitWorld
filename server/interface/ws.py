@@ -233,9 +233,18 @@ async def _handle_lifecycle(
                     on_chunk=on_chunk,
                 )
 
-                # 发送最后一个 chunk（is_last=True）
-                if result.settlement and result.settlement.story_text:
-                    await ws.send_json(_build_story_stream("", is_last=True))
+                # 将结算中的 story_text 逐段流式推送给前端（打字机效果）
+                story = result.settlement.story_text if result.settlement else ""
+                if story:
+                    chunk_size = 4
+                    for i in range(0, len(story), chunk_size):
+                        await ws.send_json(
+                            _build_story_stream(story[i:i + chunk_size], is_last=False)
+                        )
+                        await asyncio.sleep(0.04)
+
+                # 流式结束标记
+                await ws.send_json(_build_story_stream("", is_last=True))
 
                 # 发送结算帧
                 await ws.send_json(_build_event_settlement(result))

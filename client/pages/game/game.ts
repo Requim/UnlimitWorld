@@ -216,15 +216,27 @@ Page({
   _onEventTrigger(frame: WsFrame) {
     clearCountdown();
 
-    const trigger = frame.trigger as Record<string, unknown> | undefined;
-    const persona = (trigger?.heaven_persona as string) || '天道';
+    // 防御：若 trigger 被双重序列化为字符串，尝试解析
+    let trigger = frame.trigger as Record<string, unknown> | undefined;
+    if (typeof trigger === 'string') {
+      try {
+        trigger = JSON.parse(trigger) as Record<string, unknown>;
+      } catch (_) {
+        trigger = undefined;
+      }
+    }
+
+    const rawPersona = trigger?.heaven_persona;
+    const persona = (typeof rawPersona === 'string' ? rawPersona : '') || '天道';
+
     const typeLabel: Record<string, string> = {
       BREAKTHROUGH: '境界突破',
       HEAVEN: '天道事件',
       SIN_FULL: '天谴神罚',
       ASCENSION: '飞升大考',
     };
-    const triggerType = (trigger?.trigger_type as string) || 'HEAVEN';
+    const rawType = trigger?.trigger_type;
+    const triggerType = (typeof rawType === 'string' ? rawType : '') || 'HEAVEN';
 
     // 将后端 fixed_options[{id, text}] 映射为前端 {id, label}
     const rawOptions = (trigger?.fixed_options as { id: string; text: string }[]) || [];
@@ -241,10 +253,23 @@ Page({
     // 始终追加自由对线选项 C
     mappedOptions.push({ id: 'C', label: '自由对线 (自定义骚话)' });
 
+    // karma_brief 为空时给默认描述
+    const rawKarma = trigger?.karma_brief;
+    let karmaDesc = (typeof rawKarma === 'string' ? rawKarma : '');
+    if (!karmaDesc) {
+      const fallbackDesc: Record<string, string> = {
+        BREAKTHROUGH: '境界壁垒已现裂痕，天道意志凝视着你，突破在此一举。',
+        HEAVEN: '天机莫测，命运之轮开始转动，天道目光投向你。',
+        SIN_FULL: '天谴值爆满！天道震怒，神罚之雷在云层中酝酿。',
+        ASCENSION: '九天十地为之震动，万古仙穹敞开大门，最后的考验降临！',
+      };
+      karmaDesc = fallbackDesc[triggerType] || '天道意志降临，命运的齿轮开始转动。';
+    }
+
     this.setData({
       uiState: UIState.AWAIT_DECISION,
       triggerTitle: `${persona} · ${typeLabel[triggerType] || triggerType}`,
-      triggerDescription: (trigger?.karma_brief as string) || '',
+      triggerDescription: karmaDesc,
       triggerOptions: mappedOptions,
       storyText: '',
       cultivation: (frame.cultivation as number) ?? this.data.cultivation,

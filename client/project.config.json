@@ -42,15 +42,20 @@
     "compileWorklet": false,
     "localPlugins": false,
     "disableUseStrict": false,
-    "useCompilerPlugins": ["typescript"]
+    "useCompilerPlugins": [
+      "typescript"
+    ],
+    "swc": false,
+    "disableSWC": true
   },
   "compileType": "miniprogram",
   "libVersion": "3.6.0",
-  "appid": "",
+  "appid": "wx74fd3cb85dbd8446",
   "projectname": "tiandao-buzhengjing",
   "condition": {},
   "editorSetting": {
     "tabIndent": "insertSpaces",
     "tabSize": 2
-  }
+  },
+  "simulatorPluginLibVersion": {}
 }
