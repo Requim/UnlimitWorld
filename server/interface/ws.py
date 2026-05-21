@@ -56,6 +56,7 @@ class ConnectionManager:
         immortal_hall=None,
         redis_client=None,
         active_session_repo=None,
+        account_repo=None,
     ):
         self._connections: dict[str, WebSocket] = {}
         self._engines: dict[str, GameEngine] = {}
@@ -66,6 +67,7 @@ class ConnectionManager:
         self._immortal_hall = immortal_hall
         self._redis = redis_client
         self._active_session_repo = active_session_repo
+        self._account_repo = account_repo  # Phase 3B：商店道具生效
 
     @property
     def active_count(self) -> int:
@@ -276,8 +278,15 @@ async def _handle_lifecycle(
                     )))
                 break  # 重连成功，跳出等待开局循环
 
-        # 新一局
-        session = engine.new_game(player_name=player_name, player_id=player_id)
+        # 新一局：从 PlayerAccount 加载局外资产
+        account = await mgr._account_repo.get(player_id) if mgr._account_repo else None
+        session = engine.new_game(
+            player_name=player_name,
+            player_id=player_id,
+            karma_shield=account.karma_shield if account else 0,
+            deafness_protocol=account.deafness_protocol if account else 0,
+            heaven_points=account.heaven_points if account else 0,
+        )
         await ws.send_json({
             "action": "SC_GAME_LOG",
             "log_text": f"[开局成功] 天道人格：【{session.heaven_persona}】",
@@ -389,6 +398,24 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
             await asyncio.sleep(settings.tick_interval)
             if engine.stage != Stage.IDLE:
                 continue
+
+            # Phase 3B：消费商店道具效果（功德洗白券 — 天谴清零）
+            if player_id and engine.session and mgr and mgr._account_repo:
+                account = await mgr._account_repo.get(player_id)
+                if account and account.pending_sin_reset:
+                    engine.session.sin_value = 0
+                    await mgr._account_repo._clear_sin_reset(player_id)
+                    await ws.send_json({
+                        "action": "SC_GAME_LOG",
+                        "log_text": "[功德洗白] 功德洗白券生效，天谴值归零！",
+                        "cultivation": engine.session.cultivation,
+                        "sin_value": 0,
+                        "luck": engine.session.luck,
+                        "foundation": engine.session.foundation,
+                        "realm": get_realm_name(engine.session.realm_code),
+                        "sin_phase": "safe",
+                        "stage": engine.stage,
+                    })
 
             result = await engine.tick()
 

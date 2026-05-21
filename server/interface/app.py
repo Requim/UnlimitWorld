@@ -25,6 +25,8 @@ logger = logging.getLogger("uvicorn")
 _connection_manager: ConnectionManager | None = None
 _karma_pool_task: asyncio.Task | None = None
 _wechat_client: WeChatClient | None = None
+_session_factory = None  # Phase 3B：供 REST API 使用
+_account_repo = None     # Phase 3B：PlayerAccountRepository
 
 
 def get_connection_manager() -> ConnectionManager:
@@ -77,13 +79,18 @@ async def lifespan(app: FastAPI):
     except Exception:
         pass  # MySQL 不可用时降级运行
 
+    # Phase 3B：保存全局引用供 REST API
+    global _session_factory, _account_repo
+
     if session_factory:
         from server.infrastructure.storage import (
             DeadRegistryRepository,
             ImmortalHallRepository,
             HeavenOverlordPoolRepository,
             ActiveSessionRepository,
+            PlayerAccountRepository,
         )
+        _account_repo = PlayerAccountRepository(session_factory)
         dead_repo = DeadRegistryRepository(session_factory)
         hall_repo = ImmortalHallRepository(session_factory)
         heaven_pool_repo = HeavenOverlordPoolRepository(session_factory)
@@ -99,12 +106,13 @@ async def lifespan(app: FastAPI):
     else:
         active_session_repo = None
 
-    # ── 创建 ConnectionManager（注入 SharedState） ──
+    # ── 创建 ConnectionManager（注入 SharedState + Shop） ──
     _connection_manager = ConnectionManager(
         dead_registry=dead_registry,
         immortal_hall=immortal_hall,
         redis_client=redis_client,
         active_session_repo=active_session_repo,
+        account_repo=_account_repo,
     )
 
     # ── Phase 2D：怨念池清洗后台任务 ──
@@ -186,6 +194,77 @@ def create_app() -> FastAPI:
         # openid 直接作为 player_id 使用
         # PlayerAccount 由 GameEngine.new_game() 在 WebSocket 层创建
         return {"player_id": openid, "is_new": False}
+
+    # ── Phase 3B：天道虚无黑市 REST API ──
+
+    @app.get("/api/shop/items")
+    async def shop_items(request: Request):
+        """获取商品列表 + 玩家当前余额。
+
+        Query: ?player_id=xxx
+        响应: { "items": [...], "heaven_points": 0 }
+        """
+        from server.domain.shop import get_catalog
+
+        player_id = request.query_params.get("player_id", "")
+        items = get_catalog()
+        heaven_points = 0
+
+        if player_id and _account_repo:
+            account = await _account_repo.get(player_id)
+            if account:
+                heaven_points = account.heaven_points
+
+        return {"items": items, "heaven_points": heaven_points}
+
+    @app.post("/api/shop/buy")
+    async def shop_buy(request: Request):
+        """购买道具。
+
+        请求体：{"player_id": str, "item_id": str}
+        响应：{"success": bool, "error": str, "heaven_points": int, "item": dict}
+        """
+        body = await request.json()
+        player_id = body.get("player_id", "")
+        item_id = body.get("item_id", "")
+
+        if not player_id or not item_id:
+            return JSONResponse({"error": "缺少 player_id 或 item_id"}, status_code=400)
+
+        if _account_repo is None:
+            return JSONResponse({"error": "商店服务暂不可用"}, status_code=503)
+
+        from server.domain.shop import find_item
+        item = find_item(item_id)
+        if item is None:
+            return JSONResponse({"error": "商品不存在"}, status_code=404)
+
+        account = await _account_repo.get(player_id)
+        if account is None:
+            return JSONResponse({"error": "账号不存在，请先开始游戏"}, status_code=404)
+
+        if account.heaven_points < item.cost:
+            return JSONResponse(
+                {"error": f"天道点不足，需要 {item.cost}，当前 {account.heaven_points}"},
+                status_code=402,
+            )
+
+        success = await _account_repo.buy_item(player_id, item_id, item.cost)
+        if not success:
+            return JSONResponse({"error": "购买失败"}, status_code=500)
+
+        # 重新查询最新余额
+        account = await _account_repo.get(player_id)
+        return {
+            "success": True,
+            "heaven_points": account.heaven_points if account else 0,
+            "item": {
+                "id": item.id,
+                "name": item.name,
+                "effect": item.effect,
+                "value": item.value,
+            },
+        }
 
     return app
 

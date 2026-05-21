@@ -1,51 +1,146 @@
-<!-- 黑市 · 暗域交易所 -->
-<view class="page">
-  <!-- 墨韵背景层 -->
-  <view class="bg-veil"></view>
+<!--
+  天道虚无黑市 — 封印禁忌商店
+  美学：封印典籍 · 残卷质感 · 暗市交易
+-->
+<view class="shop-page ink-bg">
 
-  <!-- 中心内容 -->
-  <view class="teaser-container">
-    <!-- 符文圆环 -->
-    <view class="rune-circle">
-      <view class="rune-inner">
-        <text class="rune-glyph">墟</text>
+  <!-- ═══ 天道点余额 · 灵力玉牒 ═══ -->
+  <view class="balance-plaque">
+    <view class="plaque-inner">
+      <view class="plaque-label-row">
+        <text class="plaque-seal">封</text>
+        <text class="plaque-title">天 道 灵 储</text>
+        <text class="plaque-seal">印</text>
       </view>
-    </view>
-
-    <!-- 标题 -->
-    <view class="teaser-header">
-      <text class="teaser-title">黑 市</text>
-      <text class="teaser-subtitle">— 暗 域 交 易 所 —</text>
-    </view>
-
-    <!-- 分隔符 -->
-    <view class="divider-rune">
-      <text class="divider-line">━ ◈ ━</text>
-    </view>
-
-    <!-- 描述 -->
-    <view class="teaser-body">
-      <text class="teaser-desc">黑市尚未开张</text>
-      <text class="teaser-hint">天道因果正在编织交易法则...</text>
-    </view>
-
-    <!-- 预示商品 -->
-    <view class="foreshadow-items">
-      <view class="foreshadow-item">
-        <text class="fs-icon">🪷</text>
-        <text class="fs-name">业果净化卡</text>
-        <text class="fs-tag">即将上架</text>
+      <view class="plaque-amount-row">
+        <text class="plaque-currency">◇</text>
+        <text class="plaque-value">{{heavenPoints}}</text>
+        <text class="plaque-unit">天道点</text>
       </view>
-      <view class="foreshadow-item">
-        <text class="fs-icon">🗿</text>
-        <text class="fs-name">替身傀儡</text>
-        <text class="fs-tag">即将上架</text>
-      </view>
-      <view class="foreshadow-item">
-        <text class="fs-icon">📿</text>
-        <text class="fs-name">灵根重塑丹</text>
-        <text class="fs-tag">即将上架</text>
-      </view>
+      <view class="plaque-glow-line"></view>
     </view>
   </view>
+
+  <!-- ═══ 商品名录 · 三重封印 ═══ -->
+
+  <!-- 因果遮蔽卡 — 金封 -->
+  <view class="item-card card-shield" style="animation-delay: 0.1s;">
+    <view class="card-seal-corners">
+      <view class="seal-corner seal-tl"></view>
+      <view class="seal-corner seal-tr"></view>
+      <view class="seal-corner seal-bl"></view>
+      <view class="seal-corner seal-br"></view>
+    </view>
+    <view class="card-badge card-badge-gold">因果法宝</view>
+    <view class="card-body">
+      <view class="card-title-row">
+        <text class="card-title">因果遮蔽卡</text>
+        <view class="card-divider-ornament">◆</view>
+      </view>
+      <text class="card-desc">死亡时自动触发，强行逆转因果。宗门大能撕裂时空将你捞回！</text>
+      <view class="card-effect-hint">
+        <text class="effect-label">效 果</text>
+        <text class="effect-text">免疫一次死亡 · 全屏金光逆转</text>
+      </view>
+    </view>
+    <view class="card-footer">
+      <view class="price-tag">
+        <text class="price-symbol">◇</text>
+        <text class="price-value">50</text>
+      </view>
+      <button
+        class="buy-btn buy-btn-gold {{heavenPoints < 50 ? 'disabled' : ''}}"
+        data-id="karma_shield"
+        data-cost="50"
+        bindtap="onBuy"
+        disabled="{{heavenPoints < 50}}"
+      >{{heavenPoints >= 50 ? '解 封' : '灵储不足'}}</button>
+    </view>
+  </view>
+
+  <!-- 天道失聪协议 — 玉封 -->
+  <view class="item-card card-ear" style="animation-delay: 0.25s;">
+    <view class="card-seal-corners">
+      <view class="seal-corner seal-tl"></view>
+      <view class="seal-corner seal-tr"></view>
+      <view class="seal-corner seal-bl"></view>
+      <view class="seal-corner seal-br"></view>
+    </view>
+    <view class="card-badge card-badge-jade">天道协议</view>
+    <view class="card-body">
+      <view class="card-title-row">
+        <text class="card-title">天道失聪协议</text>
+        <view class="card-divider-ornament">◆</view>
+      </view>
+      <text class="card-desc">天道对你的骚话选择性失聪，当局气运+10。持续一整局。</text>
+      <view class="card-effect-hint">
+        <text class="effect-label">效 果</text>
+        <text class="effect-text">气运 +10 · 天道装聋作哑一整局</text>
+      </view>
+    </view>
+    <view class="card-footer">
+      <view class="price-tag">
+        <text class="price-symbol">◇</text>
+        <text class="price-value">30</text>
+      </view>
+      <button
+        class="buy-btn buy-btn-jade {{heavenPoints < 30 ? 'disabled' : ''}}"
+        data-id="deafness_protocol"
+        data-cost="30"
+        bindtap="onBuy"
+        disabled="{{heavenPoints < 30}}"
+      >{{heavenPoints >= 30 ? '签 署' : '灵储不足'}}</button>
+    </view>
+  </view>
+
+  <!-- 功德洗白券 — 朱封 -->
+  <view class="item-card card-wash" style="animation-delay: 0.4s;">
+    <view class="card-seal-corners">
+      <view class="seal-corner seal-tl"></view>
+      <view class="seal-corner seal-tr"></view>
+      <view class="seal-corner seal-bl"></view>
+      <view class="seal-corner seal-br"></view>
+    </view>
+    <view class="card-badge card-badge-cinnabar">禁忌赦免</view>
+    <view class="card-body">
+      <view class="card-title-row">
+        <text class="card-title">功德洗白券</text>
+        <view class="card-divider-ornament cinnabar">◆</view>
+      </view>
+      <text class="card-desc">天谴值立即清零。洗心革面，重新做人。</text>
+      <view class="card-effect-hint">
+        <text class="effect-label">效 果</text>
+        <text class="effect-text">天谴值立即归零 · 天道既往不咎</text>
+      </view>
+    </view>
+    <view class="card-footer">
+      <view class="price-tag">
+        <text class="price-symbol">◇</text>
+        <text class="price-value">80</text>
+      </view>
+      <button
+        class="buy-btn buy-btn-cinnabar {{heavenPoints < 80 ? 'disabled' : ''}}"
+        data-id="sin_wash"
+        data-cost="80"
+        bindtap="onBuy"
+        disabled="{{heavenPoints < 80}}"
+      >{{heavenPoints >= 80 ? '赎 罪' : '灵储不足'}}</button>
+    </view>
+  </view>
+
+  <!-- ═══ 底部铭文 ═══ -->
+  <view class="shop-footer-text">
+    <text>— 虚无之中 · 因果可易 —</text>
+  </view>
+
+  <!-- ═══ 购买成功 · 封印解除弹层 ═══ -->
+  <view wx:if="{{showToast}}" class="toast-overlay" bindtap="onDismissToast">
+    <view class="toast-card {{toastType}}">
+      <view class="toast-seal-broken">封 印 解 除</view>
+      <text class="toast-item-name">{{toastItemName}}</text>
+      <text class="toast-msg">{{toastMessage}}</text>
+      <view class="toast-glow"></view>
+    </view>
+  </view>
+
 </view>

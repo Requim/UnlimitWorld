@@ -155,6 +155,7 @@ class PlayerAccount(BaseModel):
     heaven_points: int = 0
     deafness_protocol: int = 0
     karma_shield: int = 0
+    pending_sin_reset: bool = False   # 功德洗白券标记，下个 tick 清零 sin_value
     talent_bonus: dict = Field(default_factory=dict)
     created_at: datetime = Field(default_factory=datetime.now)
     last_login: datetime = Field(default_factory=datetime.now)

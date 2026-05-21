@@ -1,180 +1,480 @@
 /**
- * 黑市页面 — 暗域交易所
+ * 天道虚无黑市 — 封印禁忌商店样式
+ * 美学：封印典籍 · 残卷质感 · 暗市交易 · 水墨宇宙
  */
 
-.page {
-  height: 100vh;
-  background:
-    radial-gradient(ellipse 60% 60% at 50% 40%, rgba(20, 28, 50, 0.6) 0%, transparent 70%),
-    radial-gradient(ellipse 40% 30% at 20% 80%, rgba(22, 26, 43, 0.4) 0%, transparent 50%),
-    var(--ink-black);
+/* ═══════════════════════════════════════════
+   页面基底
+   ═══════════════════════════════════════════ */
+.shop-page {
+  min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  padding: 32rpx 28rpx 60rpx;
   position: relative;
-  overflow: hidden;
 }
 
-/* 暗纹帷幕 */
-.bg-veil {
+/* ═══════════════════════════════════════════
+   天道灵储 · 玉牒余额牌
+   ═══════════════════════════════════════════ */
+.balance-plaque {
+  width: 100%;
+  margin-bottom: 40rpx;
+  animation: ink-reveal 0.7s ease-out;
+}
+
+.plaque-inner {
+  background: linear-gradient(175deg, var(--paper-dark) 0%, #1a1e2e 40%, var(--paper-mid) 100%);
+  border: 1rpx solid rgba(200, 160, 80, 0.3);
+  border-radius: 8rpx;
+  padding: 28rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  box-shadow:
+    0 2rpx 20rpx rgba(0, 0, 0, 0.5),
+    0 0 32rpx rgba(200, 160, 80, 0.06);
+}
+
+.plaque-inner::before {
+  content: "";
+  position: absolute;
+  top: 4rpx;
+  left: 12rpx;
+  right: 12rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.5), transparent);
+}
+
+.plaque-inner::after {
+  content: "";
+  position: absolute;
+  bottom: 4rpx;
+  left: 12rpx;
+  right: 12rpx;
+  height: 1rpx;
+  background: linear-gradient(90deg, transparent, rgba(200, 160, 80, 0.2), transparent);
+}
+
+.plaque-label-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+
+.plaque-seal {
+  font-size: 24rpx;
+  color: var(--cinnabar-dark);
+  letter-spacing: 4rpx;
+  padding: 2rpx 10rpx;
+  border: 1rpx solid var(--cinnabar-dark);
+  border-radius: 3rpx;
+  opacity: 0.8;
+}
+
+.plaque-title {
+  font-size: 24rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 8rpx;
+}
+
+.plaque-amount-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8rpx;
+}
+
+.plaque-currency {
+  font-size: 32rpx;
+  color: var(--gold-leaf);
+}
+
+.plaque-value {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 2rpx;
+  text-shadow: 0 0 20rpx rgba(200, 160, 80, 0.3);
+  animation: gold-breath 3s ease-in-out infinite;
+}
+
+.plaque-unit {
+  font-size: 24rpx;
+  color: var(--gold-pale);
+  letter-spacing: 4rpx;
+}
+
+.plaque-glow-line {
+  width: 60%;
+  height: 1rpx;
+  margin-top: 16rpx;
+  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+}
+
+/* ═══════════════════════════════════════════
+   商品卡片 · 三封残卷
+   ═══════════════════════════════════════════ */
+.item-card {
+  width: 100%;
+  margin-bottom: 28rpx;
+  background: linear-gradient(170deg, var(--paper-dark) 0%, #13172a 50%, var(--paper-mid) 100%);
+  border: 1rpx solid var(--border-ink-light);
+  border-radius: 6rpx;
+  padding: 24rpx 24rpx 20rpx;
+  position: relative;
+  overflow: hidden;
+  animation: ink-reveal 0.6s ease-out both;
+}
+
+/* 卡片底色微差 */
+.card-shield {
+  border-color: rgba(200, 160, 80, 0.25);
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(200, 160, 80, 0.04);
+}
+
+.card-ear {
+  border-color: rgba(90, 174, 130, 0.25);
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(90, 174, 130, 0.04);
+}
+
+.card-wash {
+  border-color: rgba(212, 61, 61, 0.2);
+  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(212, 61, 61, 0.04);
+}
+
+/* ── 四角封印纹 ── */
+.card-seal-corners {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
   pointer-events: none;
-  background:
-    repeating-linear-gradient(
-      0deg,
-      transparent,
-      transparent 4rpx,
-      rgba(120, 100, 60, 0.01) 4rpx,
-      rgba(120, 100, 60, 0.01) 6rpx
-    );
+  z-index: 0;
 }
 
-/* ── 容器 ── */
-.teaser-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48rpx 40rpx;
+.seal-corner {
+  position: absolute;
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.seal-corner::before,
+.seal-corner::after {
+  content: "";
+  position: absolute;
+  background: rgba(200, 160, 80, 0.15);
+}
+
+.seal-tl { top: 8rpx; left: 8rpx; }
+.seal-tl::before { top: 0; left: 0; width: 24rpx; height: 1rpx; }
+.seal-tl::after  { top: 0; left: 0; width: 1rpx; height: 24rpx; }
+
+.seal-tr { top: 8rpx; right: 8rpx; }
+.seal-tr::before { top: 0; right: 0; width: 24rpx; height: 1rpx; }
+.seal-tr::after  { top: 0; right: 0; width: 1rpx; height: 24rpx; }
+
+.seal-bl { bottom: 8rpx; left: 8rpx; }
+.seal-bl::before { bottom: 0; left: 0; width: 24rpx; height: 1rpx; }
+.seal-bl::after  { bottom: 0; left: 0; width: 1rpx; height: 24rpx; }
+
+.seal-br { bottom: 8rpx; right: 8rpx; }
+.seal-br::before { bottom: 0; right: 0; width: 24rpx; height: 1rpx; }
+.seal-br::after  { bottom: 0; right: 0; width: 1rpx; height: 24rpx; }
+
+/* 不同商品卡片的封印颜色 */
+.card-shield .seal-corner::before,
+.card-shield .seal-corner::after { background: rgba(200, 160, 80, 0.2); }
+
+.card-ear .seal-corner::before,
+.card-ear .seal-corner::after { background: rgba(90, 174, 130, 0.2); }
+
+.card-wash .seal-corner::before,
+.card-wash .seal-corner::after { background: rgba(212, 61, 61, 0.18); }
+
+/* ── 品类标签 ── */
+.card-badge {
+  font-size: 20rpx;
+  letter-spacing: 4rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 3rpx;
+  display: inline-block;
+  margin-bottom: 16rpx;
   position: relative;
   z-index: 1;
 }
 
-/* ── 符文圆环 ── */
-.rune-circle {
-  width: 160rpx;
-  height: 160rpx;
-  border-radius: 50%;
-  border: 1rpx solid rgba(200, 160, 80, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 32rpx;
-  position: relative;
-  animation: gold-breath 4s ease-in-out infinite;
-}
-
-.rune-circle::before {
-  content: "";
-  position: absolute;
-  top: -4rpx;
-  left: -4rpx;
-  right: -4rpx;
-  bottom: -4rpx;
-  border-radius: 50%;
-  border: 1rpx solid rgba(200, 160, 80, 0.08);
-}
-
-.rune-inner {
-  width: 120rpx;
-  height: 120rpx;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(22, 26, 43, 0.9), var(--paper-dark));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1rpx solid rgba(200, 160, 80, 0.3);
-}
-
-.rune-glyph {
-  font-size: 56rpx;
-  color: var(--gold-leaf);
-  opacity: 0.7;
-}
-
-/* ── 标题 ── */
-.teaser-header {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8rpx;
-  margin-bottom: 24rpx;
-}
-
-.teaser-title {
-  font-size: 44rpx;
-  font-weight: 700;
+.card-badge-gold {
   color: var(--gold-pale);
-  letter-spacing: 16rpx;
+  border: 1rpx solid rgba(200, 160, 80, 0.3);
+  background: rgba(200, 160, 80, 0.06);
 }
 
-.teaser-subtitle {
-  font-size: 22rpx;
-  color: var(--text-mist-dim);
-  letter-spacing: 6rpx;
+.card-badge-jade {
+  color: var(--jade-light);
+  border: 1rpx solid rgba(90, 174, 130, 0.3);
+  background: rgba(90, 174, 130, 0.06);
 }
 
-/* ── 分隔 ── */
-.divider-rune {
-  margin-bottom: 24rpx;
+.card-badge-cinnabar {
+  color: var(--cinnabar);
+  border: 1rpx solid rgba(212, 61, 61, 0.3);
+  background: rgba(212, 61, 61, 0.06);
 }
 
-.divider-line {
-  font-size: 24rpx;
-  color: rgba(200, 160, 80, 0.2);
-  letter-spacing: 8rpx;
+/* ── 卡片正文 ── */
+.card-body {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 20rpx;
 }
 
-/* ── 描述 ── */
-.teaser-body {
+.card-title-row {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 8rpx;
-  margin-bottom: 40rpx;
+  gap: 12rpx;
+  margin-bottom: 12rpx;
 }
 
-.teaser-desc {
-  font-size: 28rpx;
-  color: var(--text-mist);
+.card-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: var(--text-parchment-light);
   letter-spacing: 4rpx;
 }
 
-.teaser-hint {
+.card-divider-ornament {
+  font-size: 16rpx;
+  color: var(--gold-dim);
+}
+
+.card-divider-ornament.cinnabar {
+  color: var(--cinnabar);
+}
+
+.card-desc {
   font-size: 24rpx;
-  color: var(--text-mist-dim);
+  color: var(--text-mist);
+  line-height: 1.6;
   letter-spacing: 2rpx;
-  animation: qi-pulse 3s ease-in-out infinite;
+  display: block;
+  margin-bottom: 14rpx;
 }
 
-/* ── 预示商品 ── */
-.foreshadow-items {
+.card-effect-hint {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: 12rpx;
-  width: 100%;
+  padding: 10rpx 14rpx;
+  background: rgba(0, 0, 0, 0.3);
+  border-left: 3rpx solid var(--gold-dim);
+  border-radius: 0 3rpx 3rpx 0;
 }
 
-.foreshadow-item {
+.card-ear .card-effect-hint {
+  border-left-color: var(--jade-dark);
+}
+
+.card-wash .card-effect-hint {
+  border-left-color: var(--cinnabar-dark);
+}
+
+.effect-label {
+  font-size: 20rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 4rpx;
+  flex-shrink: 0;
+}
+
+.effect-text {
+  font-size: 22rpx;
+  color: var(--text-mist);
+  letter-spacing: 1rpx;
+}
+
+/* ── 卡片底部 · 价格 + 购买 ── */
+.card-footer {
   display: flex;
   align-items: center;
-  padding: 16rpx 24rpx;
-  background: rgba(22, 26, 43, 0.5);
-  border: 1rpx solid var(--border-ink-light);
-  border-radius: var(--radius-sm);
-  gap: 16rpx;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+  padding-top: 16rpx;
+  border-top: 1rpx solid rgba(30, 36, 64, 0.5);
 }
 
-.fs-icon {
+.price-tag {
+  display: flex;
+  align-items: baseline;
+  gap: 4rpx;
+}
+
+.price-symbol {
+  font-size: 24rpx;
+  color: var(--gold-leaf);
+}
+
+.price-value {
   font-size: 36rpx;
-  opacity: 0.6;
+  font-weight: 700;
+  color: var(--gold-bright);
+  letter-spacing: 1rpx;
 }
 
-.fs-name {
-  flex: 1;
+/* ── 购买按钮 ── */
+.buy-btn {
+  font-size: 26rpx;
+  font-weight: 600;
+  letter-spacing: 6rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 4rpx;
+  border: 1rpx solid;
+  background: transparent;
+  transition: all 0.2s;
+}
+
+.buy-btn-gold {
+  color: var(--gold-bright);
+  border-color: rgba(200, 160, 80, 0.4);
+  background: rgba(200, 160, 80, 0.08);
+}
+
+.buy-btn-gold:active {
+  background: rgba(200, 160, 80, 0.2);
+  box-shadow: 0 0 16rpx rgba(200, 160, 80, 0.25);
+  transform: scale(0.96);
+}
+
+.buy-btn-jade {
+  color: var(--jade-light);
+  border-color: rgba(90, 174, 130, 0.4);
+  background: rgba(90, 174, 130, 0.08);
+}
+
+.buy-btn-jade:active {
+  background: rgba(90, 174, 130, 0.2);
+  box-shadow: 0 0 16rpx rgba(90, 174, 130, 0.25);
+  transform: scale(0.96);
+}
+
+.buy-btn-cinnabar {
+  color: var(--cinnabar-bright);
+  border-color: rgba(212, 61, 61, 0.4);
+  background: rgba(212, 61, 61, 0.08);
+}
+
+.buy-btn-cinnabar:active {
+  background: rgba(212, 61, 61, 0.2);
+  box-shadow: 0 0 16rpx rgba(212, 61, 61, 0.25);
+  transform: scale(0.96);
+}
+
+/* 余额不足 — 置灰 */
+.buy-btn.disabled {
+  color: var(--text-void);
+  border-color: rgba(42, 45, 58, 0.4);
+  background: rgba(42, 45, 58, 0.15);
+  letter-spacing: 4rpx;
+}
+
+/* ═══════════════════════════════════════════
+   底栏铭文
+   ═══════════════════════════════════════════ */
+.shop-footer-text {
+  margin-top: 8rpx;
+  padding: 24rpx 0;
+}
+
+.shop-footer-text text {
+  font-size: 22rpx;
+  color: var(--text-void);
+  letter-spacing: 6rpx;
+}
+
+/* ═══════════════════════════════════════════
+   购买成功 · 封印解除弹层
+   ═══════════════════════════════════════════ */
+.toast-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(2, 0, 8, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  animation: fade-in 0.25s ease-out;
+}
+
+.toast-card {
+  background: linear-gradient(170deg, var(--paper-dark) 0%, #13172a 50%, var(--paper-mid) 100%);
+  border: 1rpx solid var(--border-gold-glow);
+  border-radius: 8rpx;
+  padding: 40rpx 36rpx 32rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+  max-width: 520rpx;
+  width: 85%;
+  position: relative;
+  box-shadow: 0 4rpx 40rpx rgba(0, 0, 0, 0.6), 0 0 48rpx rgba(200, 160, 80, 0.1);
+  animation: ink-reveal 0.5s ease-out;
+}
+
+.toast-card.cinnabar {
+  border-color: rgba(212, 61, 61, 0.35);
+  box-shadow: 0 4rpx 40rpx rgba(0, 0, 0, 0.6), 0 0 48rpx rgba(212, 61, 61, 0.1);
+}
+
+.toast-seal-broken {
+  font-size: 22rpx;
+  color: var(--gold-pale);
+  letter-spacing: 8rpx;
+  padding: 6rpx 20rpx;
+  border: 1rpx solid rgba(200, 160, 80, 0.3);
+  border-radius: 3rpx;
+  background: rgba(200, 160, 80, 0.06);
+}
+
+.toast-card.cinnabar .toast-seal-broken {
+  color: var(--cinnabar);
+  border-color: rgba(212, 61, 61, 0.3);
+  background: rgba(212, 61, 61, 0.06);
+}
+
+.toast-item-name {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: var(--text-parchment-light);
+  letter-spacing: 6rpx;
+}
+
+.toast-msg {
   font-size: 26rpx;
   color: var(--text-mist);
   letter-spacing: 2rpx;
+  text-align: center;
+  line-height: 1.6;
 }
 
-.fs-tag {
-  font-size: 20rpx;
-  color: var(--text-mist-dim);
-  padding: 4rpx 12rpx;
-  border: 1rpx solid var(--border-ink);
-  border-radius: 4rpx;
-  letter-spacing: 2rpx;
+.toast-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 200rpx;
+  height: 200rpx;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(200, 160, 80, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.toast-card.cinnabar .toast-glow {
+  background: radial-gradient(circle, rgba(212, 61, 61, 0.06) 0%, transparent 70%);
 }

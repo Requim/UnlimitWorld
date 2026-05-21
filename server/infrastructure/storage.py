@@ -54,6 +54,13 @@ class PlayerAccountRepository:
                 row.heaven_points += delta
                 await sess.commit()
 
+    async def get(self, player_id: str) -> PlayerAccount | None:
+        async with self._sf() as sess:
+            row = await sess.get(PlayerAccountModel, player_id)
+            if row is None:
+                return None
+            return _account_from_orm(row)
+
     async def save(self, account: PlayerAccount):
         async with self._sf() as sess:
             row = await sess.get(PlayerAccountModel, account.player_id)
@@ -64,6 +71,42 @@ class PlayerAccountRepository:
                 for k, v in account.model_dump().items():
                     setattr(row, k, v)
             await sess.commit()
+
+    # ── Phase 3B：商店购买操作 ──
+
+    async def _clear_sin_reset(self, player_id: str):
+        """Phase 3B：消费功德洗白券标记"""
+        async with self._sf() as sess:
+            row = await sess.get(PlayerAccountModel, player_id)
+            if row:
+                row.pending_sin_reset = 0
+                await sess.commit()
+
+    async def buy_item(self, player_id: str, item_id: str, cost: int) -> bool:
+        """扣除天道点并应用道具效果。返回是否购买成功。"""
+        from server.domain.shop import find_item
+        item = find_item(item_id)
+        if item is None:
+            return False
+
+        async with self._sf() as sess:
+            row = await sess.get(PlayerAccountModel, player_id)
+            if row is None:
+                return False
+            if row.heaven_points < cost:
+                return False
+
+            row.heaven_points -= cost
+
+            if item.effect == "karma_shield":
+                row.karma_shield += item.value
+            elif item.effect == "deafness_protocol":
+                row.deafness_protocol += item.value
+            elif item.effect == "sin_reset":
+                row.pending_sin_reset = 1
+
+            await sess.commit()
+            return True
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -265,6 +308,7 @@ def _account_from_orm(row: PlayerAccountModel) -> PlayerAccount:
         heaven_points=row.heaven_points,
         deafness_protocol=row.deafness_protocol,
         karma_shield=row.karma_shield,
+        pending_sin_reset=bool(row.pending_sin_reset),
         talent_bonus=row.talent_bonus or {},
         created_at=row.created_at,
         last_login=row.last_login,

@@ -82,8 +82,18 @@ Page({
       this._routeMessage(frame);
     });
 
-    // 建立连接
-    ws.connect(getApp<IAppOption>().globalData.playerId);
+    // 等待 login 完成拿到 playerId 后再连接（app.ts 中 wx.login 是异步的）
+    this._tryConnect();
+  },
+
+  _tryConnect() {
+    const id = getApp<IAppOption>().globalData.playerId;
+    if (id) {
+      getWs().connect(id);
+    } else {
+      // login 尚未完成，200ms 后重试
+      setTimeout(() => this._tryConnect(), 200);
+    }
   },
 
   onUnload() {
@@ -108,7 +118,14 @@ Page({
     if (hasStarted) return;
     hasStarted = true;
 
-    getWs().send(CS_START_GAME, { player_name: this.data.playerName });
+    const ws = getWs();
+    // 确保 WS 已连接（用户可能在 login 完成前就点了按钮）
+    if (ws.getStatus() !== 'connected') {
+      const id = getApp<IAppOption>().globalData.playerId;
+      if (id) ws.connect(id);
+    }
+
+    ws.send(CS_START_GAME, { player_name: this.data.playerName });
     this.setData({ uiState: UIState.CONNECTING });
   },
 

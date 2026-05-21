@@ -29,6 +29,7 @@ class PlayerAccountModel(Base):
     heaven_points: Mapped[int] = mapped_column(Integer, default=0)
     deafness_protocol: Mapped[int] = mapped_column(Integer, default=0)
     karma_shield: Mapped[int] = mapped_column(Integer, default=0)
+    pending_sin_reset: Mapped[bool] = mapped_column(Integer, default=0)  # 功德洗白券标记
     talent_bonus: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     last_login: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
