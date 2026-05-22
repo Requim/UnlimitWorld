@@ -152,6 +152,21 @@ class TestNewGame:
         engine.new_game()
         assert engine._current_trigger is None
 
+    def test_prepare_new_game_returns_three_unique_destiny_offers(self):
+        engine = GameEngine()
+        offers = engine.prepare_new_game("命格修士")
+        assert len(offers) == 3
+        assert len({item["id"] for item in offers}) == 3
+        assert engine.has_pending_destiny_offer() is True
+
+    def test_new_game_applies_destiny_sign_modifiers(self):
+        engine = GameEngine()
+        session = engine.new_game(destiny_sign_id="fortune_and_disaster")
+        assert session.destiny_sign_id == "fortune_and_disaster"
+        assert session.destiny_sign_title == "福祸同炉"
+        assert session.foundation >= 36
+        assert session.sin_value == 10
+
 
 # ══════════════════════════════════════════════════════════
 # GameEngine.tick — 阶段守卫
@@ -197,6 +212,18 @@ class TestTickEventRouting:
         assert result.event_type in ("LOCAL", "RESENTMENT_LOCAL")
         assert result.stage == Stage.IDLE
         assert result.cultivation > 0
+
+    @pytest.mark.asyncio
+    async def test_destiny_prd_step_delta_has_minimum_floor(self):
+        engine = GameEngine()
+        engine.new_game(destiny_sign_id="secluded_meditation")
+        engine.session.prd_counter = 0
+
+        with patch("server.application.game_engine.random.randint", return_value=2):
+            result = await engine.tick()
+
+        assert engine.session.prd_counter >= 1
+        assert result.cultivation > 0 or result.event_type in ("RESENTMENT_LOCAL", "RESENTMENT_LLM")
 
     @pytest.mark.asyncio
     async def test_local_event_advances_survival_time(self):
@@ -376,6 +403,55 @@ class TestSubmitDecision:
         assert result.settlement is not None
 
     @pytest.mark.asyncio
+    async def test_destiny_custom_text_bonus_applies(self):
+        engine = GameEngine()
+        engine.new_game(destiny_sign_id="sharp_tongue")
+
+        mock_orch = _make_mock_orchestrator(
+            LLMOutput(
+                event_title="测试事件",
+                story_text="测试剧情文本。",
+                is_dead=False,
+                dead_title="",
+                attribute_changes=AttributeChanges(),
+                next_action_required="IDLE",
+            )
+        )
+        engine.orchestrator = mock_orch
+        engine.stage = Stage.EVENT_TRIGGER
+        engine._current_trigger = EventTrigger(
+            event_id="t1", trigger_type="HEAVEN",
+            fixed_options=[{"id": "A", "text": "opt"}],
+        )
+
+        result = await engine.submit_decision("C", "这是我的自定义骚话")
+        assert result.heaven_points_earned == 3
+        assert engine.session.sin_value == 5
+
+    @pytest.mark.asyncio
+    async def test_submit_streams_story_chunks_via_callback(self):
+        engine = GameEngine()
+        engine.new_game()
+
+        mock_orch = _make_mock_orchestrator()
+        engine.orchestrator = mock_orch
+        engine.stage = Stage.EVENT_TRIGGER
+        engine._current_trigger = EventTrigger(
+            event_id="t1", trigger_type="HEAVEN",
+            fixed_options=[{"id": "A", "text": "opt"}],
+        )
+
+        chunks = []
+
+        async def on_chunk(chunk: str):
+            chunks.append(chunk)
+
+        result = await engine.submit_decision("A", "", on_chunk=on_chunk)
+
+        assert result.settlement is not None
+        assert "".join(chunks) == result.settlement.story_text
+
+    @pytest.mark.asyncio
     async def test_submit_llm_exception_falls_back(self):
         engine = GameEngine()
         engine.new_game()
@@ -443,7 +519,7 @@ class TestSettle:
         engine.new_game()
         engine.session.cultivation = 500
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=False)
-        result = await engine._settle(llm_output, trigger, False, False, "测试故事")
+        result = await engine._settle(llm_output, trigger, False, False, "测试故事", False)
         assert result.is_dead is False
         assert result.game_over is False
         assert engine.stage == Stage.IDLE
@@ -454,7 +530,7 @@ class TestSettle:
         engine = GameEngine()
         engine.new_game()
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=True)
-        result = await engine._settle(llm_output, trigger, True, False, "死了")
+        result = await engine._settle(llm_output, trigger, True, False, "死了", False)
         assert result.is_dead is True
         assert result.game_over is True
         assert engine.stage == Stage.GAME_OVER
@@ -466,7 +542,7 @@ class TestSettle:
         engine = GameEngine()
         engine.new_game()
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=False)
-        result = await engine._settle(llm_output, trigger, False, True, "飞升成功")
+        result = await engine._settle(llm_output, trigger, False, True, "飞升成功", False)
         assert result.game_over is True
         assert result.is_dead is False
         assert result.heaven_points_earned > 0
@@ -485,7 +561,7 @@ class TestSettle:
             next_action_required="GAME_OVER",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="ASCENSION")
-        result = await engine._settle(llm_output, trigger, True, True, "飞升陨落")
+        result = await engine._settle(llm_output, trigger, True, True, "飞升陨落", False)
         assert result.is_dead is True
         assert len(engine._dead_list) == 1
         assert len(engine._hall_list) == 0
@@ -495,7 +571,7 @@ class TestSettle:
         engine = GameEngine()
         engine.new_game(karma_shield=1)
         llm_output, trigger = self._make_settle_inputs(backend_is_dead=True)
-        result = await engine._settle(llm_output, trigger, True, False, "原应死亡")
+        result = await engine._settle(llm_output, trigger, True, False, "原应死亡", False)
         assert result.is_dead is False
         assert result.settlement.intercepted_by_shield is True
         assert engine.session.karma_shield == 0
@@ -518,7 +594,7 @@ class TestSettle:
             next_action_required="IDLE",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
-        await engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试", False)
         assert 0 <= engine.session.sin_value <= 100
         assert 0 <= engine.session.luck <= 100
         assert 0 <= engine.session.foundation <= 100
@@ -529,7 +605,7 @@ class TestSettle:
         engine.new_game()
         engine.session.prd_counter = 500
         llm_output, trigger = self._make_settle_inputs()
-        await engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试", False)
         assert engine.session.prd_counter == 0
 
     @pytest.mark.asyncio
@@ -538,7 +614,7 @@ class TestSettle:
         engine.new_game()
         engine._current_trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
         llm_output, trigger = self._make_settle_inputs()
-        await engine._settle(llm_output, trigger, False, False, "测试")
+        await engine._settle(llm_output, trigger, False, False, "测试", False)
         assert engine._current_trigger is None
 
     @pytest.mark.asyncio
@@ -557,7 +633,7 @@ class TestSettle:
             next_action_required="IDLE",
         )
         trigger = EventTrigger(event_id="t1", trigger_type="HEAVEN")
-        await engine._settle(llm_output, trigger, False, False, "突破")
+        await engine._settle(llm_output, trigger, False, False, "突破", False)
         assert engine.session.cultivation >= 1150
 
 

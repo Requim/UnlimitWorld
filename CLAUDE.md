@@ -13,7 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **M2 阶段 ✅（已完成）：** [M2-networking.md](M2-networking.md) — 弱联机全生态与网络层建设 (WebSocket + Web 版)
 - **M3 阶段（当前）：** [M3-client-launch.md](M3-client-launch.md) — 客户端全量合流与微信生态上架 (小程序商业版)
 
-当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全），Phase 3B/3C 已有商店与名人堂实现，Phase 3D/3E 正在收口联调；新增玩法扩展链路按 Phase 3F（规划落档）→ 3G（命格签）→ 3H（天道人格扩容）推进，原部署上架阶段顺延为 Phase 3I。
+当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）、Phase 3F（玩法扩展规划落档）与 Phase 3G（命格签系统）；Phase 3D/3E 正在收口联调，当前推进 Phase 3H（天道人格扩容），原部署上架阶段顺延为 Phase 3I。
 
 编码时优先读取对应阶段的需求文档，确保实现与 PRD 一致。
 

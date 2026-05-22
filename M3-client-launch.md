@@ -170,8 +170,8 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | **3C** | 名人堂读 API + 前端排行榜 + Canvas 战报图分享 | 全栈 | ✅ `frontend-design` | ⏳ |
 | **3D** | 前端 UI 进阶（进度条/Modal/震动/TabBar 图标/环境配置） | 前端为主 | ✅ `frontend-design` | ⏳ |
 | **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 集成测试 | 全栈 | ✅ `frontend-design` | ⏳ |
-| **3F** | 玩法扩展规划落档（命格签 + 天道人格扩容） | 设计/文档 | — | ⏳ |
-| **3G** | 命格签系统（开局三选一 + 局内修正） | 全栈 | ✅ `frontend-design` | ⏳ |
+| **3F** | 玩法扩展规划落档（命格签 + 天道人格扩容） | 设计/文档 | — | ✅ |
+| **3G** | 命格签系统（开局三选一 + 局内修正） | 全栈 | ✅ `frontend-design` | ✅ |
 | **3H** | 天道人格扩容（4 → 8） | 全栈 | — | ⏳ |
 | **3I** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — | ⏳ |
 
@@ -347,7 +347,38 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 
 ### 5.11 Phase 3G 命格签系统实施记录
 
-> 待实施。完成后记录协议改动、状态机插入点、前端弹层设计、测试结果与遗留风险。
+> 实施日期：2026-05-22 | 实施人：Codex | 测试：83 passed（GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/domain/destiny.py` | 新增命格签目录、三选一抽取逻辑与四张基础命格配置 |
+| `server/domain/player.py` | `PlayerState` 新增 `destiny_sign_id / destiny_sign_title / destiny_mods`，并补充命格初始修正、PRD 修正、自由文本奖惩、天道点倍率 helper |
+| `server/application/game_engine.py` | 新增 `prepare_new_game()` / `get_pending_destiny_offers()`；`new_game()` 接收 `destiny_sign_id`；tick PRD 步长与结算逻辑接入命格修正 |
+| `server/interface/ws.py` | WebSocket 握手改为 `CS_START_GAME → SC_DESTINY_OFFER → CS_SELECT_DESTINY_SIGN → SC_GAME_LOG` |
+| `client/utils/actions.ts` | 新增 `CS_SELECT_DESTINY_SIGN`、`SC_DESTINY_OFFER`、`UIState.PREPARING` |
+| `client/pages/game/game.ts` / `game.wxml` / `game.wxss` | 新增命格签选择弹层与前端协议流转 |
+| `server/tests/test_game_engine.py` / `test_e2e_ws.py` | 新增命格签相关单测与 E2E 覆盖，并将开局 helper 统一迁移到新握手流程 |
+
+#### 设计决策
+
+- **命格签只插入 `INIT` 握手，不新增长期主状态机**：`GameEngine` 仍只在正式 `new_game()` 后进入 `IDLE`，避免影响后续挂机、事件、结算六阶段生命周期。
+- **命格签只挂 `PlayerState`**：断线重连天然复用现有 `session_json` 快照，不引入账号表迁移和额外 schema 风险。
+- **嘴硬成道奖励允许在未死亡时结算**：额外 `heaven_points +3` 直接通过事件结算回写局内/局外余额，让玩家当局就能感知“嘴硬有收益”。
+- **前端使用页内弹层而非独立页面**：保持小程序游戏页的单页六态结构，只加一个 `preparing` 过渡态，减少跳页与状态同步复杂度。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`：83 passed。
+- `python -m compileall server -q`：通过。
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3G | 微信开发者工具实机目测命格签弹层布局与点击态 |
+| 3H | 扩容 4 个新天道人格，并修复当前人格抽取仍有历史前三人格偏置的问题 |
 
 ### 5.12 Phase 3H 天道人格扩容实施记录
 

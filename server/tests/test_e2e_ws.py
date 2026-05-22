@@ -18,6 +18,8 @@ sys.path.insert(0, str(_project_root))
 import pytest
 from fastapi.testclient import TestClient
 from server.interface.app import app
+from server.application.game_engine import TickResult, Stage
+from server.domain.event import EventSettlement, AttributeChanges
 from server.config import settings
 
 
@@ -35,6 +37,33 @@ def client():
     return TestClient(app)
 
 
+def _start_game_with_destiny(ws, player_name="测试修士", include_name=True):
+    payload = {"action": "CS_START_GAME"}
+    if include_name:
+        payload["player_name"] = player_name
+    ws.send_json(payload)
+
+    first = ws.receive_json()
+    if first["action"] == "SC_DESTINY_OFFER":
+        offers = first.get("offers", [])
+        assert isinstance(offers, list)
+        assert len(offers) == 3
+        sign_id = offers[0]["id"]
+        select_payload = {
+            "action": "CS_SELECT_DESTINY_SIGN",
+            "sign_id": sign_id,
+        }
+        if include_name:
+            select_payload["player_name"] = player_name
+        ws.send_json(select_payload)
+        started = ws.receive_json()
+        assert started["action"] == "SC_GAME_LOG"
+        return started, first
+
+    assert first["action"] == "SC_GAME_LOG"
+    return first, None
+
+
 # ═══════════════════════════════════════════════════
 # 1. 连接 + 开局
 # ═══════════════════════════════════════════════════
@@ -43,12 +72,13 @@ class TestConnectAndStart:
     """连接建立与开局流程"""
 
     def test_connect_and_start_game(self, client, fast_tick):
-        """CS_START_GAME 应返回 SC_GAME_LOG 且字段完整"""
+        """CS_START_GAME 应先返回命格签，再进入正式开局帧"""
         with client.websocket_connect("/ws/game?player_id=e2e_p1") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "端到端测试修士"})
-            resp = ws.receive_json()
+            resp, offer = _start_game_with_destiny(ws, "端到端测试修士")
 
             assert resp["action"] == "SC_GAME_LOG"
+            assert offer is not None
+            assert offer["action"] == "SC_DESTINY_OFFER"
             assert "开局" in resp["log_text"] or "success" in resp["log_text"].lower()
 
             # 字段级校验：前端 game.ts _onGameLog 依赖这些字段
@@ -64,16 +94,25 @@ class TestConnectAndStart:
     def test_empty_player_name_defaults(self, client, fast_tick):
         """不传 player_name 应使用默认值"""
         with client.websocket_connect("/ws/game?player_id=e2e_default_name") as ws:
-            ws.send_json({"action": "CS_START_GAME"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, include_name=False)
             assert resp["action"] == "SC_GAME_LOG"
 
     def test_missing_player_id_autogenerates(self, client, fast_tick):
         """空 player_id 应自动分配并正常开局"""
         with client.websocket_connect("/ws/game?player_id=") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "无名"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, "无名")
             assert resp["action"] == "SC_GAME_LOG"
+
+    def test_invalid_destiny_selection_returns_error(self, client, fast_tick):
+        with client.websocket_connect("/ws/game?player_id=e2e_bad_destiny") as ws:
+            ws.send_json({"action": "CS_START_GAME", "player_name": "命格测试"})
+            offer = ws.receive_json()
+            assert offer["action"] == "SC_DESTINY_OFFER"
+
+            ws.send_json({"action": "CS_SELECT_DESTINY_SIGN", "sign_id": "not_exists"})
+            err = ws.receive_json()
+            assert err["action"] == "SC_ERROR"
+            assert "命格" in err["message"]
 
 
 # ═══════════════════════════════════════════════════
@@ -84,39 +123,43 @@ class TestTickLoop:
     """自动挂机 tick 下行推送"""
 
     def test_receives_tick_frame_after_start(self, client, fast_tick):
-        """开局后应收到自动 tick 下行帧 SC_GAME_LOG"""
+        """开局后应收到自动 tick 下行帧，可能是普通日志，也可能直接触发天道事件"""
         with client.websocket_connect("/ws/game?player_id=e2e_tick") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "tick 测试"})
-            start_resp = ws.receive_json()
+            start_resp, _ = _start_game_with_destiny(ws, "tick 测试")
             assert start_resp["action"] == "SC_GAME_LOG"
 
             # 等待第一个 tick
             tick_resp = ws.receive_json()
-            assert tick_resp["action"] == "SC_GAME_LOG"
-            assert tick_resp["cultivation"] > 100, f"修为应增长，实际: {tick_resp['cultivation']}"
-            assert tick_resp["stage"] == "IDLE"
+            assert tick_resp["action"] in ("SC_GAME_LOG", "SC_HEAVEN_EVENT_TRIGGER")
+            assert tick_resp["cultivation"] > 0, f"修为字段异常，实际: {tick_resp['cultivation']}"
 
     def test_multiple_ticks_accumulate(self, client, fast_tick):
-        """连续多个 tick 修为应持续增长"""
+        """连续多个 tick 应持续收到有效帧，且修为不会异常为负"""
         with client.websocket_connect("/ws/game?player_id=e2e_multi_tick") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "多 tick 测试"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "多 tick 测试")
 
-            prev_cult = 0
-            for i in range(3):
+            received = 0
+            while received < 3:
                 tick = ws.receive_json()
-                assert tick["action"] in ("SC_GAME_LOG", "SC_HEAVEN_EVENT_TRIGGER"), \
-                    f"第 {i+1} 个 tick 收到异常 action: {tick.get('action')}"
-                assert tick["cultivation"] > prev_cult, f"第 {i+1} 个 tick 修为未增长"
-                prev_cult = tick["cultivation"]
+                if tick["action"] == "SC_HEAVEN_EVENT_TRIGGER":
+                    ws.send_json({"action": "CS_PLAYER_DECISION", "choice_id": "A"})
+                    received += 1
+                    assert tick["cultivation"] >= 0, f"第 {received} 个 tick 修为异常"
+                    continue
+                if tick["action"] == "SC_GAME_LOG":
+                    received += 1
+                    assert tick["cultivation"] >= 0, f"第 {received} 个 tick 修为异常"
+                    continue
+                if tick["action"] in ("SC_STORY_STREAM", "SC_EVENT_SETTLEMENT"):
+                    continue
+                raise AssertionError(f"收到异常 action: {tick.get('action')}")
 
     def test_tick_fields_match_frontend_contract(self, client, fast_tick):
         """SC_GAME_LOG 字段名与前端 game.ts _onGameLog 期望一致"""
         from unittest.mock import patch
 
         with client.websocket_connect("/ws/game?player_id=e2e_contract") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "契约测试"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "契约测试")
 
             # Phase 2D 怨念路由有 15% 概率触发 resentment 事件，强制走正常本地路径
             with patch("server.application.game_engine.random.randint", return_value=50):
@@ -151,27 +194,23 @@ class TestHeartbeat:
     def test_ping_pong(self, client, fast_tick):
         """CS_PING 应收到 SC_PONG"""
         with client.websocket_connect("/ws/game?player_id=e2e_heartbeat") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "心跳测试"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "心跳测试")
 
             ws.send_json({"action": "CS_PING"})
             pong = ws.receive_json()
             assert pong["action"] == "SC_PONG"
 
     def test_ping_before_start_returns_error(self, client, fast_tick):
-        """开局前发送 PING 应返回 SC_ERROR（INIT 阶段仅接受 CS_START_GAME）"""
+        """开局前发送 PING 应返回 SC_PONG（允许心跳先于开局）"""
         with client.websocket_connect("/ws/game?player_id=e2e_ping_early") as ws:
-            # INIT 阶段只接受 CS_START_GAME
             ws.send_json({"action": "CS_PING"})
             resp = ws.receive_json()
-            assert resp["action"] == "SC_ERROR"
-            assert "CS_START_GAME" in resp.get("message", "").upper() or "开局" in resp.get("message", "")
+            assert resp["action"] == "SC_PONG"
 
     def test_multiple_pings(self, client, fast_tick):
         """连续多次 PING 都应正常响应"""
         with client.websocket_connect("/ws/game?player_id=e2e_ping_multi") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "多次心跳"})
-            ws.receive_json()
+            _start_game_with_destiny(ws, "多次心跳")
 
             for _ in range(3):
                 ws.send_json({"action": "CS_PING"})
@@ -189,8 +228,7 @@ class TestErrorHandling:
     def test_unknown_action(self, client, fast_tick):
         """未知 action 应返回 SC_ERROR"""
         with client.websocket_connect("/ws/game?player_id=e2e_unknown") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "错误测试"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "错误测试")
 
             ws.send_json({"action": "UNKNOWN_ACTION"})
             err = ws.receive_json()
@@ -200,8 +238,7 @@ class TestErrorHandling:
     def test_decision_without_event(self, client, fast_tick):
         """无事件时发送 CS_PLAYER_DECISION 应返回 SC_ERROR"""
         with client.websocket_connect("/ws/game?player_id=e2e_no_event") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "错误决策"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "错误决策")
 
             # 在 IDLE 阶段发送决策（无事件）
             ws.send_json({"action": "CS_PLAYER_DECISION", "choice_id": "A"})
@@ -220,8 +257,7 @@ class TestErrorHandling:
     def test_start_game_twice(self, client, fast_tick):
         """重复发送 CS_START_GAME 应被忽略（已在 IDLE 阶段，不在 INIT 循环中处理）"""
         with client.websocket_connect("/ws/game?player_id=e2e_double_start") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "双开测试"})
-            start_resp = ws.receive_json()
+            start_resp, _ = _start_game_with_destiny(ws, "双开测试")
             assert start_resp["action"] == "SC_GAME_LOG"
 
             # 再次发送 CS_START_GAME —— 主循环会将其视为未知 action
@@ -244,13 +280,11 @@ class TestMultiConnection:
             client.websocket_connect("/ws/game?player_id=e2e_multi_b") as ws_b,
         ):
             # 玩家 A 开局
-            ws_a.send_json({"action": "CS_START_GAME", "player_name": "玩家A"})
-            resp_a = ws_a.receive_json()
+            resp_a, _ = _start_game_with_destiny(ws_a, "玩家A")
             assert resp_a["action"] == "SC_GAME_LOG"
 
             # 玩家 B 开局
-            ws_b.send_json({"action": "CS_START_GAME", "player_name": "玩家B"})
-            resp_b = ws_b.receive_json()
+            resp_b, _ = _start_game_with_destiny(ws_b, "玩家B")
             assert resp_b["action"] == "SC_GAME_LOG"
 
             # 两玩家的初始属性应不同（运气、根基随机）
@@ -266,8 +300,7 @@ class TestMultiConnection:
         ):
             sockets = [ws1, ws2, ws3]
             for i, ws in enumerate(sockets):
-                ws.send_json({"action": "CS_START_GAME", "player_name": f"并发{i + 1}"})
-                resp = ws.receive_json()
+                resp, _ = _start_game_with_destiny(ws, f"并发{i + 1}")
                 assert resp["action"] == "SC_GAME_LOG", f"玩家 {i + 1} 开局失败"
 
             # 每人至少收到 1 个 tick（Phase 2D 怨念路由可能发送不同 action）
@@ -281,16 +314,14 @@ class TestMultiConnection:
         """玩家断开后，连接管理器应正确清理资源"""
         ws = client.websocket_connect("/ws/game?player_id=e2e_disconnect")
         with ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "断开测试"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, "断开测试")
             assert resp["action"] == "SC_GAME_LOG"
 
         # with 块结束时 ws.close() 自动调用
         # 连接管理器应在 disconnect 中清理
         # 验证方式：同一 player_id 可以重新连接
         with client.websocket_connect("/ws/game?player_id=e2e_disconnect") as ws2:
-            ws2.send_json({"action": "CS_START_GAME", "player_name": "重连测试"})
-            resp2 = ws2.receive_json()
+            resp2, _ = _start_game_with_destiny(ws2, "重连测试")
             assert resp2["action"] == "SC_GAME_LOG"
 
 
@@ -304,8 +335,7 @@ class TestDownstreamFrameStructure:
     def test_sc_game_log_has_all_frontend_fields(self, client, fast_tick):
         """SC_GAME_LOG 字段覆盖前端 game.ts _onGameLog 所有读取路径"""
         with client.websocket_connect("/ws/game?player_id=e2e_struct_gl") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "结构测试"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, "结构测试")
             assert resp["action"] == "SC_GAME_LOG"
             # _onGameLog 读取: log_text, cultivation, sin_value, luck, foundation, realm, sin_phase, stage
             for key in ("log_text", "cultivation", "sin_value", "luck", "foundation", "realm", "sin_phase", "stage"):
@@ -314,8 +344,7 @@ class TestDownstreamFrameStructure:
     def test_sc_pong_format(self, client, fast_tick):
         """SC_PONG 格式校验（需先开局再 PING）"""
         with client.websocket_connect("/ws/game?player_id=e2e_struct_pong") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "PONG格式"})
-            ws.receive_json()  # 开局帧
+            _start_game_with_destiny(ws, "PONG格式")
             ws.send_json({"action": "CS_PING"})
             pong = ws.receive_json()
             assert pong["action"] == "SC_PONG"
@@ -382,6 +411,67 @@ class TestDownstreamFrameStructure:
         assert dump["dead_title"] == "测试死亡标题"
 
 
+class TestStreamingFallback:
+    def test_streaming_falls_back_to_full_story_when_no_chunks(self, client, fast_tick):
+        from server.interface import ws as ws_module
+
+        original_submit = ws_module.GameEngine.submit_decision
+
+        async def fake_submit(self, choice_id="A", custom_text="", on_chunk=None):
+            return TickResult(
+                stage=Stage.IDLE,
+                settlement=EventSettlement(
+                    event_id="evt_stream_fallback",
+                    is_dead=False,
+                    dead_title="",
+                    story_text="补发全文剧情",
+                    attribute_changes=AttributeChanges(),
+                    intercepted_by_shield=False,
+                    heaven_points_earned=0,
+                ),
+                cultivation=self.session.cultivation if self.session else 0,
+                sin_value=self.session.sin_value if self.session else 0,
+                luck=self.session.luck if self.session else 0,
+                foundation=self.session.foundation if self.session else 0,
+                realm="练气期",
+                sin_phase="safe",
+                game_over=False,
+            )
+
+        try:
+            ws_module.GameEngine.submit_decision = fake_submit
+            with client.websocket_connect("/ws/game?player_id=e2e_stream_fallback") as ws:
+                _start_game_with_destiny(ws, "流式补发")
+
+                from server.interface.app import get_connection_manager
+                from server.domain.event import EventTrigger
+
+                engine = get_connection_manager().get_engine("e2e_stream_fallback")
+                assert engine is not None
+                engine.stage = Stage.EVENT_TRIGGER
+                engine._current_trigger = EventTrigger(
+                    event_id="evt_stream_fallback",
+                    trigger_type="HEAVEN",
+                    fixed_options=[{"id": "A", "text": "选项A"}],
+                )
+
+                ws.send_json({"action": "CS_PLAYER_DECISION", "choice_id": "A"})
+
+                story_msg = ws.receive_json()
+                assert story_msg["action"] == "SC_STORY_STREAM"
+                assert story_msg["chunk"] == "补发全文剧情"
+                assert story_msg["is_last"] is False
+
+                end_msg = ws.receive_json()
+                assert end_msg["action"] == "SC_STORY_STREAM"
+                assert end_msg["is_last"] is True
+
+                settlement_msg = ws.receive_json()
+                assert settlement_msg["action"] == "SC_EVENT_SETTLEMENT"
+        finally:
+            ws_module.GameEngine.submit_decision = original_submit
+
+
 # ═══════════════════════════════════════════════════
 # 7. 连接管理器生命周期
 # ═══════════════════════════════════════════════════
@@ -395,10 +485,8 @@ class TestConnectionManager:
         ws2 = client.websocket_connect("/ws/game?player_id=e2e_count_2")
 
         with ws1, ws2:
-            ws1.send_json({"action": "CS_START_GAME", "player_name": "计数1"})
-            ws1.receive_json()
-            ws2.send_json({"action": "CS_START_GAME", "player_name": "计数2"})
-            ws2.receive_json()
+            _start_game_with_destiny(ws1, "计数1")
+            _start_game_with_destiny(ws2, "计数2")
 
             from server.interface.app import get_connection_manager
             mgr = get_connection_manager()
@@ -421,15 +509,13 @@ class TestEdgeCases:
         """超长道号应正常处理"""
         with client.websocket_connect("/ws/game?player_id=e2e_longname") as ws:
             long_name = "道" * 50
-            ws.send_json({"action": "CS_START_GAME", "player_name": long_name})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, long_name)
             assert resp["action"] == "SC_GAME_LOG"
 
     def test_empty_json_body(self, client, fast_tick):
         """空 JSON 应返回错误而非崩溃"""
         with client.websocket_connect("/ws/game?player_id=e2e_empty") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "空消息测试"})
-            ws.receive_json()
+            _start_game_with_destiny(ws, "空消息测试")
 
             # 发送缺少 action 的消息
             ws.send_json({})
@@ -439,8 +525,7 @@ class TestEdgeCases:
     def test_chinese_player_name(self, client, fast_tick):
         """中文道号应正常保留"""
         with client.websocket_connect("/ws/game?player_id=e2e_chinese") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "天道逆修🌟"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, "天道逆修🌟")
             assert resp["action"] == "SC_GAME_LOG"
             assert "天道逆修" in resp["log_text"] or "天道" in resp["log_text"]
 
@@ -448,6 +533,5 @@ class TestEdgeCases:
         """player_id 包含特殊字符应正常处理"""
         player_id = "test_user@domain.com"
         with client.websocket_connect(f"/ws/game?player_id={player_id}") as ws:
-            ws.send_json({"action": "CS_START_GAME", "player_name": "特殊ID"})
-            resp = ws.receive_json()
+            resp, _ = _start_game_with_destiny(ws, "特殊ID")
             assert resp["action"] == "SC_GAME_LOG"

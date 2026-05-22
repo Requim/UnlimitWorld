@@ -106,6 +106,9 @@ class PlayerState(BaseModel):
     deafness_protocol: int = 0      # 天道失聪协议剩余局数
     karma_shield: int = 0           # 因果遮蔽卡数量
     talent_bonus: dict = Field(default_factory=dict)  # 先天气运加成
+    destiny_sign_id: str = ""
+    destiny_sign_title: str = ""
+    destiny_mods: dict = Field(default_factory=dict)
 
     def apply_talent_bonus(self):
         """在开局时应用天赋加成到初始属性"""
@@ -113,6 +116,19 @@ class PlayerState(BaseModel):
             self.luck = min(100, self.luck + self.talent_bonus["luck"])
         if "foundation" in self.talent_bonus:
             self.foundation = min(100, self.foundation + self.talent_bonus["foundation"])
+
+    def apply_destiny_sign(self):
+        """在开局时应用命格签初始修正。"""
+        self.luck = max(0, min(100, self.luck + int(self.destiny_mods.get("initial_luck", 0))))
+        self.foundation = max(
+            0,
+            min(100, self.foundation + int(self.destiny_mods.get("initial_foundation", 0))),
+        )
+        cfg = REALM_CONFIG[self.realm_code]
+        self.sin_value = max(
+            0,
+            min(cfg["sin_max"], self.sin_value + int(self.destiny_mods.get("initial_sin", 0))),
+        )
 
     def apply_deafness_protocol(self):
         """应用天道失聪协议：逻辑 luck +10"""
@@ -125,6 +141,18 @@ class PlayerState(BaseModel):
         """返回逻辑气运值（含失聪协议加成）"""
         bonus = 10 if self.deafness_protocol > 0 else 0
         return min(100, self.luck + bonus)
+
+    def destiny_prd_step_delta(self) -> int:
+        return int(self.destiny_mods.get("prd_step_delta", 0))
+
+    def destiny_custom_heaven_points_bonus(self) -> int:
+        return int(self.destiny_mods.get("custom_heaven_points_bonus", 0))
+
+    def destiny_custom_sin_bonus(self) -> int:
+        return int(self.destiny_mods.get("custom_sin_bonus", 0))
+
+    def destiny_heaven_points_multiplier(self) -> float:
+        return float(self.destiny_mods.get("heaven_points_multiplier", 1.0))
 
     def sin_phase(self) -> str:
         """天谴值阶段"""

@@ -27,6 +27,7 @@ from server.domain.player import (
     compute_death_rate,
     roll_death_check,
 )
+from server.domain.destiny import draw_destiny_offers, find_destiny_sign
 from server.domain.event import (
     LocalEventResult,
     LLMInputContext,
@@ -186,6 +187,8 @@ class GameEngine:
 
         # 决策超时时间戳（秒，monotonic）
         self._decision_deadline: float = 0.0
+        self._pending_destiny_offers: list[str] = []
+        self._pending_player_name: str = "无名修士"
 
     # ── 开局 ─────────────────────────────────────────────
 
@@ -197,10 +200,12 @@ class GameEngine:
         deafness_protocol: int = 0,
         karma_shield: int = 0,
         heaven_points: int = 0,
+        destiny_sign_id: str = "",
     ) -> PlayerState:
         """创建新一局游戏，随机分配天道人格"""
         player_id = player_id or f"p_{uuid.uuid4().hex[:8]}"
-        persona = random.choice(PERSONA_NAMES[:3])
+        persona = random.choice(PERSONA_NAMES)
+        destiny_sign = find_destiny_sign(destiny_sign_id) if destiny_sign_id else None
 
         self.session = PlayerState(
             player_id=player_id,
@@ -217,15 +222,42 @@ class GameEngine:
             deafness_protocol=deafness_protocol,
             karma_shield=karma_shield,
             talent_bonus=talent_bonus or {},
+            destiny_sign_id=destiny_sign.id if destiny_sign else "",
+            destiny_sign_title=destiny_sign.title if destiny_sign else "",
+            destiny_mods=destiny_sign.to_mods() if destiny_sign else {},
         )
 
         self.session.apply_talent_bonus()
+        self.session.apply_destiny_sign()
         self.stage = Stage.IDLE
         self._start_time = time.time()
         self._current_trigger = None
         self._decision_deadline = 0.0
+        self._pending_destiny_offers = []
+        self._pending_player_name = player_name
 
         return self.session
+
+    def prepare_new_game(self, player_name: str = "无名修士") -> list[dict]:
+        """生成本局开局可选命格签。"""
+        offers = draw_destiny_offers(3)
+        self._pending_player_name = player_name or "无名修士"
+        self._pending_destiny_offers = [item.id for item in offers]
+        return [item.to_offer() for item in offers]
+
+    def get_pending_destiny_offers(self) -> list[dict]:
+        offers = []
+        for sign_id in self._pending_destiny_offers:
+            sign = find_destiny_sign(sign_id)
+            if sign:
+                offers.append(sign.to_offer())
+        return offers
+
+    def has_pending_destiny_offer(self) -> bool:
+        return bool(self._pending_destiny_offers)
+
+    def is_valid_pending_destiny(self, sign_id: str) -> bool:
+        return sign_id in self._pending_destiny_offers
 
     # ── 状态恢复（断线重连） ──────────────────────────────
 
@@ -279,6 +311,7 @@ class GameEngine:
 
         # PRD 累加
         prd_step = random.randint(settings.prd_step_min, settings.prd_step_max)
+        prd_step = max(1, prd_step + session.destiny_prd_step_delta())
         session.prd_counter += prd_step
 
         # 路由判定
@@ -637,6 +670,8 @@ class GameEngine:
                     llm_output = chunk
                 else:
                     full_story += chunk
+                    if on_chunk is not None:
+                        await on_chunk(chunk)
         except Exception:
             pass
 
@@ -644,7 +679,10 @@ class GameEngine:
             llm_output = self.orchestrator._fallback_resolve(llm_context)
 
         # 5. 结算
-        return await self._settle(llm_output, trigger, is_dead, is_ascension, full_story)
+        used_custom_input = choice_id == "C" and bool(custom_text.strip())
+        return await self._settle(
+            llm_output, trigger, is_dead, is_ascension, full_story, used_custom_input
+        )
 
     async def _settle(
         self,
@@ -653,6 +691,7 @@ class GameEngine:
         backend_is_dead: bool,
         is_ascension: bool,
         full_story: str,
+        used_custom_input: bool,
     ) -> TickResult:
         """事件结算。Phase 2D：死亡/飞升写入全服共享状态。"""
         session = self.session
@@ -691,7 +730,25 @@ class GameEngine:
 
         if backend_is_dead or is_ascension:
             heaven_points_earned = self._calc_heaven_points(session)
+
+        if used_custom_input:
+            session.sin_value = max(
+                0,
+                min(
+                    get_realm_config(session.realm_code)["sin_max"],
+                    session.sin_value + session.destiny_custom_sin_bonus(),
+                ),
+            )
+            heaven_points_earned += session.destiny_custom_heaven_points_bonus()
+
+        if heaven_points_earned > 0:
+            heaven_points_earned = max(
+                0,
+                int(heaven_points_earned * session.destiny_heaven_points_multiplier()),
+            )
             session.heaven_points += heaven_points_earned
+
+        if backend_is_dead or is_ascension:
             game_over = True
 
             dead_record = DeadRecord(

@@ -10,6 +10,7 @@ Phase 3A：msgSecCheck 内容安全审查。
 
 import asyncio
 import json
+import logging
 import time
 from typing import Optional
 
@@ -22,6 +23,7 @@ from server.application.game_engine import GameEngine, Stage, TickResult
 from server.infrastructure.llm_client import LLMOrchestrator
 
 router = APIRouter()
+logger = logging.getLogger("uvicorn")
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -30,8 +32,10 @@ router = APIRouter()
 
 class Action:
     CS_START_GAME = "CS_START_GAME"
+    CS_SELECT_DESTINY_SIGN = "CS_SELECT_DESTINY_SIGN"
     CS_PING = "CS_PING"
     CS_PLAYER_DECISION = "CS_PLAYER_DECISION"
+    SC_DESTINY_OFFER = "SC_DESTINY_OFFER"
     SC_GAME_LOG = "SC_GAME_LOG"
     SC_HEAVEN_EVENT_TRIGGER = "SC_HEAVEN_EVENT_TRIGGER"
     SC_STORY_STREAM = "SC_STORY_STREAM"
@@ -168,6 +172,14 @@ def _build_game_log(result: TickResult) -> dict:
     }
 
 
+def _build_destiny_offer(offers: list[dict], player_name: str) -> dict:
+    return {
+        "action": Action.SC_DESTINY_OFFER,
+        "player_name": player_name,
+        "offers": offers,
+    }
+
+
 def _build_event_trigger(result: TickResult) -> dict:
     return {
         "action": Action.SC_HEAVEN_EVENT_TRIGGER,
@@ -242,62 +254,98 @@ async def _handle_lifecycle(
             await ws.send_json({"action": Action.SC_ERROR, "message": "等待开局超时，连接关闭"})
             return
 
-        if data.get("action") != Action.CS_START_GAME:
-            await ws.send_json({"action": Action.SC_ERROR, "message": "请先发送 CS_START_GAME"})
+        action = data.get("action")
+
+        if action == Action.CS_PING:
+            await ws.send_json({"action": Action.SC_PONG})
             continue
 
-        player_name = data.get("player_name", "无名修士")
+        if action == Action.CS_START_GAME:
+            player_name = data.get("player_name", "无名修士")
 
-        # Phase 2D：检查是否有可恢复的会话
-        saved_state = await mgr.try_restore_session(player_id)
-        if saved_state and saved_state.get("stage") not in (Stage.GAME_OVER, Stage.INIT):
-            restored = engine.restore_game(saved_state)
-            if restored:
-                await ws.send_json({
-                    "action": "SC_GAME_LOG",
-                    "log_text": f"[重连成功] 欢迎回来，{restored.player_name}！天道人格：【{restored.heaven_persona}】",
-                    "cultivation": restored.cultivation,
-                    "sin_value": restored.sin_value,
-                    "luck": restored.luck,
-                    "foundation": restored.foundation,
-                    "realm": get_realm_name(restored.realm_code),
-                    "sin_phase": restored.sin_phase(),
-                    "stage": engine.stage,
-                })
-                if engine.stage == Stage.EVENT_TRIGGER and engine._current_trigger:
-                    await ws.send_json(_build_event_trigger(TickResult(
-                        stage=engine.stage,
-                        trigger=engine._current_trigger,
-                        cultivation=restored.cultivation,
-                        sin_value=restored.sin_value,
-                        luck=restored.luck,
-                        foundation=restored.foundation,
-                        realm=get_realm_name(restored.realm_code),
-                        sin_phase=restored.sin_phase(),
-                        waiting_for_decision=True,
-                    )))
-                break  # 重连成功，跳出等待开局循环
+            # Phase 2D：检查是否有可恢复的会话
+            saved_state = await mgr.try_restore_session(player_id)
+            if saved_state and saved_state.get("stage") not in (Stage.GAME_OVER, Stage.INIT):
+                restored = engine.restore_game(saved_state)
+                if restored:
+                    await ws.send_json({
+                        "action": "SC_GAME_LOG",
+                        "log_text": f"[重连成功] 欢迎回来，{restored.player_name}！天道人格：【{restored.heaven_persona}】",
+                        "cultivation": restored.cultivation,
+                        "sin_value": restored.sin_value,
+                        "luck": restored.luck,
+                        "foundation": restored.foundation,
+                        "realm": get_realm_name(restored.realm_code),
+                        "sin_phase": restored.sin_phase(),
+                        "stage": engine.stage,
+                    })
+                    if engine.stage == Stage.EVENT_TRIGGER and engine._current_trigger:
+                        await ws.send_json(_build_event_trigger(TickResult(
+                            stage=engine.stage,
+                            trigger=engine._current_trigger,
+                            cultivation=restored.cultivation,
+                            sin_value=restored.sin_value,
+                            luck=restored.luck,
+                            foundation=restored.foundation,
+                            realm=get_realm_name(restored.realm_code),
+                            sin_phase=restored.sin_phase(),
+                            waiting_for_decision=True,
+                        )))
+                    break  # 重连成功，跳出等待开局循环
 
-        # 新一局：从 PlayerAccount 加载局外资产
-        account = await mgr._account_repo.get(player_id) if mgr._account_repo else None
-        session = engine.new_game(
-            player_name=player_name,
-            player_id=player_id,
-            karma_shield=account.karma_shield if account else 0,
-            deafness_protocol=account.deafness_protocol if account else 0,
-            heaven_points=account.heaven_points if account else 0,
-        )
-        await ws.send_json({
-            "action": "SC_GAME_LOG",
-            "log_text": f"[开局成功] 天道人格：【{session.heaven_persona}】",
-            "cultivation": session.cultivation,
-            "sin_value": session.sin_value,
-            "luck": session.luck,
-            "foundation": session.foundation,
-            "realm": get_realm_name(session.realm_code),
-            "sin_phase": session.sin_phase(),
-            "stage": engine.stage,
-        })
+            offers = engine.get_pending_destiny_offers()
+            if not offers:
+                offers = engine.prepare_new_game(player_name)
+            await ws.send_json(_build_destiny_offer(offers, player_name))
+            continue
+
+        if action == Action.CS_SELECT_DESTINY_SIGN:
+            sign_id = str(data.get("sign_id", "")).strip()
+            if not engine.has_pending_destiny_offer():
+                await ws.send_json({"action": Action.SC_ERROR, "message": "请先发送 CS_START_GAME"})
+                continue
+            if not engine.is_valid_pending_destiny(sign_id):
+                await ws.send_json({"action": Action.SC_ERROR, "message": "命格已失效，请重新开局"})
+                continue
+
+            player_name = data.get("player_name") or engine._pending_player_name or "无名修士"
+
+            # 新一局：从 PlayerAccount 加载局外资产，并消费按局生效的协议
+            account = await mgr._account_repo.get_or_create(player_id, player_name) if mgr._account_repo else None
+            deafness_active = 0
+            if account and account.deafness_protocol > 0 and mgr._account_repo:
+                if await mgr._account_repo.consume_deafness_protocol(player_id):
+                    deafness_active = 1
+                    account.deafness_protocol -= 1
+
+            session = engine.new_game(
+                player_name=player_name,
+                player_id=player_id,
+                karma_shield=account.karma_shield if account else 0,
+                deafness_protocol=deafness_active,
+                heaven_points=account.heaven_points if account else 0,
+                destiny_sign_id=sign_id,
+            )
+            start_log = (
+                f"[开局成功] 天道人格：【{session.heaven_persona}】"
+                f" 命格：【{session.destiny_sign_title or '无'}】"
+            )
+            if deafness_active:
+                start_log += "【天道失聪协议生效：本局逻辑气运 +10，天道选择性装聋】"
+            await ws.send_json({
+                "action": "SC_GAME_LOG",
+                "log_text": start_log,
+                "cultivation": session.cultivation,
+                "sin_value": session.sin_value,
+                "luck": session.luck,
+                "foundation": session.foundation,
+                "realm": get_realm_name(session.realm_code),
+                "sin_phase": session.sin_phase(),
+                "stage": engine.stage,
+            })
+            continue
+
+        await ws.send_json({"action": Action.SC_ERROR, "message": "请先发送 CS_START_GAME"})
 
     # ── 主循环：tick 自动推进 + 消息接收 + 超时检测 ──
     tick_task = asyncio.create_task(_tick_loop(ws, engine, mgr, player_id))
@@ -310,6 +358,7 @@ async def _handle_lifecycle(
                 result = await engine.auto_timeout_submit()
                 await ws.send_json(_build_story_stream("", is_last=True))
                 await ws.send_json(_build_event_settlement(result))
+                await _sync_account_after_settlement(mgr, player_id, engine, result)
                 await mgr._save_active_session(player_id, engine)
                 continue
 
@@ -330,20 +379,35 @@ async def _handle_lifecycle(
 
                 choice_id = data.get("choice_id", "A")
                 custom_text = data.get("custom_text", "")
+                decision_started_at = time.perf_counter()
+                logger.info(
+                    "[Decision] 收到决策 player_id=%s choice=%s custom_len=%s",
+                    player_id,
+                    choice_id,
+                    len(custom_text.strip()),
+                )
 
                 # ── Phase 3A：内容安全审查 ──
                 if custom_text.strip() and settings.wechat_msg_sec_check_enabled:
                     from server.interface.app import get_wechat_client
                     wc = get_wechat_client()
+                    sec_started_at = time.perf_counter()
                     sec_result = await wc.msg_sec_check(custom_text, openid=player_id)
+                    logger.info(
+                        "[Decision] 内容安全审查耗时 %.0fms pass=%s",
+                        (time.perf_counter() - sec_started_at) * 1000,
+                        sec_result.get("pass"),
+                    )
                     if not sec_result.get("pass"):
                         # 内容违规：扣除功德 + 警告日志，不调用 LLM
+                        penalty = 5
                         if engine.session:
                             penalty = max(5, engine.session.heaven_points // 10)
                             engine.session.heaven_points = max(0, engine.session.heaven_points - penalty)
+                        await _sync_account_penalty(mgr, player_id, penalty)
                         await ws.send_json({
                             "action": Action.SC_GAME_LOG,
-                            "log_text": f"[天道监察] 言行不端，天道震怒！扣除 {penalty if engine.session else 5} 功德。",
+                            "log_text": f"[天道监察] 言行不端，天道震怒！扣除 {penalty} 功德。",
                             "cultivation": engine.session.cultivation if engine.session else 0,
                             "sin_value": engine.session.sin_value if engine.session else 0,
                             "luck": engine.session.luck if engine.session else 50,
@@ -354,7 +418,11 @@ async def _handle_lifecycle(
                         })
                         continue
 
+                streamed_story_chars = 0
+
                 async def on_chunk(chunk: str):
+                    nonlocal streamed_story_chars
+                    streamed_story_chars += len(chunk)
                     await ws.send_json(_build_story_stream(chunk, is_last=False))
 
                 result = await engine.submit_decision(
@@ -363,17 +431,25 @@ async def _handle_lifecycle(
                     on_chunk=on_chunk,
                 )
 
-                story = result.settlement.story_text if result.settlement else ""
-                if story:
-                    chunk_size = 4
-                    for i in range(0, len(story), chunk_size):
-                        await ws.send_json(
-                            _build_story_stream(story[i:i + chunk_size], is_last=False)
-                        )
-                        await asyncio.sleep(0.04)
+                if streamed_story_chars == 0 and result.settlement and result.settlement.story_text:
+                    logger.warning(
+                        "[Decision] 未收到流式正文，改为补发全文 player_id=%s story_len=%s",
+                        player_id,
+                        len(result.settlement.story_text),
+                    )
+                    await ws.send_json(_build_story_stream(result.settlement.story_text, is_last=False))
 
+                logger.info(
+                    "[Decision] 结算完成 player_id=%s streamed_chars=%s total=%.0fms game_over=%s",
+                    player_id,
+                    streamed_story_chars,
+                    (time.perf_counter() - decision_started_at) * 1000,
+                    result.game_over,
+                )
                 await ws.send_json(_build_story_stream("", is_last=True))
                 await ws.send_json(_build_event_settlement(result))
+
+                await _sync_account_after_settlement(mgr, player_id, engine, result)
 
                 # 持久化状态变更
                 await mgr._save_active_session(player_id, engine)
@@ -427,6 +503,8 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
             elif result.game_over:
                 await ws.send_json(_build_event_settlement(result))
                 if mgr and player_id:
+                    await _sync_account_after_settlement(mgr, player_id, engine, result)
+                if mgr and player_id:
                     await mgr._save_active_session(player_id, engine)
             else:
                 await ws.send_json(_build_game_log(result))
@@ -438,6 +516,7 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
                 await ws.send_json(_build_story_stream("", is_last=True))
                 await ws.send_json(_build_event_settlement(result))
                 if mgr and player_id:
+                    await _sync_account_after_settlement(mgr, player_id, engine, result)
                     await mgr._save_active_session(player_id, engine)
             else:
                 await asyncio.sleep(1.0)
@@ -447,3 +526,31 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
 
         else:
             await asyncio.sleep(0.1)
+
+
+async def _sync_account_after_settlement(
+    mgr: ConnectionManager,
+    player_id: str,
+    engine: GameEngine,
+    result: TickResult,
+):
+    """将局内结算影响同步回局外账号资产。"""
+    if not mgr or not mgr._account_repo or not player_id or not engine.session:
+        return
+    if result.settlement and result.settlement.intercepted_by_shield:
+        await mgr._account_repo.consume_karma_shield(player_id)
+    if result.heaven_points_earned:
+        await mgr._account_repo.update_heaven_points(
+            player_id, result.heaven_points_earned
+        )
+
+
+async def _sync_account_penalty(
+    mgr: ConnectionManager,
+    player_id: str,
+    penalty: int,
+):
+    """将内容安全等处罚同步回局外账号。"""
+    if not mgr or not mgr._account_repo or not player_id or penalty <= 0:
+        return
+    await mgr._account_repo.update_heaven_points(player_id, -penalty)

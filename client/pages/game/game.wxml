@@ -7,29 +7,40 @@
 
   <!-- ═══ 状态栏 · 修仙六维面板（始终显示） ═══ -->
   <view class="status-bar">
-    <view class="status-item">
-      <text class="status-label">境 界</text>
-      <text class="status-value">{{realm}}</text>
+    <view class="status-grid">
+      <view class="status-item">
+        <text class="status-label">境 界</text>
+        <text class="status-value">{{realm}}</text>
+      </view>
+      <view class="status-item">
+        <text class="status-label">修 为</text>
+        <text class="status-value">{{cultivation}}</text>
+      </view>
+      <view class="status-item">
+        <text class="status-label">气 运</text>
+        <text class="status-value">{{luck}}</text>
+      </view>
+      <view class="status-item">
+        <text class="status-label">根 基</text>
+        <text class="status-value">{{foundation}}</text>
+      </view>
+      <view class="status-item">
+        <text class="status-label">天 道</text>
+        <text class="status-value">{{sinPhase}}</text>
+      </view>
     </view>
-    <view class="status-item">
-      <text class="status-label">修 为</text>
-      <text class="status-value">{{cultivation}}</text>
-    </view>
-    <view class="status-item">
-      <text class="status-label">天 谴</text>
-      <text class="status-value status-sin {{sinValue >= sinMax ? 'danger' : ''}}">{{sinValue}}</text>
-    </view>
-    <view class="status-item">
-      <text class="status-label">气 运</text>
-      <text class="status-value">{{luck}}</text>
-    </view>
-    <view class="status-item">
-      <text class="status-label">根 基</text>
-      <text class="status-value">{{foundation}}</text>
-    </view>
-    <view class="status-item">
-      <text class="status-label">天 道</text>
-      <text class="status-value">{{sinPhase}}</text>
+
+    <view class="sin-gauge {{sinPercent >= 80 ? 'danger' : sinPercent >= 50 ? 'warning' : ''}}">
+      <view class="sin-gauge-head">
+        <text class="sin-gauge-label">天 谴 值</text>
+        <text class="sin-gauge-value">{{sinValue}} / {{sinMax}}</text>
+      </view>
+      <view class="sin-track">
+        <view class="sin-fill" style="width: {{sinPercent}}%;"></view>
+        <view class="sin-ember ember-a"></view>
+        <view class="sin-ember ember-b"></view>
+        <view class="sin-ember ember-c"></view>
+      </view>
     </view>
   </view>
 
@@ -38,8 +49,20 @@
   <!-- 状态 1：连接中 / 初始 · 太极入境 -->
   <view wx:if="{{uiState === 'connecting'}}" class="center-area">
     <view class="loading">
-      <view class="taiji-spinner"></view>
-      <text class="loading-text">等 待 天 道 连 接</text>
+      <view class="meditation-loader">
+        <view class="meditation-aura aura-outer"></view>
+        <view class="meditation-aura aura-inner"></view>
+        <view class="cultivator cultivator-connecting">
+          <view class="cultivator-head"></view>
+          <view class="cultivator-body"></view>
+          <view class="cultivator-arm arm-left"></view>
+          <view class="cultivator-arm arm-right"></view>
+          <view class="cultivator-leg leg-left"></view>
+          <view class="cultivator-leg leg-right"></view>
+          <view class="cultivator-cushion"></view>
+        </view>
+      </view>
+      <text class="loading-text">等待天道连接</text>
     </view>
     <view class="name-input-area" wx:if="{{!gameOver}}">
       <text class="name-input-label">— 道 号 —</text>
@@ -54,8 +77,54 @@
     <button wx:if="{{!gameOver}}" class="btn-gold" bindtap="onStartGame">踏 入 仙 途</button>
   </view>
 
+  <!-- 状态 1.5：命格签选择 -->
+  <view wx:if="{{uiState === 'preparing'}}" class="content-area">
+    <view class="destiny-panel">
+      <view class="destiny-panel-head">
+        <text class="destiny-eyebrow">命 格 将 启</text>
+        <text class="destiny-title">先定一口气，再去见天道</text>
+        <text class="destiny-subtitle">本局仅生效一次，三选一后正式踏入仙途。</text>
+      </view>
+
+      <view class="destiny-list">
+        <button
+          wx:for="{{destinyOffers}}"
+          wx:key="id"
+          class="destiny-card"
+          data-id="{{item.id}}"
+          bindtap="onSelectDestiny"
+        >
+          <view class="destiny-card-top">
+            <text class="destiny-card-title">{{item.title}}</text>
+            <text class="destiny-card-pick">签</text>
+          </view>
+          <text class="destiny-card-summary">{{item.summary}}</text>
+        </button>
+      </view>
+
+      <text wx:if="{{destinyError}}" class="destiny-error">{{destinyError}}</text>
+    </view>
+  </view>
+
   <!-- 状态 2：挂机中（IDLE）· 修炼手札 -->
   <view wx:if="{{uiState === 'idle'}}" class="content-area">
+    <view class="idle-hero">
+      <view class="meditation-loader idle-loader">
+        <view class="meditation-aura aura-outer"></view>
+        <view class="meditation-aura aura-inner"></view>
+        <view class="cultivator cultivator-idle">
+          <view class="cultivator-head"></view>
+          <view class="cultivator-body"></view>
+          <view class="cultivator-arm arm-left"></view>
+          <view class="cultivator-arm arm-right"></view>
+          <view class="cultivator-leg leg-left"></view>
+          <view class="cultivator-leg leg-right"></view>
+          <view class="cultivator-cushion"></view>
+        </view>
+      </view>
+      <text class="idle-title">静坐吐纳中</text>
+      <text class="idle-subtitle">事件刷新会落在修士下方，像一卷缓慢展开的手札</text>
+    </view>
     <scroll-view class="log-container" scroll-y scroll-top="{{logScrollTop}}" scroll-into-view="log-end">
       <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
       <view id="log-end"></view>
@@ -148,6 +217,15 @@
       </view>
     </scroll-view>
     <button class="btn-gold new-game-btn" bindtap="onNewGame">再 入 仙 途</button>
+  </view>
+
+  <!-- 因果遮蔽卡触发：全屏金光反转 -->
+  <view wx:if="{{shieldRescueActive}}" class="shield-rescue-overlay">
+    <view class="shield-ring ring-a"></view>
+    <view class="shield-ring ring-b"></view>
+    <view class="shield-seal">赦</view>
+    <view class="shield-title">因 果 逆 转</view>
+    <view class="shield-text">{{shieldRescueText}}</view>
   </view>
 
 </view>

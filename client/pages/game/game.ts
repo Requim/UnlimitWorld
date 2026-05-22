@@ -7,7 +7,9 @@
 
 import {
   CS_START_GAME,
+  CS_SELECT_DESTINY_SIGN,
   CS_PLAYER_DECISION,
+  SC_DESTINY_OFFER,
   SC_GAME_LOG,
   SC_HEAVEN_EVENT_TRIGGER,
   SC_STORY_STREAM,
@@ -19,20 +21,42 @@ import {
 import type { WsManager, WsFrame } from '../../utils/ws';
 import type { IAppOption } from '../../app';
 
+type DestinyOffer = { id: string; title: string; summary: string };
+
 /* ── 节流/合并状态（模块级闭包，不参与 setData） ── */
 
 let pendingChunks: string[] = [];
 let mergeTimer: number | null = null;
 let lastStatusUpdate = 0;
 let countdownTimer: number | null = null;
+let lastStreamVibrate = 0;
 let hasStarted = false;
 let unsubWs: (() => void) | null = null;
+let startRetryTimer: number | null = null;
 
 /* ── 工具函数 ── */
 
 function getWs(): WsManager {
   const app = getApp<IAppOption>();
   return app.globalData.wsManager!;
+}
+
+function getSinMaxByRealm(realm: string): number {
+  const map: Record<string, number> = {
+    '练气期': 50,
+    '筑基期': 60,
+    '金丹期': 70,
+    '元婴期': 80,
+    '化神期': 90,
+    '渡劫期': 100,
+    '大乘期': 100,
+  };
+  return map[realm] || 50;
+}
+
+function calcSinPercent(sinValue: number, sinMax: number): number {
+  if (sinMax <= 0) return 0;
+  return Math.max(0, Math.min(100, Math.round((sinValue / sinMax) * 100)));
 }
 
 /* ── Page ── */
@@ -49,8 +73,11 @@ Page({
     realm: '练气期' as string,
     sinPhase: '清白' as string,
     sinMax: 50 as number,
+    sinPercent: 0 as number,
     /* 日志 */
     logs: [] as string[],
+    destinyOffers: [] as DestinyOffer[],
+    destinyError: '' as string,
     /* 事件触发 */
     triggerTitle: '' as string,
     triggerDescription: '' as string,
@@ -66,6 +93,8 @@ Page({
     heavenPointsEarned: 0,
     gameOver: false,
     gameOverTitle: '' as string,
+    shieldRescueActive: false,
+    shieldRescueText: '' as string,
     /* 连接 */
     lastHeartbeat: 0,
   },
@@ -101,6 +130,10 @@ Page({
       unsubWs();
       unsubWs = null;
     }
+    if (startRetryTimer !== null) {
+      clearTimeout(startRetryTimer);
+      startRetryTimer = null;
+    }
     clearMergeTimer();
     clearCountdown();
     hasStarted = false;
@@ -117,16 +150,36 @@ Page({
   onStartGame() {
     if (hasStarted) return;
     hasStarted = true;
+    this.setData({
+      uiState: UIState.CONNECTING,
+      destinyOffers: [],
+      destinyError: '',
+    });
+    this._sendStartWhenReady();
+  },
 
+  _sendStartWhenReady(retryCount = 0) {
     const ws = getWs();
-    // 确保 WS 已连接（用户可能在 login 完成前就点了按钮）
-    if (ws.getStatus() !== 'connected') {
+    if (ws.getStatus() === 'connected') {
+      ws.send(CS_START_GAME, { player_name: this.data.playerName });
+      return;
+    }
+
+    if (retryCount === 0) {
       const id = getApp<IAppOption>().globalData.playerId;
       if (id) ws.connect(id);
     }
 
-    ws.send(CS_START_GAME, { player_name: this.data.playerName });
-    this.setData({ uiState: UIState.CONNECTING });
+    if (retryCount >= 30) {
+      appendLog.call(this, '[错误] 天道连接超时，请稍后重试');
+      hasStarted = false;
+      return;
+    }
+
+    startRetryTimer = setTimeout(() => {
+      startRetryTimer = null;
+      this._sendStartWhenReady(retryCount + 1);
+    }, 200) as unknown as number;
   },
 
   onChooseOption(e: WechatMiniprogram.TouchEvent) {
@@ -163,9 +216,13 @@ Page({
 
   onNewGame() {
     hasStarted = false;
+    clearMergeTimer();
+    pendingChunks = [];
     this.setData({
       uiState: UIState.CONNECTING,
       logs: [],
+      destinyOffers: [],
+      destinyError: '',
       storyText: '',
       settlementText: '',
       gameOver: false,
@@ -177,6 +234,9 @@ Page({
       realm: '练气期',
       sinPhase: '清白',
       sinMax: 50,
+      sinPercent: 0,
+      shieldRescueActive: false,
+      shieldRescueText: '',
     });
     this.onStartGame();
   },
@@ -187,6 +247,9 @@ Page({
 
   _routeMessage(frame: WsFrame) {
     switch (frame.action) {
+      case SC_DESTINY_OFFER:
+        this._onDestinyOffer(frame);
+        break;
       case SC_GAME_LOG:
         this._onGameLog(frame);
         break;
@@ -203,9 +266,26 @@ Page({
         this.setData({ lastHeartbeat: Date.now() });
         break;
       case SC_ERROR:
+        if (this.data.uiState === UIState.PREPARING) {
+          this.setData({
+            destinyError: (frame.message as string) || '命格签选择失败，请重试',
+          });
+        }
         appendLog.call(this, `[错误] ${frame.message || '未知错误'}`);
         break;
     }
+  },
+
+  _onDestinyOffer(frame: WsFrame) {
+    const offers = Array.isArray(frame.offers)
+      ? (frame.offers as DestinyOffer[])
+      : [];
+
+    this.setData({
+      uiState: UIState.PREPARING,
+      destinyOffers: offers,
+      destinyError: '',
+    });
   },
 
   _onGameLog(frame: WsFrame) {
@@ -217,19 +297,37 @@ Page({
     const now = Date.now();
     if (now - lastStatusUpdate >= 1000) {
       lastStatusUpdate = now;
+      const realm = (frame.realm as string) ?? this.data.realm as string;
+      const sinValue = (frame.sin_value as number) ?? this.data.sinValue;
+      const sinMax = getSinMaxByRealm(realm);
       this.setData({
         cultivation: (frame.cultivation as number) ?? this.data.cultivation,
-        sinValue: (frame.sin_value as number) ?? this.data.sinValue,
+        sinValue,
         luck: (frame.luck as number) ?? this.data.luck,
         foundation: (frame.foundation as number) ?? this.data.foundation,
-        realm: (frame.realm as string) ?? this.data.realm as string,
+        realm,
         sinPhase: mapSinPhase((frame.sin_phase as string) || 'safe'),
+        sinMax,
+        sinPercent: calcSinPercent(sinValue, sinMax),
       });
     }
 
     if (this.data.uiState !== UIState.IDLE) {
       this.setData({ uiState: UIState.IDLE });
     }
+  },
+
+  onSelectDestiny(e: WechatMiniprogram.TouchEvent) {
+    const signId = e.currentTarget.dataset.id as string;
+    if (!signId) return;
+
+    this.setData({
+      destinyError: '',
+    });
+    getWs().send(CS_SELECT_DESTINY_SIGN, {
+      sign_id: signId,
+      player_name: this.data.playerName,
+    });
   },
 
   _onEventTrigger(frame: WsFrame) {
@@ -284,6 +382,10 @@ Page({
       karmaDesc = fallbackDesc[triggerType] || '天道意志降临，命运的齿轮开始转动。';
     }
 
+    const realm = (frame.realm as string) ?? this.data.realm as string;
+    const sinValue = (frame.sin_value as number) ?? this.data.sinValue;
+    const sinMax = getSinMaxByRealm(realm);
+
     this.setData({
       uiState: UIState.AWAIT_DECISION,
       triggerTitle: `${persona} · ${typeLabel[triggerType] || triggerType}`,
@@ -291,11 +393,13 @@ Page({
       triggerOptions: mappedOptions,
       storyText: '',
       cultivation: (frame.cultivation as number) ?? this.data.cultivation,
-      sinValue: (frame.sin_value as number) ?? this.data.sinValue,
+      sinValue,
       luck: (frame.luck as number) ?? this.data.luck,
       foundation: (frame.foundation as number) ?? this.data.foundation,
-      realm: (frame.realm as string) ?? this.data.realm as string,
+      realm,
       sinPhase: mapSinPhase((frame.sin_phase as string) || 'safe'),
+      sinMax,
+      sinPercent: calcSinPercent(sinValue, sinMax),
     });
 
     // 60s 倒计时
@@ -321,6 +425,7 @@ Page({
     }
 
     pendingChunks.push(chunk);
+    vibrateForStream();
 
     if (isLast) {
       flushChunks.call(this);
@@ -339,6 +444,17 @@ Page({
 
     const settlement = frame.settlement as Record<string, unknown> | undefined;
     const gameOver = (frame.game_over as boolean) || false;
+    const interceptedByShield = Boolean(settlement?.intercepted_by_shield);
+    const realm = (frame.realm as string) ?? this.data.realm as string;
+    const sinValue = (frame.sin_value as number) ?? this.data.sinValue;
+    const sinMax = getSinMaxByRealm(realm);
+
+    if (interceptedByShield) {
+      wx.vibrateShort({ type: 'heavy' });
+      setTimeout(() => {
+        this.setData({ shieldRescueActive: false });
+      }, 2600);
+    }
 
     this.setData({
       uiState: gameOver ? UIState.GAME_OVER : UIState.SETTLEMENT,
@@ -346,12 +462,16 @@ Page({
       heavenPointsEarned: (frame.heaven_points_earned as number) || 0,
       gameOver,
       gameOverTitle: gameOver ? ((settlement?.dead_title as string) || '修士陨落') : '',
+      shieldRescueActive: interceptedByShield,
+      shieldRescueText: interceptedByShield ? '宗门大能撕裂时空将你捞回！' : '',
       cultivation: (frame.cultivation as number) ?? this.data.cultivation,
-      sinValue: (frame.sin_value as number) ?? this.data.sinValue,
+      sinValue,
       luck: (frame.luck as number) ?? this.data.luck,
       foundation: (frame.foundation as number) ?? this.data.foundation,
-      realm: (frame.realm as string) ?? this.data.realm as string,
+      realm,
       sinPhase: mapSinPhase((frame.sin_phase as string) || 'safe'),
+      sinMax,
+      sinPercent: calcSinPercent(sinValue, sinMax),
     });
   },
 });
@@ -387,6 +507,13 @@ function clearMergeTimer() {
     mergeTimer = null;
   }
   pendingChunks = [];
+}
+
+function vibrateForStream() {
+  const now = Date.now();
+  if (now - lastStreamVibrate < 120) return;
+  lastStreamVibrate = now;
+  wx.vibrateShort({ type: 'light' });
 }
 
 function mapSinPhase(phase: string): string {
