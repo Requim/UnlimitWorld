@@ -19,17 +19,25 @@ from server.application.heaven_persona import (
     CHAOS_PROMPT,
     SPOIL_PROMPT,
     OVERLORD_PROMPT,
+    LEDGER_PROMPT,
+    GAMBLER_PROMPT,
+    GRUDGE_PROMPT,
+    EXAMINER_PROMPT,
     OUTPUT_SCHEMA_INSTRUCTION,
 )
 
 
 class TestPersonaRegistry:
-    def test_all_four_personas_registered(self):
-        assert len(PERSONA_REGISTRY) == 4
+    def test_all_eight_personas_registered(self):
+        assert len(PERSONA_REGISTRY) == 8
         assert "太上忘情" in PERSONA_REGISTRY
         assert "混沌乐子人" in PERSONA_REGISTRY
         assert "唯爱护短" in PERSONA_REGISTRY
         assert "天道夺舍·恶意化身" in PERSONA_REGISTRY
+        assert "因果账房先生" in PERSONA_REGISTRY
+        assert "命盘赌坊主" in PERSONA_REGISTRY
+        assert "朱笔记仇官" in PERSONA_REGISTRY
+        assert "玉律监考官" in PERSONA_REGISTRY
 
     def test_persona_names_matches_registry(self):
         assert PERSONA_NAMES == list(PERSONA_REGISTRY.keys())
@@ -54,6 +62,16 @@ class TestPersonaRegistry:
         assert "天道夺舍·恶意化身" in OVERLORD_PROMPT
         assert "核心律令" in OVERLORD_PROMPT
 
+    def test_new_personas_have_core_rules(self):
+        assert "因果账房先生" in LEDGER_PROMPT
+        assert "核心律令" in LEDGER_PROMPT
+        assert "命盘赌坊主" in GAMBLER_PROMPT
+        assert "核心律令" in GAMBLER_PROMPT
+        assert "朱笔记仇官" in GRUDGE_PROMPT
+        assert "核心律令" in GRUDGE_PROMPT
+        assert "玉律监考官" in EXAMINER_PROMPT
+        assert "核心律令" in EXAMINER_PROMPT
+
 
 class TestGetPersonaPrompt:
     def test_known_persona_returns_correct_prompt(self):
@@ -61,6 +79,10 @@ class TestGetPersonaPrompt:
         assert get_persona_prompt("混沌乐子人") == CHAOS_PROMPT
         assert get_persona_prompt("唯爱护短") == SPOIL_PROMPT
         assert get_persona_prompt("天道夺舍·恶意化身") == OVERLORD_PROMPT
+        assert get_persona_prompt("因果账房先生") == LEDGER_PROMPT
+        assert get_persona_prompt("命盘赌坊主") == GAMBLER_PROMPT
+        assert get_persona_prompt("朱笔记仇官") == GRUDGE_PROMPT
+        assert get_persona_prompt("玉律监考官") == EXAMINER_PROMPT
 
     def test_unknown_persona_falls_back_to_chaos(self):
         """未知人格降级为混沌乐子人"""

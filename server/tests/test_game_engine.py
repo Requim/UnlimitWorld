@@ -27,6 +27,7 @@ from server.domain.event import (
     LLMInputContext,
     AttributeChanges,
 )
+from server.application.heaven_persona import PERSONA_NAMES
 from server.config import REALM_CONFIG, settings
 
 
@@ -113,7 +114,7 @@ class TestNewGame:
         assert session.realm_code == 1
         assert session.cultivation == 100
         assert session.sin_value == 0
-        assert session.heaven_persona in ("太上忘情", "混沌乐子人", "唯爱护短")
+        assert session.heaven_persona in PERSONA_NAMES
         assert engine.stage == Stage.IDLE
 
     def test_custom_name(self):
@@ -166,6 +167,12 @@ class TestNewGame:
         assert session.destiny_sign_title == "福祸同炉"
         assert session.foundation >= 36
         assert session.sin_value == 10
+
+    def test_new_game_can_select_extended_persona_pool(self):
+        engine = GameEngine()
+        with patch("server.application.game_engine.random.choice", return_value="玉律监考官"):
+            session = engine.new_game()
+        assert session.heaven_persona == "玉律监考官"
 
 
 # ══════════════════════════════════════════════════════════
@@ -246,7 +253,8 @@ class TestTickEventRouting:
         engine.session.sin_value = 0
         engine.session.prd_counter = 0
 
-        with patch("server.application.game_engine.generate_local_event") as mock_gen:
+        with patch("server.application.game_engine.generate_local_event") as mock_gen, \
+                patch("server.application.game_engine.random.randint", side_effect=[5, 50, 5]):
             mock_gen.return_value = type("LocalResult", (), {
                 "log_text": "测试",
                 "cultivation_delta": 200,

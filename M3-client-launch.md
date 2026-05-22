@@ -172,7 +172,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | **3E** | 因果遮蔽卡前端特效 + 耳塞协议消费 + 集成测试 | 全栈 | ✅ `frontend-design` | ⏳ |
 | **3F** | 玩法扩展规划落档（命格签 + 天道人格扩容） | 设计/文档 | — | ✅ |
 | **3G** | 命格签系统（开局三选一 + 局内修正） | 全栈 | ✅ `frontend-design` | ✅ |
-| **3H** | 天道人格扩容（4 → 8） | 全栈 | — | ⏳ |
+| **3H** | 天道人格扩容（4 → 8） | 全栈 | — | ✅ |
 | **3I** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — | ⏳ |
 
 ### 5.7 Phase 3D/3E 前端体验补齐记录
@@ -378,8 +378,32 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | Phase | 剩余工作 |
 |-------|----------|
 | 3G | 微信开发者工具实机目测命格签弹层布局与点击态 |
-| 3H | 扩容 4 个新天道人格，并修复当前人格抽取仍有历史前三人格偏置的问题 |
 
 ### 5.12 Phase 3H 天道人格扩容实施记录
 
-> 待实施。完成后记录人格文风设计、抽取规则修正、测试结果与遗留风险。
+> 实施日期：2026-05-22 | 实施人：Codex | 测试：99 passed（HeavenPersona / GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/application/heaven_persona.py` | 新增 4 个常驻人格 Prompt：因果账房先生、命盘赌坊主、朱笔记仇官、玉律监考官 |
+| `server/tests/test_heaven_persona.py` | 扩展人格注册表、Prompt 常量、fallback 行为与 schema 注入覆盖 |
+| `server/tests/test_game_engine.py` | 更新默认人格池断言，并新增可抽到扩容人格的验证 |
+
+#### 设计决策
+
+- **扩容优先做“可辨识的文风差异”**：每个人格继续沿用当前精简 prompt 结构，只强化口吻、裁决偏好和叙事隐喻，避免 prompt 体积再次膨胀。
+- **不重写 Prompt 工厂**：在现有常量 + registry 模式上直接扩 4 个新人格，降低对 `get_persona_prompt()`、fallback 和测试基线的扰动。
+- **抽取逻辑复用 3G 已修正的人格池选择**：`GameEngine.new_game()` 已改为从完整 `PERSONA_NAMES` 抽取，3H 只需扩容注册表即可生效。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_heaven_persona.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`：99 passed。
+- `python -m compileall server -q`：通过。
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3H | 后续可在真机联调阶段补一轮截图审校，确认新人格名在前端标题与日志中的可读性 |
