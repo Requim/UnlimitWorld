@@ -68,7 +68,7 @@
   </view>
 
   <view wx:if="{{uiState === 'preparing'}}" class="content-area">
-    <view class="destiny-panel">
+    <view wx:if="{{ambitionOffers.length === 0}}" class="destiny-panel">
       <view class="destiny-panel-head">
         <text class="destiny-eyebrow">命 格 将 启</text>
         <text class="destiny-title">先定一口气，再去见天道</text>
@@ -93,9 +93,43 @@
 
       <text wx:if="{{destinyError}}" class="destiny-error">{{destinyError}}</text>
     </view>
+
+    <view wx:else class="destiny-panel ambition-panel">
+      <view class="destiny-panel-head">
+        <text class="destiny-eyebrow">执 念 落 笔</text>
+        <text class="destiny-title">这一局，你想被怎样记住</text>
+        <text class="destiny-subtitle">执念会成为本局目标。飞升是赢，死得漂亮也能留名。</text>
+      </view>
+
+      <view class="destiny-list">
+        <button
+          wx:for="{{ambitionOffers}}"
+          wx:key="id"
+          class="destiny-card ambition-card"
+          data-id="{{item.id}}"
+          bindtap="onSelectAmbition"
+        >
+          <view class="destiny-card-top">
+            <text class="destiny-card-title">{{item.title}}</text>
+            <text class="destiny-card-pick">念</text>
+          </view>
+          <text class="destiny-card-summary">{{item.summary}}</text>
+          <text class="ambition-reward">{{item.reward_hint}}</text>
+        </button>
+      </view>
+
+      <text wx:if="{{destinyError}}" class="destiny-error">{{destinyError}}</text>
+    </view>
   </view>
 
   <view wx:if="{{uiState === 'idle'}}" class="content-area">
+    <view wx:if="{{ambitionTitle}}" class="ambition-ribbon">
+      <text class="ambition-ribbon-label">本局执念</text>
+      <text class="ambition-ribbon-title">{{ambitionTitle}}</text>
+      <text wx:if="{{ambitionTarget > 0}}" class="ambition-ribbon-progress">
+        {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
+      </text>
+    </view>
     <view class="idle-hero">
       <view class="meditation-loader idle-loader">
         <view class="meditation-aura aura-outer"></view>

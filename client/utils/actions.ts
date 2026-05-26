@@ -8,11 +8,13 @@
 /* ── 上行 ── */
 export const CS_START_GAME = 'CS_START_GAME';
 export const CS_SELECT_DESTINY_SIGN = 'CS_SELECT_DESTINY_SIGN';
+export const CS_SELECT_AMBITION = 'CS_SELECT_AMBITION';
 export const CS_PING = 'CS_PING';
 export const CS_PLAYER_DECISION = 'CS_PLAYER_DECISION';
 
 /* ── 下行 ── */
 export const SC_DESTINY_OFFER = 'SC_DESTINY_OFFER';
+export const SC_AMBITION_OFFER = 'SC_AMBITION_OFFER';
 export const SC_GAME_LOG = 'SC_GAME_LOG';
 export const SC_HEAVEN_EVENT_TRIGGER = 'SC_HEAVEN_EVENT_TRIGGER';
 export const SC_STORY_STREAM = 'SC_STORY_STREAM';

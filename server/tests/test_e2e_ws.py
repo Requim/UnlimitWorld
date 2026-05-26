@@ -56,8 +56,24 @@ def _start_game_with_destiny(ws, player_name="测试修士", include_name=True):
         if include_name:
             select_payload["player_name"] = player_name
         ws.send_json(select_payload)
+
+        ambition_offer = ws.receive_json()
+        assert ambition_offer["action"] == "SC_AMBITION_OFFER"
+        ambitions = ambition_offer.get("offers", [])
+        assert isinstance(ambitions, list)
+        assert len(ambitions) == 3
+        ambition_id = ambitions[0]["id"]
+        ambition_payload = {
+            "action": "CS_SELECT_AMBITION",
+            "ambition_id": ambition_id,
+        }
+        if include_name:
+            ambition_payload["player_name"] = player_name
+        ws.send_json(ambition_payload)
+
         started = ws.receive_json()
         assert started["action"] == "SC_GAME_LOG"
+        assert started.get("ambition_title")
         return started, first
 
     assert first["action"] == "SC_GAME_LOG"
@@ -113,6 +129,25 @@ class TestConnectAndStart:
             err = ws.receive_json()
             assert err["action"] == "SC_ERROR"
             assert "命格" in err["message"]
+
+    def test_invalid_ambition_selection_returns_error(self, client, fast_tick):
+        with client.websocket_connect("/ws/game?player_id=e2e_bad_ambition") as ws:
+            ws.send_json({"action": "CS_START_GAME", "player_name": "执念测试"})
+            offer = ws.receive_json()
+            assert offer["action"] == "SC_DESTINY_OFFER"
+
+            ws.send_json({
+                "action": "CS_SELECT_DESTINY_SIGN",
+                "sign_id": offer["offers"][0]["id"],
+                "player_name": "执念测试",
+            })
+            ambition_offer = ws.receive_json()
+            assert ambition_offer["action"] == "SC_AMBITION_OFFER"
+
+            ws.send_json({"action": "CS_SELECT_AMBITION", "ambition_id": "not_exists"})
+            err = ws.receive_json()
+            assert err["action"] == "SC_ERROR"
+            assert "执念" in err["message"]
 
 
 # ═══════════════════════════════════════════════════

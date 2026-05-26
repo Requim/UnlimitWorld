@@ -1,7 +1,9 @@
 import {
   CS_PLAYER_DECISION,
+  CS_SELECT_AMBITION,
   CS_SELECT_DESTINY_SIGN,
   CS_START_GAME,
+  SC_AMBITION_OFFER,
   SC_DESTINY_OFFER,
   SC_ERROR,
   SC_EVENT_SETTLEMENT,
@@ -15,6 +17,14 @@ import type { IAppOption } from '../../app';
 import type { WsFrame, WsManager } from '../../utils/ws';
 
 type DestinyOffer = { id: string; title: string; summary: string };
+type AmbitionOffer = {
+  id: string;
+  title: string;
+  summary: string;
+  target: number;
+  progress_label: string;
+  reward_hint: string;
+};
 type StreamSegment = 'event_title' | 'reason_text' | 'verdict_text' | 'story_text';
 
 let pendingSegments: Record<StreamSegment, string[]> = {
@@ -78,7 +88,13 @@ Page({
     sinPercent: 0 as number,
     logs: [] as string[],
     destinyOffers: [] as DestinyOffer[],
+    ambitionOffers: [] as AmbitionOffer[],
+    selectedDestinyId: '' as string,
     destinyError: '' as string,
+    ambitionTitle: '' as string,
+    ambitionProgress: 0 as number,
+    ambitionTarget: 0 as number,
+    ambitionProgressLabel: '' as string,
     triggerTitle: '' as string,
     triggerDescription: '' as string,
     triggerOptions: [] as { id: string; label: string }[],
@@ -145,6 +161,8 @@ Page({
     this.setData({
       uiState: UIState.CONNECTING,
       destinyOffers: [],
+      ambitionOffers: [],
+      selectedDestinyId: '',
       destinyError: '',
     });
     this._sendStartWhenReady();
@@ -181,6 +199,17 @@ Page({
     this.setData({ destinyError: '' });
     getWs().send(CS_SELECT_DESTINY_SIGN, {
       sign_id: signId,
+      player_name: this.data.playerName,
+    });
+  },
+
+  onSelectAmbition(e: WechatMiniprogram.TouchEvent) {
+    const ambitionId = e.currentTarget.dataset.id as string;
+    if (!ambitionId) return;
+
+    this.setData({ destinyError: '' });
+    getWs().send(CS_SELECT_AMBITION, {
+      ambition_id: ambitionId,
       player_name: this.data.playerName,
     });
   },
@@ -222,7 +251,13 @@ Page({
       uiState: UIState.CONNECTING,
       logs: [],
       destinyOffers: [],
+      ambitionOffers: [],
+      selectedDestinyId: '',
       destinyError: '',
+      ambitionTitle: '',
+      ambitionProgress: 0,
+      ambitionTarget: 0,
+      ambitionProgressLabel: '',
       triggerTitle: '',
       triggerDescription: '',
       triggerOptions: [],
@@ -281,6 +316,9 @@ Page({
       case SC_DESTINY_OFFER:
         this._onDestinyOffer(frame);
         break;
+      case SC_AMBITION_OFFER:
+        this._onAmbitionOffer(frame);
+        break;
       case SC_GAME_LOG:
         this._onGameLog(frame);
         break;
@@ -312,6 +350,18 @@ Page({
     this.setData({
       uiState: UIState.PREPARING,
       destinyOffers: offers,
+      ambitionOffers: [],
+      selectedDestinyId: '',
+      destinyError: '',
+    });
+  },
+
+  _onAmbitionOffer(frame: WsFrame) {
+    const offers = Array.isArray(frame.offers) ? (frame.offers as AmbitionOffer[]) : [];
+    this.setData({
+      uiState: UIState.PREPARING,
+      ambitionOffers: offers,
+      selectedDestinyId: (frame.destiny_sign_id as string) || '',
       destinyError: '',
     });
   },
@@ -336,6 +386,10 @@ Page({
         sinPhase: mapSinPhase((frame.sin_phase as string) || 'safe'),
         sinMax,
         sinPercent: calcSinPercent(sinValue, sinMax),
+        ambitionTitle: (frame.ambition_title as string) || this.data.ambitionTitle,
+        ambitionProgress: (frame.ambition_progress as number) ?? this.data.ambitionProgress,
+        ambitionTarget: (frame.ambition_target as number) ?? this.data.ambitionTarget,
+        ambitionProgressLabel: (frame.ambition_progress_label as string) || this.data.ambitionProgressLabel,
       });
     }
 

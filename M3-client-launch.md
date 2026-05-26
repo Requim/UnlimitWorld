@@ -835,3 +835,43 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 本轮玩法的核心不是让玩家永远赢，而是让每局都有可被记住的身份：
 
 > 飞升是赢，暴毙是梗，嘴硬是资产，害人是因果，失败也能成为后来者的内容。
+
+### 5.18 Phase 3I-1 本局执念最小闭环实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：开局执念三选一 + WebSocket 握手扩展 + 前端准备页串联 | 测试：90 passed（Ambition / GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/domain/ambition.py` | 新增本局执念目录、三选一抽取、按前端展示所需字段序列化 |
+| `server/domain/player.py` | `PlayerState` 新增 `ambition_id / ambition_title / ambition_progress / ambition_target / ambition_progress_label` |
+| `server/application/game_engine.py` | 新增待选执念状态、`prepare_ambition_selection()`、执念合法性校验，并在 `new_game()` 中写入执念字段 |
+| `server/interface/ws.py` | 开局握手调整为 `CS_START_GAME -> SC_DESTINY_OFFER -> CS_SELECT_DESTINY_SIGN -> SC_AMBITION_OFFER -> CS_SELECT_AMBITION -> SC_GAME_LOG` |
+| `client/utils/actions.ts` | 新增 `CS_SELECT_AMBITION` 与 `SC_AMBITION_OFFER` 协议常量 |
+| `client/pages/game/game.ts/wxml/wxss` | 准备页从命格签选择扩展为“命格 -> 执念”两段式；挂机页顶部新增本局执念进度条式提示 |
+| `server/tests/test_ambition.py` | 新增执念目录、抽取、查找测试 |
+| `server/tests/test_game_engine.py` | 新增执念候选生成与 `new_game()` 写入执念字段测试 |
+| `server/tests/test_e2e_ws.py` | E2E helper 适配新握手，并新增非法执念选择错误测试 |
+
+#### 设计决策
+
+- **执念插在命格之后、正式开局之前**：命格回答“这局怎么打”，执念回答“这局追什么”，两者共同组成开局宣言，但仍不新增长期主状态机。
+- **首版只做目标可见，不急着做复杂评分**：本轮先让玩家在开局和挂机页明确看到“本局执念”，多榜单评分与盖棺定论留给 3I-2。
+- **复用准备页视觉体系**：前端沿用命格签卡片结构，执念只强化朱砂光晕和“念”标识，保持 M2/M3 已建立的水墨宇宙风格，不另起一套 UI。
+- **旧会话恢复不重走执念流程**：若断线重连命中 active session，仍直接恢复既有 `PlayerState`；新增执念字段由 Pydantic 默认值兼容旧快照。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_ambition.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`
+  - 结果：90 passed
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3I-2 | 多榜单与盖棺定论结算：先做飞升榜、暴毙榜、嘴硬榜的统一评分与结算展示 |
+| 3I | 执念进度推进仍是静态字段，后续需要在自由文本、突破、死亡、赌命事件中累计进度 |
+| 3J | `污染因果` 执念需要等 `KarmaTrace` 入池与触发回写后才具备完整闭环 |

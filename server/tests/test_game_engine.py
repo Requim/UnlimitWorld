@@ -168,6 +168,23 @@ class TestNewGame:
         assert session.foundation >= 36
         assert session.sin_value == 10
 
+    def test_prepare_ambition_selection_returns_three_unique_offers(self):
+        engine = GameEngine()
+        destiny_offers = engine.prepare_new_game("执念修士")
+        ambitions = engine.prepare_ambition_selection(destiny_offers[0]["id"])
+        assert len(ambitions) == 3
+        assert len({item["id"] for item in ambitions}) == 3
+        assert engine.has_pending_ambition_offer() is True
+
+    def test_new_game_stores_ambition(self):
+        engine = GameEngine()
+        session = engine.new_game(ambition_id="taunt_heaven")
+        assert session.ambition_id == "taunt_heaven"
+        assert session.ambition_title == "嘴硬十回合"
+        assert session.ambition_progress == 0
+        assert session.ambition_target == 3
+        assert session.ambition_progress_label == "自由对线"
+
     def test_new_game_can_select_extended_persona_pool(self):
         engine = GameEngine()
         with patch("server.application.game_engine.random.choice", return_value="玉律监考官"):
@@ -386,6 +403,7 @@ class TestSubmitDecision:
         mock_orch = _make_mock_orchestrator()
         engine.orchestrator = mock_orch
         engine.stage = Stage.EVENT_TRIGGER
+        engine._start_time = __import__("time").time()
         engine._current_trigger = EventTrigger(
             event_id="t1", trigger_type="HEAVEN",
             fixed_options=[{"id": "A", "text": "opt"}],

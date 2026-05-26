@@ -33,9 +33,11 @@ logger = logging.getLogger("uvicorn")
 class Action:
     CS_START_GAME = "CS_START_GAME"
     CS_SELECT_DESTINY_SIGN = "CS_SELECT_DESTINY_SIGN"
+    CS_SELECT_AMBITION = "CS_SELECT_AMBITION"
     CS_PING = "CS_PING"
     CS_PLAYER_DECISION = "CS_PLAYER_DECISION"
     SC_DESTINY_OFFER = "SC_DESTINY_OFFER"
+    SC_AMBITION_OFFER = "SC_AMBITION_OFFER"
     SC_GAME_LOG = "SC_GAME_LOG"
     SC_HEAVEN_EVENT_TRIGGER = "SC_HEAVEN_EVENT_TRIGGER"
     SC_STORY_STREAM = "SC_STORY_STREAM"
@@ -188,6 +190,15 @@ def _build_destiny_offer(offers: list[dict], player_name: str) -> dict:
     }
 
 
+def _build_ambition_offer(offers: list[dict], player_name: str, destiny_sign_id: str) -> dict:
+    return {
+        "action": Action.SC_AMBITION_OFFER,
+        "player_name": player_name,
+        "destiny_sign_id": destiny_sign_id,
+        "offers": offers,
+    }
+
+
 def _build_event_trigger(result: TickResult) -> dict:
     return {
         "action": Action.SC_HEAVEN_EVENT_TRIGGER,
@@ -321,6 +332,21 @@ async def _handle_lifecycle(
                 continue
 
             player_name = data.get("player_name") or engine._pending_player_name or "无名修士"
+            offers = engine.prepare_ambition_selection(sign_id)
+            await ws.send_json(_build_ambition_offer(offers, player_name, sign_id))
+            continue
+
+        if action == Action.CS_SELECT_AMBITION:
+            ambition_id = str(data.get("ambition_id", "")).strip()
+            if not engine.has_pending_ambition_offer():
+                await ws.send_json({"action": Action.SC_ERROR, "message": "请先选择命格签"})
+                continue
+            if not engine.is_valid_pending_ambition(ambition_id):
+                await ws.send_json({"action": Action.SC_ERROR, "message": "执念已失效，请重新开局"})
+                continue
+
+            player_name = data.get("player_name") or engine._pending_player_name or "无名修士"
+            sign_id = engine._pending_destiny_sign_id
 
             # 新一局：从 PlayerAccount 加载局外资产，并消费按局生效的协议
             account = await mgr._account_repo.get_or_create(player_id, player_name) if mgr._account_repo else None
@@ -337,10 +363,12 @@ async def _handle_lifecycle(
                 deafness_protocol=deafness_active,
                 heaven_points=account.heaven_points if account else 0,
                 destiny_sign_id=sign_id,
+                ambition_id=ambition_id,
             )
             start_log = (
                 f"[开局成功] 天道人格：【{session.heaven_persona}】"
                 f" 命格：【{session.destiny_sign_title or '无'}】"
+                f" 执念：【{session.ambition_title or '无'}】"
             )
             if deafness_active:
                 start_log += "【天道失聪协议生效：本局逻辑气运 +10，天道选择性装聋】"
@@ -355,6 +383,11 @@ async def _handle_lifecycle(
                 "realm": get_realm_name(session.realm_code),
                 "sin_phase": session.sin_phase(),
                 "stage": engine.stage,
+                "destiny_sign_title": session.destiny_sign_title,
+                "ambition_title": session.ambition_title,
+                "ambition_progress": session.ambition_progress,
+                "ambition_target": session.ambition_target,
+                "ambition_progress_label": session.ambition_progress_label,
             })
             continue
 

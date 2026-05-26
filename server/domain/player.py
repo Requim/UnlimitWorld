@@ -109,6 +109,11 @@ class PlayerState(BaseModel):
     destiny_sign_id: str = ""
     destiny_sign_title: str = ""
     destiny_mods: dict = Field(default_factory=dict)
+    ambition_id: str = ""
+    ambition_title: str = ""
+    ambition_progress: int = 0
+    ambition_target: int = 0
+    ambition_progress_label: str = ""
 
     def apply_talent_bonus(self):
         """在开局时应用天赋加成到初始属性"""

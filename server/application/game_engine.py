@@ -28,6 +28,7 @@ from server.domain.player import (
     roll_death_check,
 )
 from server.domain.destiny import draw_destiny_offers, find_destiny_sign
+from server.domain.ambition import draw_ambition_offers, find_ambition
 from server.domain.event import (
     LocalEventResult,
     LLMInputContext,
@@ -196,6 +197,8 @@ class GameEngine:
         # 决策超时时间戳（秒，monotonic）
         self._decision_deadline: float = 0.0
         self._pending_destiny_offers: list[str] = []
+        self._pending_ambition_offers: list[str] = []
+        self._pending_destiny_sign_id: str = ""
         self._pending_player_name: str = "无名修士"
 
     # ── 开局 ─────────────────────────────────────────────
@@ -209,11 +212,13 @@ class GameEngine:
         karma_shield: int = 0,
         heaven_points: int = 0,
         destiny_sign_id: str = "",
+        ambition_id: str = "",
     ) -> PlayerState:
         """创建新一局游戏，随机分配天道人格"""
         player_id = player_id or f"p_{uuid.uuid4().hex[:8]}"
         persona = random.choice(PERSONA_NAMES)
         destiny_sign = find_destiny_sign(destiny_sign_id) if destiny_sign_id else None
+        ambition = find_ambition(ambition_id) if ambition_id else None
 
         self.session = PlayerState(
             player_id=player_id,
@@ -233,6 +238,11 @@ class GameEngine:
             destiny_sign_id=destiny_sign.id if destiny_sign else "",
             destiny_sign_title=destiny_sign.title if destiny_sign else "",
             destiny_mods=destiny_sign.to_mods() if destiny_sign else {},
+            ambition_id=ambition.id if ambition else "",
+            ambition_title=ambition.title if ambition else "",
+            ambition_progress=0,
+            ambition_target=ambition.target if ambition else 0,
+            ambition_progress_label=ambition.progress_label if ambition else "",
         )
 
         self.session.apply_talent_bonus()
@@ -242,6 +252,8 @@ class GameEngine:
         self._current_trigger = None
         self._decision_deadline = 0.0
         self._pending_destiny_offers = []
+        self._pending_ambition_offers = []
+        self._pending_destiny_sign_id = ""
         self._pending_player_name = player_name
 
         return self.session
@@ -266,6 +278,27 @@ class GameEngine:
 
     def is_valid_pending_destiny(self, sign_id: str) -> bool:
         return sign_id in self._pending_destiny_offers
+
+    def prepare_ambition_selection(self, destiny_sign_id: str) -> list[dict]:
+        """命格选定后，生成本局可选执念。"""
+        self._pending_destiny_sign_id = destiny_sign_id
+        offers = draw_ambition_offers(3)
+        self._pending_ambition_offers = [item.id for item in offers]
+        return [item.to_offer() for item in offers]
+
+    def get_pending_ambition_offers(self) -> list[dict]:
+        offers = []
+        for ambition_id in self._pending_ambition_offers:
+            ambition = find_ambition(ambition_id)
+            if ambition:
+                offers.append(ambition.to_offer())
+        return offers
+
+    def has_pending_ambition_offer(self) -> bool:
+        return bool(self._pending_ambition_offers)
+
+    def is_valid_pending_ambition(self, ambition_id: str) -> bool:
+        return ambition_id in self._pending_ambition_offers
 
     # ── 状态恢复（断线重连） ──────────────────────────────
 
