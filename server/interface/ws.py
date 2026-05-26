@@ -11,6 +11,7 @@ Phase 3A：msgSecCheck 内容安全审查。
 import asyncio
 import json
 import logging
+import random
 import time
 from typing import Optional
 
@@ -575,6 +576,8 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
                 if mgr and player_id:
                     await mgr._save_active_session(player_id, engine)
             else:
+                if mgr and player_id:
+                    await _maybe_apply_karma_trace_event(mgr, engine, result)
                 await ws.send_json(_build_game_log(result))
 
         elif engine.stage == Stage.EVENT_TRIGGER:
@@ -644,6 +647,38 @@ def _build_karma_trace_message(engine: GameEngine, settlement: EventSettlement, 
         return f"前人【{player_name}】飞升前留下一缕护道残念：{settlement.epitaph_title or '飞升案首'}。"
     title = settlement.dead_title or settlement.epitaph_title or "死得很有参考价值"
     return f"前人【{player_name}】在此留下因果遗毒：{title}。天道看完后笑了一声。"
+
+
+async def _maybe_apply_karma_trace_event(mgr: ConnectionManager, engine: GameEngine, result: TickResult):
+    """普通挂机日志低概率触发前人因果痕迹。"""
+    if not mgr._karma_trace_repo or not engine.session:
+        return
+    if result.event_type not in ("LOCAL", "RESENTMENT_LOCAL"):
+        return
+    if random.randint(1, 100) > 8:
+        return
+
+    trace = await mgr._karma_trace_repo.sample_for_event()
+    if not trace:
+        return
+
+    session = engine.session
+    trace_id = int(trace["trace_id"])
+    trace_type = trace.get("trace_type", "trap")
+    if trace_type == "gift":
+        session.foundation = min(100, session.foundation + 1)
+        result.foundation = session.foundation
+        result.log_text += f" 【前人馈赠】{trace['message']} 根基 +1。"
+        await mgr._karma_trace_repo.mark_triggered(trace_id, harm_delta=0)
+        return
+
+    harm = max(1, int(trace.get("toxicity_score", 1)))
+    sin_max = REALM_CONFIG[session.realm_code]["sin_max"]
+    session.sin_value = min(sin_max, session.sin_value + harm)
+    result.sin_value = session.sin_value
+    result.sin_phase = session.sin_phase()
+    result.log_text += f" 【因果偷渡】{trace['message']} 天谴 +{harm}。"
+    await mgr._karma_trace_repo.mark_triggered(trace_id, harm_delta=harm)
 
 
 async def _sync_account_penalty(

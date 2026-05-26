@@ -322,6 +322,41 @@ class KarmaTraceRepository:
                 for r in rows
             ]
 
+    async def sample_for_event(self) -> dict | None:
+        """抽取一条可投放到普通事件的因果痕迹。"""
+        async with self._sf() as sess:
+            stmt = (
+                select(KarmaTraceModel)
+                .where(KarmaTraceModel.is_approved == 1)
+                .order_by(KarmaTraceModel.created_at.desc())
+                .limit(20)
+            )
+            result = await sess.execute(stmt)
+            rows = result.scalars().all()
+            if not rows:
+                return None
+            import random
+            row = random.choice(rows)
+            return {
+                "trace_id": row.id,
+                "source_player_name": row.source_player_name,
+                "trace_type": row.trace_type,
+                "effect_type": row.effect_type,
+                "message": row.message,
+                "toxicity_score": row.toxicity_score,
+            }
+
+    async def mark_triggered(self, trace_id: int, harm_delta: int = 0, death_caused: bool = False):
+        async with self._sf() as sess:
+            row = await sess.get(KarmaTraceModel, trace_id)
+            if row is None:
+                return
+            row.trigger_count += 1
+            row.harm_score += max(0, harm_delta)
+            if death_caused:
+                row.death_caused_count += 1
+            await sess.commit()
+
 
 # ═══════════════════════════════════════════════════════════════
 # ActiveSessionRepository

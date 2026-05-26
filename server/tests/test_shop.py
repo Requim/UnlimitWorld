@@ -261,6 +261,89 @@ class TestSettlementAssetSync:
         assert repo.points_delta == 0
 
 
+class TestKarmaTraceTickEvents:
+    @pytest.mark.asyncio
+    async def test_maybe_apply_karma_trace_trap(self, monkeypatch):
+        from server.interface.ws import ConnectionManager, _maybe_apply_karma_trace_event
+        from server.application.game_engine import GameEngine, TickResult, Stage
+
+        class FakeKarmaTraceRepo:
+            def __init__(self):
+                self.marked = []
+
+            async def sample_for_event(self):
+                return {
+                    "trace_id": 7,
+                    "trace_type": "trap",
+                    "effect_type": "mislead",
+                    "message": "前人说第二个包飞升。",
+                    "toxicity_score": 3,
+                }
+
+            async def mark_triggered(self, trace_id, harm_delta=0, death_caused=False):
+                self.marked.append((trace_id, harm_delta, death_caused))
+
+        monkeypatch.setattr("server.interface.ws.random.randint", lambda *_: 1)
+        repo = FakeKarmaTraceRepo()
+        mgr = ConnectionManager(karma_trace_repo=repo)
+        engine = GameEngine()
+        engine.new_game()
+        result = TickResult(
+            stage=Stage.IDLE,
+            log_text="【平淡日常】打坐。",
+            event_type="LOCAL",
+            sin_value=0,
+            foundation=engine.session.foundation,
+        )
+
+        await _maybe_apply_karma_trace_event(mgr, engine, result)
+
+        assert "因果偷渡" in result.log_text
+        assert engine.session.sin_value == 3
+        assert repo.marked == [(7, 3, False)]
+
+    @pytest.mark.asyncio
+    async def test_maybe_apply_karma_trace_gift(self, monkeypatch):
+        from server.interface.ws import ConnectionManager, _maybe_apply_karma_trace_event
+        from server.application.game_engine import GameEngine, TickResult, Stage
+
+        class FakeKarmaTraceRepo:
+            def __init__(self):
+                self.marked = []
+
+            async def sample_for_event(self):
+                return {
+                    "trace_id": 8,
+                    "trace_type": "gift",
+                    "effect_type": "blessing",
+                    "message": "前人留下护道残念。",
+                    "toxicity_score": 0,
+                }
+
+            async def mark_triggered(self, trace_id, harm_delta=0, death_caused=False):
+                self.marked.append((trace_id, harm_delta, death_caused))
+
+        monkeypatch.setattr("server.interface.ws.random.randint", lambda *_: 1)
+        repo = FakeKarmaTraceRepo()
+        mgr = ConnectionManager(karma_trace_repo=repo)
+        engine = GameEngine()
+        engine.new_game()
+        old_foundation = engine.session.foundation
+        result = TickResult(
+            stage=Stage.IDLE,
+            log_text="【平淡日常】打坐。",
+            event_type="LOCAL",
+            sin_value=0,
+            foundation=old_foundation,
+        )
+
+        await _maybe_apply_karma_trace_event(mgr, engine, result)
+
+        assert "前人馈赠" in result.log_text
+        assert engine.session.foundation == min(100, old_foundation + 1)
+        assert repo.marked == [(8, 0, False)]
+
+
 @_mysql_skip
 class TestShopBuyItemLogic:
     """PlayerAccountRepository.buy_item 逻辑测试（需要数据库）"""

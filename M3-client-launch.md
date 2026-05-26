@@ -1005,3 +1005,37 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3J-2 | 普通事件低概率抽取 `KarmaTrace`，生成前人遗毒/馈赠事件 |
 | 3J-2 | 后来者触发后回写 `trigger_count / harm_score / death_caused_count` |
 | 3J | 玩家手写遗言与 msgSecCheck 审核链路暂未开放 |
+
+### 5.23 Phase 3J-2 KarmaTrace 普通事件触发实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：普通挂机日志低概率触发前人遗毒/馈赠 + 触发统计回写 | 测试：140 passed, 9 skipped（Shop / WebSocket E2E / GameEngine / EventConfig 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/infrastructure/storage.py` | `KarmaTraceRepository` 新增 `sample_for_event()` 与 `mark_triggered()` |
+| `server/interface/ws.py` | 普通 `LOCAL / RESENTMENT_LOCAL` 日志下发前 8% 概率抽取 KarmaTrace；`trap` 增加天谴并写污染分，`gift` 增加根基并写触发次数 |
+| `server/tests/test_shop.py` | 新增前人遗毒与前人馈赠触发测试，使用 mock repo 固定概率与回写行为 |
+
+#### 设计决策
+
+- **先做日志型触发，不打断挂机状态机**：3J-2 不新增选择弹窗，先把“后来者真的踩到前人因果”做成普通日志增强，降低前端和状态机风险。
+- **低概率轻影响**：触发概率 8%；遗毒只增加少量天谴，馈赠只增加 1 点根基，避免弱社交变成强 PvP 挫败。
+- **回写统计先覆盖触发与 harm_score**：`death_caused_count` 预留给后续高危事件/死亡拦截链路，目前不在普通日志里递增。
+- **仓储抽样取最近 20 条再随机**：避免全表随机在 MySQL 上成本过高，同时让新鲜痕迹更容易被看到。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_shop.py server\tests\test_e2e_ws.py server\tests\test_game_engine.py server\tests\test_event_config.py -q`
+  - 结果：140 passed, 9 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3J | 玩家主动留遗言/投毒类型选择与 msgSecCheck 审核仍未开放 |
+| 3J | 高毒性事件、低风险反制选项、death_caused_count 回写仍未接入 |
+| 3K | 普通事件分池与轻选择可在现有 KarmaTrace 日志触发基础上继续扩展 |
