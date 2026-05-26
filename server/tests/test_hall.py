@@ -79,6 +79,19 @@ class TestHallEndpoints:
         resp = client.get("/api/hall/top?limit=0")
         assert resp.status_code in (200, 503)
 
+    def test_leaderboards_endpoint_default(self, client):
+        resp = client.get("/api/leaderboards?type=ascension&limit=10")
+        assert resp.status_code in (200, 503)
+        data = resp.json()
+        if resp.status_code == 200:
+            assert data["type"] == "ascension"
+            assert "records" in data
+            assert "total" in data
+
+    def test_leaderboards_invalid_type(self, client):
+        resp = client.get("/api/leaderboards?type=not_exists")
+        assert resp.status_code == 404
+
 
 @_mysql_skip
 class TestImmortalHallRepository:

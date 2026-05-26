@@ -70,6 +70,7 @@ class ConnectionManager:
         redis_client=None,
         active_session_repo=None,
         account_repo=None,
+        leaderboard_repo=None,
     ):
         self._connections: dict[str, WebSocket] = {}
         self._engines: dict[str, GameEngine] = {}
@@ -81,6 +82,7 @@ class ConnectionManager:
         self._redis = redis_client
         self._active_session_repo = active_session_repo
         self._account_repo = account_repo  # Phase 3B：商店道具生效
+        self._leaderboard_repo = leaderboard_repo
 
     @property
     def active_count(self) -> int:
@@ -599,13 +601,24 @@ async def _sync_account_after_settlement(
     result: TickResult,
 ):
     """将局内结算影响同步回局外账号资产。"""
-    if not mgr or not mgr._account_repo or not player_id or not engine.session:
+    if not mgr or not player_id or not engine.session:
         return
-    if result.settlement and result.settlement.intercepted_by_shield:
+    if mgr._account_repo and result.settlement and result.settlement.intercepted_by_shield:
         await mgr._account_repo.consume_karma_shield(player_id)
-    if result.heaven_points_earned:
+    if mgr._account_repo and result.heaven_points_earned:
         await mgr._account_repo.update_heaven_points(
             player_id, result.heaven_points_earned
+        )
+    settlement = result.settlement
+    if settlement and settlement.leaderboard_type and mgr._leaderboard_repo:
+        await mgr._leaderboard_repo.insert(
+            leaderboard_type=settlement.leaderboard_type,
+            player_id=player_id,
+            player_name=engine.session.player_name,
+            title=settlement.epitaph_title or settlement.dead_title or settlement.event_title,
+            score=settlement.leaderboard_score,
+            realm=get_realm_name(engine.session.realm_code),
+            summary=settlement.verdict_text or settlement.reason_text or settlement.story_text,
         )
 
 

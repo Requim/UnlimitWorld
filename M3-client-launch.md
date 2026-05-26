@@ -173,7 +173,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | **3F** | 玩法扩展规划落档（命格签 + 天道人格扩容） | 设计/文档 | — | ✅ |
 | **3G** | 命格签系统（开局三选一 + 局内修正） | 全栈 | ✅ `frontend-design` | ✅ |
 | **3H** | 天道人格扩容（4 → 8） | 全栈 | — | ✅ |
-| **3I** | 目标感闭环（本局执念 + 多榜单 + 盖棺定论结算） | 全栈/玩法 | ✅ `frontend-design` | ⏳ |
+| **3I** | 目标感闭环（本局执念 + 多榜单 + 盖棺定论结算） | 全栈/玩法 | ✅ `frontend-design` | ✅ |
 | **3J** | 异步因果偷渡（死亡遗毒 + 前人馈赠 + 因果污染榜） | 全栈/弱社交 | ✅ `frontend-design` | ⏳ |
 | **3K** | 平常事件扩展（分池、轻选择、人格权重、目标推进） | 全栈/配置 | ✅ `frontend-design` | ⏳ |
 | **3L** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — | ⏳ |
@@ -911,3 +911,41 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3I-3 | 正式多榜单持久化与 hall 页面 Tab 化：飞升榜、暴毙榜、嘴硬榜 |
 | 3I | 执念进度仍未按事件实时推进，需要在自由文本、突破、死亡和高风险事件中累计 |
 | 3J | 因果污染榜需要等 `KarmaTrace` 投毒/触发系统落地 |
+
+### 5.20 Phase 3I-3 多榜单持久化与 Hall Tab 化实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：通用榜单表/仓储 + 终局写榜 + `/api/leaderboards` + 名人堂 Tab 展示 | 测试：108 passed, 14 skipped（Hall / Shop / GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/infrastructure/models.py` | 新增 `leaderboard_entries` ORM 表，支持榜单类型、玩家、称号、评分、境界、摘要与入榜时间 |
+| `server/infrastructure/storage.py` | 新增 `LeaderboardRepository.insert/get_top()`，按 `score desc + created_at desc` 排序 |
+| `server/interface/ws.py` | `ConnectionManager` 注入 `leaderboard_repo`；终局结算后将 `EventSettlement` 的候选榜字段写入通用榜单 |
+| `server/interface/app.py` | 初始化 `_leaderboard_repo`；新增 `GET /api/leaderboards?type=ascension|death|taunt&limit=50` |
+| `client/pages/hall/hall.ts/wxml/wxss` | 名人堂页面新增飞升榜/暴毙榜/嘴硬榜 Tab，从 `/api/leaderboards` 读取并兼容旧战报 Canvas 字段 |
+| `server/tests/test_hall.py` | 新增多榜单 API 基础契约与非法榜单类型测试 |
+| `server/tests/test_shop.py` | 扩展结算同步测试，覆盖终局写入 `LeaderboardRepository` |
+
+#### 设计决策
+
+- **保留旧 `immortal_hall`，新增通用榜单**：飞升名人堂历史 API 不破坏；新多榜单走 `leaderboard_entries`，便于暴毙榜、嘴硬榜、赌命榜、因果污染榜共用。
+- **终局写榜基于后端结算字段**：`GameEngine` 生成 `leaderboard_type / leaderboard_score / epitaph_title`，WebSocket 层只负责持久化，避免前端参与评分。
+- **Hall 页面先 Tab 化，不重做分享图**：首版让三榜可读；Canvas 战报仍复用旧字段映射，后续可按榜单类型定制分享图文案。
+- **服务不可用延续 503 降级**：与旧 `/api/hall/top` 一致，数据库不可用时不影响核心 WebSocket 开局/挂机流程。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_hall.py server\tests\test_shop.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`
+  - 结果：108 passed, 14 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3I | 执念进度仍未实时推进，后续需按自由文本、突破、死亡、高风险事件累计 |
+| 3I | Hall 分享图仍是飞升榜文案，后续可按暴毙榜/嘴硬榜生成不同战报 |
+| 3J | 因果污染榜入口已预留，但需要 `KarmaTrace` 投毒与触发回写后才开放 |

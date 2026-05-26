@@ -8,11 +8,23 @@
 import { BASE_URL } from '../../utils/config';
 
 interface HallRecord {
+  leaderboard_type?: string;
   player_name: string;
+  title?: string;
+  score?: number;
+  realm?: string;
+  summary?: string;
+  created_at?: string;
   ascension_title: string;
   total_heaven_points: number;
   ascended_at: string;
 }
+
+const BOARD_TABS = [
+  { type: 'ascension', label: '飞升榜', subtitle: '正统胜利，刻名碑林' },
+  { type: 'death', label: '暴毙榜', subtitle: '死得漂亮，也算留名' },
+  { type: 'taunt', label: '嘴硬榜', subtitle: '和天道对线的硬骨头' },
+];
 
 /* 排名对应的中文数字 */
 const RANK_LABELS: Record<number, string> = {
@@ -24,9 +36,21 @@ function rankLabel(rank: number): string {
   return RANK_LABELS[rank] || String(rank);
 }
 
+function normalizeRecord(item: HallRecord): HallRecord {
+  return {
+    ...item,
+    ascension_title: item.ascension_title || item.title || '未题名',
+    total_heaven_points: item.total_heaven_points ?? item.score ?? 0,
+    ascended_at: item.ascended_at || item.created_at || '',
+  };
+}
+
 Page({
   data: {
     records: [] as HallRecord[],
+    boardTabs: BOARD_TABS,
+    activeBoard: 'ascension',
+    activeSubtitle: BOARD_TABS[0].subtitle,
     total: 0,
     loading: true,
     empty: false,
@@ -60,10 +84,10 @@ Page({
 
     try {
       const res = await this._request<{ records: HallRecord[]; total: number }>(
-        `${BASE_URL}/api/hall/top?limit=50`,
+        `${BASE_URL}/api/leaderboards?type=${this.data.activeBoard}&limit=50`,
         'GET',
       );
-      const records = res.records || [];
+      const records = (res.records || []).map((item) => normalizeRecord(item));
       this.setData({
         records,
         total: res.total || records.length,
@@ -73,6 +97,19 @@ Page({
     } catch {
       this.setData({ loading: false, empty: this.data.records.length === 0 });
     }
+  },
+
+  onSelectBoard(e: WechatMiniprogram.TouchEvent) {
+    const board = e.currentTarget.dataset.type as string;
+    const tab = BOARD_TABS.find((item) => item.type === board);
+    if (!tab || board === this.data.activeBoard) return;
+    this.setData({
+      activeBoard: board,
+      activeSubtitle: tab.subtitle,
+      records: [],
+      empty: false,
+    });
+    this._fetchHall();
   },
 
   _request<T>(url: string, method: 'GET' | 'POST', data?: unknown): Promise<T> {

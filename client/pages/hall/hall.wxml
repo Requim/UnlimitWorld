@@ -12,12 +12,22 @@
       <text class="header-title">仙 尊 名 人 堂</text>
       <text class="header-seal">林</text>
     </view>
-    <text class="header-subtitle">—— 飞升碑林 · 不朽铭文 ——</text>
+    <text class="header-subtitle">—— {{activeSubtitle}} ——</text>
     <view class="header-count" wx:if="{{!empty && !loading}}">
       <text class="count-ornament">◆</text>
-      <text class="count-text">已有 {{total}} 位修士刻名于此</text>
+      <text class="count-text">已有 {{total}} 条命案刻名于此</text>
       <text class="count-ornament">◆</text>
     </view>
+  </view>
+
+  <view class="board-tabs">
+    <button
+      wx:for="{{boardTabs}}"
+      wx:key="type"
+      class="board-tab {{activeBoard === item.type ? 'active' : ''}}"
+      data-type="{{item.type}}"
+      bindtap="onSelectBoard"
+    >{{item.label}}</button>
   </view>
 
   <!-- ═══ 加载态 ═══ -->
@@ -31,9 +41,9 @@
     <view class="empty-stele">
       <view class="empty-stele-inner">
         <text class="empty-glyph">碑</text>
-        <text class="empty-title">碑林尚无铭文</text>
+        <text class="empty-title">此榜尚无铭文</text>
         <view class="empty-divider"></view>
-        <text class="empty-sub">静待首位飞升者</text>
+        <text class="empty-sub">静待首位修士上榜</text>
         <text class="empty-sub">刻下不朽之名...</text>
       </view>
       <view class="empty-stele-glow"></view>
@@ -73,11 +83,11 @@
         <view class="stele-divider"></view>
         <view class="stele-stats">
           <view class="stele-stat">
-            <text class="stat-label">天道点</text>
+            <text class="stat-label">{{activeBoard === 'ascension' ? '天道点' : '评分'}}</text>
             <text class="stat-value gold">{{item.total_heaven_points}}</text>
           </view>
           <view class="stele-stat">
-            <text class="stat-label">飞升日</text>
+            <text class="stat-label">{{activeBoard === 'ascension' ? '飞升日' : '入榜日'}}</text>
             <text class="stat-value">{{item.ascended_at.slice(0, 10)}}</text>
           </view>
         </view>

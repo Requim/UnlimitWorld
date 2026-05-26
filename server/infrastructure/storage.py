@@ -15,6 +15,7 @@ from server.infrastructure.models import (
     PlayerAccountModel,
     DeadRegistryModel,
     ImmortalHallModel,
+    LeaderboardEntryModel,
     ActiveSessionModel,
     HeavenOverlordPoolModel,
 )
@@ -198,6 +199,62 @@ class ImmortalHallRepository:
             return [
                 {"player_name": r.player_name, "ascension_title": r.ascension_title,
                  "total_heaven_points": r.total_heaven_points, "ascended_at": r.ascended_at.isoformat()}
+                for r in rows
+            ]
+
+
+# ═══════════════════════════════════════════════════════════════
+# LeaderboardRepository
+# ═══════════════════════════════════════════════════════════════
+
+class LeaderboardRepository:
+    def __init__(self, session_factory: async_sessionmaker):
+        self._sf = session_factory
+
+    async def insert(
+        self,
+        leaderboard_type: str,
+        player_id: str,
+        player_name: str,
+        title: str,
+        score: int,
+        realm: str = "",
+        summary: str = "",
+    ):
+        async with self._sf() as sess:
+            row = LeaderboardEntryModel(
+                leaderboard_type=leaderboard_type,
+                player_id=player_id,
+                player_name=player_name,
+                title=title,
+                score=score,
+                realm=realm,
+                summary=summary,
+                created_at=datetime.now(),
+            )
+            sess.add(row)
+            await sess.commit()
+
+    async def get_top(self, leaderboard_type: str, limit: int = 50) -> list[dict]:
+        async with self._sf() as sess:
+            stmt = (
+                select(LeaderboardEntryModel)
+                .where(LeaderboardEntryModel.leaderboard_type == leaderboard_type)
+                .order_by(LeaderboardEntryModel.score.desc(), LeaderboardEntryModel.created_at.desc())
+                .limit(limit)
+            )
+            result = await sess.execute(stmt)
+            rows = result.scalars().all()
+            return [
+                {
+                    "leaderboard_type": r.leaderboard_type,
+                    "player_name": r.player_name,
+                    "title": r.title,
+                    "score": r.score,
+                    "realm": r.realm,
+                    "summary": r.summary,
+                    "created_at": r.created_at.isoformat(),
+                }
                 for r in rows
             ]
 

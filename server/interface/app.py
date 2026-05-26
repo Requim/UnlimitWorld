@@ -29,6 +29,7 @@ _wechat_client: WeChatClient | None = None
 _session_factory = None  # Phase 3B：供 REST API 使用
 _account_repo = None     # Phase 3B：PlayerAccountRepository
 _hall_repo = None        # Phase 3C：ImmortalHallRepository
+_leaderboard_repo = None # Phase 3I：多榜单 Repository
 
 
 async def _ensure_player_account_columns(engine):
@@ -111,7 +112,7 @@ async def lifespan(app: FastAPI):
         pass  # MySQL 不可用时降级运行
 
     # Phase 3B：保存全局引用供 REST API
-    global _session_factory, _account_repo, _hall_repo
+    global _session_factory, _account_repo, _hall_repo, _leaderboard_repo
 
     if session_factory:
         from server.infrastructure.storage import (
@@ -120,11 +121,13 @@ async def lifespan(app: FastAPI):
             HeavenOverlordPoolRepository,
             ActiveSessionRepository,
             PlayerAccountRepository,
+            LeaderboardRepository,
         )
         _account_repo = PlayerAccountRepository(session_factory)
         dead_repo = DeadRegistryRepository(session_factory)
         hall_repo = ImmortalHallRepository(session_factory)
         _hall_repo = hall_repo  # Phase 3C：名人堂 REST API
+        _leaderboard_repo = LeaderboardRepository(session_factory)
         heaven_pool_repo = HeavenOverlordPoolRepository(session_factory)
         active_session_repo = ActiveSessionRepository(session_factory)
 
@@ -145,6 +148,7 @@ async def lifespan(app: FastAPI):
         redis_client=redis_client,
         active_session_repo=active_session_repo,
         account_repo=_account_repo,
+        leaderboard_repo=_leaderboard_repo,
     )
 
     # ── Phase 2D：怨念池清洗后台任务 ──
@@ -319,6 +323,28 @@ def create_app() -> FastAPI:
 
         records = await _hall_repo.get_top(limit=limit)
         return {"records": records, "total": len(records)}
+
+    @app.get("/api/leaderboards")
+    async def leaderboards(request: Request):
+        """多榜单读取。
+
+        Query: ?type=ascension|death|taunt&limit=50
+        """
+        board_type = request.query_params.get("type", "ascension")
+        if board_type not in {"ascension", "death", "taunt", "gamble", "karma_pollution"}:
+            return JSONResponse({"error": "榜单类型不存在"}, status_code=404)
+        limit_str = request.query_params.get("limit", "50")
+        try:
+            limit = int(limit_str)
+        except ValueError:
+            limit = 50
+        limit = max(1, min(limit, 100))
+
+        if _leaderboard_repo is None:
+            return JSONResponse({"error": "榜单服务暂不可用"}, status_code=503)
+
+        records = await _leaderboard_repo.get_top(board_type, limit=limit)
+        return {"type": board_type, "records": records, "total": len(records)}
 
     return app
 

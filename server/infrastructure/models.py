@@ -60,6 +60,20 @@ class ImmortalHallModel(Base):
     ascended_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class LeaderboardEntryModel(Base):
+    __tablename__ = "leaderboard_entries"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    leaderboard_type: Mapped[str] = mapped_column(String(32))
+    player_id: Mapped[str] = mapped_column(String(32))
+    player_name: Mapped[str] = mapped_column(String(64))
+    title: Mapped[str] = mapped_column(String(128))
+    score: Mapped[int] = mapped_column(Integer, default=0)
+    realm: Mapped[str] = mapped_column(String(32), default="")
+    summary: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class ActiveSessionModel(Base):
     __tablename__ = "active_session"
 

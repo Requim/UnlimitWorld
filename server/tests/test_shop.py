@@ -142,8 +142,16 @@ class TestSettlementAssetSync:
             async def update_heaven_points(self, player_id, delta):
                 self.points_delta += delta
 
+        class FakeLeaderboardRepo:
+            def __init__(self):
+                self.rows = []
+
+            async def insert(self, **kwargs):
+                self.rows.append(kwargs)
+
         repo = FakeAccountRepo()
-        mgr = ConnectionManager(account_repo=repo)
+        leaderboard_repo = FakeLeaderboardRepo()
+        mgr = ConnectionManager(account_repo=repo, leaderboard_repo=leaderboard_repo)
         engine = GameEngine()
         engine.new_game(player_id="sync_p1")
 
@@ -154,6 +162,10 @@ class TestSettlementAssetSync:
             attribute_changes=AttributeChanges(),
             intercepted_by_shield=True,
             heaven_points_earned=42,
+            epitaph_title="天道重点观察对象",
+            leaderboard_type="death",
+            leaderboard_score=120,
+            verdict_text="死得很响。",
         )
         result = TickResult(
             stage=Stage.IDLE,
@@ -165,6 +177,8 @@ class TestSettlementAssetSync:
 
         assert repo.shield_consumed == 1
         assert repo.points_delta == 42
+        assert leaderboard_repo.rows[0]["leaderboard_type"] == "death"
+        assert leaderboard_repo.rows[0]["score"] == 120
 
     @pytest.mark.asyncio
     async def test_sync_skips_when_no_settlement_effect(self):
