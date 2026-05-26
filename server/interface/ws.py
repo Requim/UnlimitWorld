@@ -71,6 +71,7 @@ class ConnectionManager:
         active_session_repo=None,
         account_repo=None,
         leaderboard_repo=None,
+        karma_trace_repo=None,
     ):
         self._connections: dict[str, WebSocket] = {}
         self._engines: dict[str, GameEngine] = {}
@@ -83,6 +84,7 @@ class ConnectionManager:
         self._active_session_repo = active_session_repo
         self._account_repo = account_repo  # Phase 3B：商店道具生效
         self._leaderboard_repo = leaderboard_repo
+        self._karma_trace_repo = karma_trace_repo
 
     @property
     def active_count(self) -> int:
@@ -620,6 +622,28 @@ async def _sync_account_after_settlement(
             realm=get_realm_name(engine.session.realm_code),
             summary=settlement.verdict_text or settlement.reason_text or settlement.story_text,
         )
+    if settlement and settlement.leaderboard_type and mgr._karma_trace_repo:
+        trace_type = "gift" if settlement.leaderboard_type == "ascension" else "trap"
+        effect_type = "blessing" if trace_type == "gift" else (
+            "taunt_infection" if settlement.leaderboard_type == "taunt" else "mislead"
+        )
+        message = _build_karma_trace_message(engine, settlement, trace_type)
+        await mgr._karma_trace_repo.insert(
+            source_player_id=player_id,
+            source_player_name=engine.session.player_name,
+            trace_type=trace_type,
+            effect_type=effect_type,
+            message=message,
+            toxicity_score=0 if trace_type == "gift" else max(1, settlement.leaderboard_score // 50),
+        )
+
+
+def _build_karma_trace_message(engine: GameEngine, settlement: EventSettlement, trace_type: str) -> str:
+    player_name = engine.session.player_name if engine.session else "无名修士"
+    if trace_type == "gift":
+        return f"前人【{player_name}】飞升前留下一缕护道残念：{settlement.epitaph_title or '飞升案首'}。"
+    title = settlement.dead_title or settlement.epitaph_title or "死得很有参考价值"
+    return f"前人【{player_name}】在此留下因果遗毒：{title}。天道看完后笑了一声。"
 
 
 async def _sync_account_penalty(

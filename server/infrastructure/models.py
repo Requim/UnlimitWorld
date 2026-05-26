@@ -74,6 +74,24 @@ class LeaderboardEntryModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
 
 
+class KarmaTraceModel(Base):
+    __tablename__ = "karma_traces"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_player_id: Mapped[str] = mapped_column(String(32))
+    source_player_name: Mapped[str] = mapped_column(String(64))
+    source_run_id: Mapped[str] = mapped_column(String(64), default="")
+    trace_type: Mapped[str] = mapped_column(String(16))  # trap / gift
+    effect_type: Mapped[str] = mapped_column(String(32))
+    message: Mapped[str] = mapped_column(Text)
+    toxicity_score: Mapped[int] = mapped_column(Integer, default=0)
+    trigger_count: Mapped[int] = mapped_column(Integer, default=0)
+    harm_score: Mapped[int] = mapped_column(Integer, default=0)
+    death_caused_count: Mapped[int] = mapped_column(Integer, default=0)
+    is_approved: Mapped[int] = mapped_column(Integer, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
+
+
 class ActiveSessionModel(Base):
     __tablename__ = "active_session"
 

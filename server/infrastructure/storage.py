@@ -16,6 +16,7 @@ from server.infrastructure.models import (
     DeadRegistryModel,
     ImmortalHallModel,
     LeaderboardEntryModel,
+    KarmaTraceModel,
     ActiveSessionModel,
     HeavenOverlordPoolModel,
 )
@@ -253,6 +254,69 @@ class LeaderboardRepository:
                     "score": r.score,
                     "realm": r.realm,
                     "summary": r.summary,
+                    "created_at": r.created_at.isoformat(),
+                }
+                for r in rows
+            ]
+
+
+# ═══════════════════════════════════════════════════════════════
+# KarmaTraceRepository
+# ═══════════════════════════════════════════════════════════════
+
+class KarmaTraceRepository:
+    def __init__(self, session_factory: async_sessionmaker):
+        self._sf = session_factory
+
+    async def insert(
+        self,
+        source_player_id: str,
+        source_player_name: str,
+        trace_type: str,
+        effect_type: str,
+        message: str,
+        toxicity_score: int = 0,
+        source_run_id: str = "",
+        is_approved: bool = True,
+    ) -> int:
+        async with self._sf() as sess:
+            row = KarmaTraceModel(
+                source_player_id=source_player_id,
+                source_player_name=source_player_name,
+                source_run_id=source_run_id,
+                trace_type=trace_type,
+                effect_type=effect_type,
+                message=message,
+                toxicity_score=toxicity_score,
+                is_approved=1 if is_approved else 0,
+                created_at=datetime.now(),
+            )
+            sess.add(row)
+            await sess.commit()
+            await sess.refresh(row)
+            return row.id
+
+    async def get_recent(self, limit: int = 20) -> list[dict]:
+        async with self._sf() as sess:
+            stmt = (
+                select(KarmaTraceModel)
+                .where(KarmaTraceModel.is_approved == 1)
+                .order_by(KarmaTraceModel.created_at.desc())
+                .limit(limit)
+            )
+            result = await sess.execute(stmt)
+            rows = result.scalars().all()
+            return [
+                {
+                    "trace_id": r.id,
+                    "source_player_name": r.source_player_name,
+                    "trace_type": r.trace_type,
+                    "effect_type": r.effect_type,
+                    "message": r.message,
+                    "toxicity_score": r.toxicity_score,
+                    "trigger_count": r.trigger_count,
+                    "harm_score": r.harm_score,
+                    "death_caused_count": r.death_caused_count,
                     "created_at": r.created_at.isoformat(),
                 }
                 for r in rows

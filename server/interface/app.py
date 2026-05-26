@@ -30,6 +30,7 @@ _session_factory = None  # Phase 3B：供 REST API 使用
 _account_repo = None     # Phase 3B：PlayerAccountRepository
 _hall_repo = None        # Phase 3C：ImmortalHallRepository
 _leaderboard_repo = None # Phase 3I：多榜单 Repository
+_karma_trace_repo = None # Phase 3J：异步因果痕迹 Repository
 
 
 async def _ensure_player_account_columns(engine):
@@ -112,7 +113,7 @@ async def lifespan(app: FastAPI):
         pass  # MySQL 不可用时降级运行
 
     # Phase 3B：保存全局引用供 REST API
-    global _session_factory, _account_repo, _hall_repo, _leaderboard_repo
+    global _session_factory, _account_repo, _hall_repo, _leaderboard_repo, _karma_trace_repo
 
     if session_factory:
         from server.infrastructure.storage import (
@@ -122,12 +123,14 @@ async def lifespan(app: FastAPI):
             ActiveSessionRepository,
             PlayerAccountRepository,
             LeaderboardRepository,
+            KarmaTraceRepository,
         )
         _account_repo = PlayerAccountRepository(session_factory)
         dead_repo = DeadRegistryRepository(session_factory)
         hall_repo = ImmortalHallRepository(session_factory)
         _hall_repo = hall_repo  # Phase 3C：名人堂 REST API
         _leaderboard_repo = LeaderboardRepository(session_factory)
+        _karma_trace_repo = KarmaTraceRepository(session_factory)
         heaven_pool_repo = HeavenOverlordPoolRepository(session_factory)
         active_session_repo = ActiveSessionRepository(session_factory)
 
@@ -149,6 +152,7 @@ async def lifespan(app: FastAPI):
         active_session_repo=active_session_repo,
         account_repo=_account_repo,
         leaderboard_repo=_leaderboard_repo,
+        karma_trace_repo=_karma_trace_repo,
     )
 
     # ── Phase 2D：怨念池清洗后台任务 ──
@@ -345,6 +349,22 @@ def create_app() -> FastAPI:
 
         records = await _leaderboard_repo.get_top(board_type, limit=limit)
         return {"type": board_type, "records": records, "total": len(records)}
+
+    @app.get("/api/karma-traces/recent")
+    async def karma_traces_recent(request: Request):
+        """最近入池的异步因果痕迹，用于 3J 联调。"""
+        limit_str = request.query_params.get("limit", "20")
+        try:
+            limit = int(limit_str)
+        except ValueError:
+            limit = 20
+        limit = max(1, min(limit, 100))
+
+        if _karma_trace_repo is None:
+            return JSONResponse({"error": "因果池服务暂不可用"}, status_code=503)
+
+        traces = await _karma_trace_repo.get_recent(limit=limit)
+        return {"traces": traces, "total": len(traces)}
 
     return app
 

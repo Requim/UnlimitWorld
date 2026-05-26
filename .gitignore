@@ -38,6 +38,7 @@ htmlcov/
 # Local indexes and scratch files
 .codegraph/
 tmp_*.html
+tmp_*.png
 
 # WeChat mini-program TypeScript build output
 client/pages/**/*.js

@@ -149,9 +149,22 @@ class TestSettlementAssetSync:
             async def insert(self, **kwargs):
                 self.rows.append(kwargs)
 
+        class FakeKarmaTraceRepo:
+            def __init__(self):
+                self.rows = []
+
+            async def insert(self, **kwargs):
+                self.rows.append(kwargs)
+                return 1
+
         repo = FakeAccountRepo()
         leaderboard_repo = FakeLeaderboardRepo()
-        mgr = ConnectionManager(account_repo=repo, leaderboard_repo=leaderboard_repo)
+        karma_trace_repo = FakeKarmaTraceRepo()
+        mgr = ConnectionManager(
+            account_repo=repo,
+            leaderboard_repo=leaderboard_repo,
+            karma_trace_repo=karma_trace_repo,
+        )
         engine = GameEngine()
         engine.new_game(player_id="sync_p1")
 
@@ -179,6 +192,9 @@ class TestSettlementAssetSync:
         assert repo.points_delta == 42
         assert leaderboard_repo.rows[0]["leaderboard_type"] == "death"
         assert leaderboard_repo.rows[0]["score"] == 120
+        assert karma_trace_repo.rows[0]["trace_type"] == "trap"
+        assert karma_trace_repo.rows[0]["effect_type"] == "mislead"
+        assert "因果遗毒" in karma_trace_repo.rows[0]["message"]
 
     @pytest.mark.asyncio
     async def test_sync_skips_when_no_settlement_effect(self):

@@ -949,3 +949,59 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3I | 执念进度仍未实时推进，后续需按自由文本、突破、死亡、高风险事件累计 |
 | 3I | Hall 分享图仍是飞升榜文案，后续可按暴毙榜/嘴硬榜生成不同战报 |
 | 3J | 因果污染榜入口已预留，但需要 `KarmaTrace` 投毒与触发回写后才开放 |
+
+### 5.21 Phase 3J-1 异步因果偷渡启动分析
+
+> 分析日期：2026-05-26 | 分析人：Codex | 范围：KarmaTrace 入池最小闭环 | 结论：先做终局自动入池，再做后来者踩坑事件
+
+#### 设计决策
+
+- **先自动入池，不先做玩家手写遗言**：玩家遗言需要内容安全、输入 UI 和审核失败降级；首轮先用后端结算字段生成模板痕迹，确保数据链路可用。
+- **死亡写遗毒，飞升写馈赠**：死亡/嘴硬/暴毙进入 `trace_type=trap`，飞升成功进入 `trace_type=gift`，为 3J-2 的“后来者踩坑/受馈赠”保留统一入口。
+- **WebSocket 层负责持久化**：`GameEngine` 仍只负责结算事实，`ws.py` 在同步账号和榜单时追加 `KarmaTrace` 入池，保持 domain/application 不依赖数据库。
+- **不指定目标玩家**：所有痕迹进入公共池，后续由普通事件低概率抽取，避免直接 PvP 挫败。
+
+#### 3J-1 验收标准
+
+- 新增 `karma_traces` ORM 表与仓储；
+- 终局结算后自动写入 1 条 `KarmaTrace`；
+- 提供 `GET /api/karma-traces/recent?limit=20` 便于联调查看；
+- 审核/玩家遗言暂不开放，`message` 使用后端模板；
+- 定向测试覆盖仓储/API/结算同步。
+
+### 5.22 Phase 3J-1 KarmaTrace 入池最小闭环实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：因果痕迹 ORM/仓储 + 终局自动入池 + 最近痕迹 API | 测试：109 passed, 14 skipped（Hall / Shop / GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/infrastructure/models.py` | 新增 `karma_traces` ORM 表，记录来源玩家、痕迹类型、效果类型、模板文案、毒性、触发统计与审核状态 |
+| `server/infrastructure/storage.py` | 新增 `KarmaTraceRepository.insert/get_recent()` |
+| `server/interface/ws.py` | 终局结算同步时自动生成 KarmaTrace：飞升写 `gift/blessing`，死亡/嘴硬写 `trap/mislead|taunt_infection` |
+| `server/interface/app.py` | 生命周期初始化 `_karma_trace_repo`，新增 `GET /api/karma-traces/recent?limit=20` 联调接口 |
+| `server/tests/test_shop.py` | 扩展结算同步 mock，覆盖榜单写入后继续写 KarmaTrace |
+| `server/tests/test_hall.py` | 新增最近因果痕迹 API 契约测试 |
+
+#### 设计决策
+
+- **自动模板优先**：3J-1 不开放玩家手写遗言，避免 UI 和内容安全审核链路同时引入；先确保终局痕迹能稳定入池。
+- **飞升也会留下痕迹**：飞升成功写 `gift/blessing`，后续可转成“前人馈赠”；死亡写 `trap`，后续可转成“误导选项/嘴硬传染”。
+- **统计字段预埋**：`trigger_count / harm_score / death_caused_count` 暂不递增，留给 3J-2 后来者触发回写。
+- **不影响核心游戏流程**：KarmaTrace 写入在 WebSocket 同步层完成；数据库不可用时仍按现有降级策略不影响开局/挂机。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_hall.py server\tests\test_shop.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`
+  - 结果：109 passed, 14 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3J-2 | 普通事件低概率抽取 `KarmaTrace`，生成前人遗毒/馈赠事件 |
+| 3J-2 | 后来者触发后回写 `trigger_count / harm_score / death_caused_count` |
+| 3J | 玩家手写遗言与 msgSecCheck 审核链路暂未开放 |

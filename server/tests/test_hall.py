@@ -92,6 +92,15 @@ class TestHallEndpoints:
         resp = client.get("/api/leaderboards?type=not_exists")
         assert resp.status_code == 404
 
+    def test_karma_traces_recent_endpoint(self, client):
+        resp = client.get("/api/karma-traces/recent?limit=10")
+        assert resp.status_code in (200, 503)
+        data = resp.json()
+        if resp.status_code == 200:
+            assert "traces" in data
+            assert "total" in data
+            assert isinstance(data["traces"], list)
+
 
 @_mysql_skip
 class TestImmortalHallRepository:
