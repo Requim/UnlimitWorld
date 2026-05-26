@@ -174,7 +174,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | **3G** | 命格签系统（开局三选一 + 局内修正） | 全栈 | ✅ `frontend-design` | ✅ |
 | **3H** | 天道人格扩容（4 → 8） | 全栈 | — | ✅ |
 | **3I** | 目标感闭环（本局执念 + 多榜单 + 盖棺定论结算） | 全栈/玩法 | ✅ `frontend-design` | ✅ |
-| **3J** | 异步因果偷渡（死亡遗毒 + 前人馈赠 + 因果污染榜） | 全栈/弱社交 | ✅ `frontend-design` | ⏳ |
+| **3J** | 异步因果偷渡（死亡遗毒 + 前人馈赠 + 因果污染榜） | 全栈/弱社交 | ✅ `frontend-design` | ✅ |
 | **3K** | 平常事件扩展（分池、轻选择、人格权重、目标推进） | 全栈/配置 | ✅ `frontend-design` | ⏳ |
 | **3L** | 国内云部署 + ICP 备案 + 微信审核提交 | DevOps | — | ⏳ |
 
@@ -1039,3 +1039,37 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3J | 玩家主动留遗言/投毒类型选择与 msgSecCheck 审核仍未开放 |
 | 3J | 高毒性事件、低风险反制选项、death_caused_count 回写仍未接入 |
 | 3K | 普通事件分池与轻选择可在现有 KarmaTrace 日志触发基础上继续扩展 |
+
+### 5.24 Phase 3J-3 玩家主动因果偷渡实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：玩家终局遗言 + 投毒类型选择 + 内容安全降级 + 前端提交 UI | 测试：56 passed, 14 skipped（Hall / Shop / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/interface/app.py` | 新增 `POST /api/karma-traces/submit`，支持 `mislead / taunt_infection / blessing` 三种主动因果类型 |
+| `client/pages/game/game.ts/wxml/wxss` | Game Over 面板新增因果偷渡输入区、类型选择与提交状态反馈 |
+| `server/tests/test_hall.py` | 覆盖主动提交接口的非法类型、缺少玩家 ID、服务可用/不可用契约 |
+
+#### 设计决策
+
+- **主动投毒只在终局开放**：避免玩家在局中频繁投毒打断挂机节奏，也让“我这局留下些什么”成为盖棺定论的一部分。
+- **三种类型先覆盖核心情绪**：`mislead` 对应害人误导，`taunt_infection` 对应嘴硬传染，`blessing` 对应前人馈赠。
+- **内容安全失败不保存原文**：若 `msgSecCheck` 不通过，后端改写为本地模板，并返回 `sanitized=true` 给前端展示“被天道打码后入池”。
+- **不指定目标玩家**：主动提交仍进入公共 `karma_traces` 池，后续由 3J-2 已完成的普通事件触发逻辑随机投放给后来者。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_hall.py server\tests\test_shop.py server\tests\test_e2e_ws.py -q`
+  - 结果：56 passed, 14 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3J | `death_caused_count` 仍未接入真实死亡归因，后续高危因果事件可补 |
+| 3K | 普通事件分池/轻选择可以把 KarmaTrace 从“日志增强”升级成“可反制选择事件” |
+| 3K | Hall/分享图可继续按因果污染榜生成专属战报 |

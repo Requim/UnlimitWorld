@@ -14,6 +14,7 @@ import {
   UIState,
 } from '../../utils/actions';
 import type { IAppOption } from '../../app';
+import { BASE_URL } from '../../utils/config';
 import type { WsFrame, WsManager } from '../../utils/ws';
 
 type DestinyOffer = { id: string; title: string; summary: string };
@@ -116,6 +117,10 @@ Page({
     leaderboardType: '' as string,
     leaderboardScore: 0 as number,
     nextGoalHint: '' as string,
+    karmaMessage: '' as string,
+    karmaEffectType: 'mislead' as string,
+    karmaSubmitStatus: '' as string,
+    karmaSubmitted: false,
     returnCountdown: 0,
     returnHint: '' as string,
     shieldRescueActive: false,
@@ -283,6 +288,10 @@ Page({
       leaderboardType: '',
       leaderboardScore: 0,
       nextGoalHint: '',
+      karmaMessage: '',
+      karmaEffectType: 'mislead',
+      karmaSubmitStatus: '',
+      karmaSubmitted: false,
       returnCountdown: 0,
       returnHint: '',
       cultivation: 0,
@@ -297,6 +306,51 @@ Page({
       shieldRescueText: '',
     });
     this.onStartGame();
+  },
+
+  onKarmaMessageInput(e: WechatMiniprogram.InputEvent) {
+    this.setData({ karmaMessage: e.detail.value });
+  },
+
+  onSelectKarmaEffect(e: WechatMiniprogram.TouchEvent) {
+    const effect = e.currentTarget.dataset.effect as string;
+    if (!effect) return;
+    this.setData({ karmaEffectType: effect, karmaSubmitStatus: '' });
+  },
+
+  onSubmitKarmaTrace() {
+    if (this.data.karmaSubmitted) return;
+    const playerId = getApp<IAppOption>().globalData.playerId;
+    if (!playerId) {
+      this.setData({ karmaSubmitStatus: '缺少玩家身份，因果未能入池。' });
+      return;
+    }
+
+    wx.request({
+      url: `${BASE_URL}/api/karma-traces/submit`,
+      method: 'POST',
+      header: { 'content-type': 'application/json' },
+      data: {
+        player_id: playerId,
+        player_name: this.data.playerName,
+        effect_type: this.data.karmaEffectType,
+        message: (this.data.karmaMessage as string).trim(),
+      },
+      success: (res) => {
+        if (res.statusCode === 200) {
+          const data = res.data as { sanitized?: boolean };
+          this.setData({
+            karmaSubmitted: true,
+            karmaSubmitStatus: data.sanitized ? '遗言被天道打码后入池。' : '因果已偷渡入池，等后来者踩。',
+          });
+        } else {
+          this.setData({ karmaSubmitStatus: '因果池暂不可用，天道把纸条吞了。' });
+        }
+      },
+      fail: () => {
+        this.setData({ karmaSubmitStatus: '网络不稳，因果纸条飘丢了。' });
+      },
+    });
   },
 
   _beginStreaming() {

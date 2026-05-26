@@ -235,6 +235,26 @@
         <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
           天道点 +{{heavenPointsEarned}}
         </view>
+        <view class="karma-submit-panel">
+          <view class="story-section-label">因果偷渡</view>
+          <textarea
+            class="karma-textarea"
+            value="{{karmaMessage}}"
+            placeholder="给后来者留一句话，不写也会由天道代笔..."
+            maxlength="80"
+            bindinput="onKarmaMessageInput"
+            auto-height
+          />
+          <view class="karma-effect-row">
+            <button class="karma-effect {{karmaEffectType === 'mislead' ? 'active' : ''}}" data-effect="mislead" bindtap="onSelectKarmaEffect">误导</button>
+            <button class="karma-effect {{karmaEffectType === 'taunt_infection' ? 'active' : ''}}" data-effect="taunt_infection" bindtap="onSelectKarmaEffect">嘴硬</button>
+            <button class="karma-effect {{karmaEffectType === 'blessing' ? 'active' : ''}}" data-effect="blessing" bindtap="onSelectKarmaEffect">馈赠</button>
+          </view>
+          <button class="btn-dark karma-submit-btn" disabled="{{karmaSubmitted}}" bindtap="onSubmitKarmaTrace">
+            {{karmaSubmitted ? '已 偷 渡' : '偷 渡 因 果'}}
+          </button>
+          <text wx:if="{{karmaSubmitStatus}}" class="karma-submit-status">{{karmaSubmitStatus}}</text>
+        </view>
       </view>
     </scroll-view>
   </view>

@@ -366,6 +366,47 @@ def create_app() -> FastAPI:
         traces = await _karma_trace_repo.get_recent(limit=limit)
         return {"traces": traces, "total": len(traces)}
 
+    @app.post("/api/karma-traces/submit")
+    async def karma_trace_submit(request: Request):
+        """玩家主动留下异步因果痕迹。"""
+        body = await request.json()
+        player_id = body.get("player_id", "")
+        player_name = body.get("player_name", "无名修士")
+        effect_type = body.get("effect_type", "mislead")
+        message = str(body.get("message", "")).strip()
+
+        allowed = {
+            "mislead": ("trap", "前人留下一句模糊不清的告诫，天道把关键字打了码。"),
+            "taunt_infection": ("trap", "前人留下满墙嘴硬刻痕，后来者看了很难不接一句。"),
+            "blessing": ("gift", "前人留下一缕护道残念，像是怕后来者死得太快。"),
+        }
+        if effect_type not in allowed:
+            return JSONResponse({"error": "因果类型不存在"}, status_code=400)
+        if not player_id:
+            return JSONResponse({"error": "缺少 player_id"}, status_code=400)
+        if _karma_trace_repo is None:
+            return JSONResponse({"error": "因果池服务暂不可用"}, status_code=503)
+
+        trace_type, fallback_message = allowed[effect_type]
+        approved = True
+        final_message = message or fallback_message
+        if message and settings.wechat_msg_sec_check_enabled:
+            sec = await get_wechat_client().msg_sec_check(message, openid=player_id)
+            approved = bool(sec.get("pass"))
+            if not approved:
+                final_message = fallback_message
+
+        trace_id = await _karma_trace_repo.insert(
+            source_player_id=player_id,
+            source_player_name=player_name or "无名修士",
+            trace_type=trace_type,
+            effect_type=effect_type,
+            message=final_message,
+            toxicity_score=0 if trace_type == "gift" else 2,
+            is_approved=True,
+        )
+        return {"success": True, "trace_id": trace_id, "sanitized": not approved}
+
     return app
 
 

@@ -562,6 +562,65 @@
   line-height: 1.7;
 }
 
+.karma-submit-panel {
+  margin-top: 26rpx;
+  padding: 22rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid rgba(176, 51, 38, 0.24);
+  background: rgba(38, 22, 18, 0.16);
+}
+
+.karma-textarea {
+  width: 100%;
+  min-height: 92rpx;
+  margin-top: 12rpx;
+  padding: 18rpx;
+  box-sizing: border-box;
+  border-radius: 6rpx;
+  background: rgba(255, 252, 247, 0.86);
+  color: var(--ink-strong);
+  font-size: 24rpx;
+  line-height: 1.6;
+}
+
+.karma-effect-row {
+  display: flex;
+  gap: 12rpx;
+  margin-top: 16rpx;
+}
+
+.karma-effect {
+  flex: 1;
+  padding: 14rpx 6rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid rgba(156, 139, 111, 0.32);
+  background: rgba(34, 30, 24, 0.08);
+  color: var(--text-mist);
+  font-size: 22rpx;
+}
+
+.karma-effect::after {
+  border: none;
+}
+
+.karma-effect.active {
+  color: var(--cinnabar);
+  border-color: rgba(176, 51, 38, 0.45);
+  background: rgba(176, 51, 38, 0.1);
+}
+
+.karma-submit-btn {
+  margin-top: 18rpx;
+}
+
+.karma-submit-status {
+  display: block;
+  margin-top: 12rpx;
+  color: var(--gold-leaf);
+  font-size: 22rpx;
+  line-height: 1.5;
+}
+
 /* ═══════════════════════════════════════════
    状态 2：挂机中（IDLE）— 修炼日志
    ═══════════════════════════════════════════ */

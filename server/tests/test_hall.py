@@ -101,6 +101,35 @@ class TestHallEndpoints:
             assert "total" in data
             assert isinstance(data["traces"], list)
 
+    def test_karma_trace_submit_invalid_effect(self, client):
+        resp = client.post("/api/karma-traces/submit", json={
+            "player_id": "p1",
+            "effect_type": "not_exists",
+            "message": "test",
+        })
+        assert resp.status_code == 400
+
+    def test_karma_trace_submit_missing_player_id(self, client):
+        resp = client.post("/api/karma-traces/submit", json={
+            "effect_type": "mislead",
+            "message": "test",
+        })
+        assert resp.status_code == 400
+
+    def test_karma_trace_submit_endpoint_contract(self, client):
+        resp = client.post("/api/karma-traces/submit", json={
+            "player_id": "p1",
+            "player_name": "投毒测试",
+            "effect_type": "mislead",
+            "message": "选第二个，包飞升。",
+        })
+        assert resp.status_code in (200, 503)
+        if resp.status_code == 200:
+            data = resp.json()
+            assert data["success"] is True
+            assert "trace_id" in data
+            assert "sanitized" in data
+
 
 @_mysql_skip
 class TestImmortalHallRepository:
