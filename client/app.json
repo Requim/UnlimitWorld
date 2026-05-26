@@ -6,34 +6,34 @@
   ],
   "window": {
     "navigationBarTitleText": "天道不正经",
-    "navigationBarBackgroundColor": "#080814",
-    "navigationBarTextStyle": "white",
-    "backgroundColor": "#080814",
-    "backgroundTextStyle": "light"
+    "navigationBarBackgroundColor": "#f7f3ea",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#f7f3ea",
+    "backgroundTextStyle": "dark"
   },
   "tabBar": {
-    "color": "#5a6080",
+    "color": "#8f8475",
     "selectedColor": "#c9a050",
-    "backgroundColor": "#0c101c",
-    "borderStyle": "black",
+    "backgroundColor": "#fbf8f2",
+    "borderStyle": "white",
     "list": [
       {
         "pagePath": "pages/game/game",
         "text": "挂机",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/game.png",
+        "selectedIconPath": "assets/tabbar/game-active.png"
       },
       {
         "pagePath": "pages/shop/shop",
         "text": "黑市",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/shop.png",
+        "selectedIconPath": "assets/tabbar/shop-active.png"
       },
       {
         "pagePath": "pages/hall/hall",
         "text": "名人堂",
-        "iconPath": "",
-        "selectedIconPath": ""
+        "iconPath": "assets/tabbar/hall.png",
+        "selectedIconPath": "assets/tabbar/hall-active.png"
       }
     ]
   },

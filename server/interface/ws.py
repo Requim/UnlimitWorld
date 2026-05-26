@@ -16,7 +16,7 @@ from typing import Optional
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
-from server.config import settings
+from server.config import REALM_CONFIG, settings
 from server.domain.player import PlayerState, ActiveSession, get_realm_name
 from server.domain.event import EventTrigger, EventSettlement
 from server.application.game_engine import GameEngine, Stage, TickResult
@@ -42,6 +42,13 @@ class Action:
     SC_EVENT_SETTLEMENT = "SC_EVENT_SETTLEMENT"
     SC_PONG = "SC_PONG"
     SC_ERROR = "SC_ERROR"
+
+
+def _get_sin_max_by_realm_name(realm_name: str) -> int:
+    for cfg in REALM_CONFIG.values():
+        if cfg["name"] == realm_name:
+            return cfg["sin_max"]
+    return REALM_CONFIG[1]["sin_max"]
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -164,6 +171,7 @@ def _build_game_log(result: TickResult) -> dict:
         "log_text": result.log_text,
         "cultivation": result.cultivation,
         "sin_value": result.sin_value,
+        "sin_max": _get_sin_max_by_realm_name(result.realm),
         "luck": result.luck,
         "foundation": result.foundation,
         "realm": result.realm,
@@ -186,6 +194,7 @@ def _build_event_trigger(result: TickResult) -> dict:
         "trigger": result.trigger.model_dump(),
         "cultivation": result.cultivation,
         "sin_value": result.sin_value,
+        "sin_max": _get_sin_max_by_realm_name(result.realm),
         "luck": result.luck,
         "foundation": result.foundation,
         "realm": result.realm,
@@ -193,9 +202,10 @@ def _build_event_trigger(result: TickResult) -> dict:
     }
 
 
-def _build_story_stream(chunk: str, is_last: bool = False) -> dict:
+def _build_story_stream(chunk: str, is_last: bool = False, segment: str = "reason_text") -> dict:
     return {
         "action": Action.SC_STORY_STREAM,
+        "segment": segment,
         "chunk": chunk,
         "is_last": is_last,
     }
@@ -207,6 +217,7 @@ def _build_event_settlement(result: TickResult) -> dict:
         "settlement": result.settlement.model_dump() if result.settlement else None,
         "cultivation": result.cultivation,
         "sin_value": result.sin_value,
+        "sin_max": _get_sin_max_by_realm_name(result.realm),
         "luck": result.luck,
         "foundation": result.foundation,
         "realm": result.realm,
@@ -273,6 +284,7 @@ async def _handle_lifecycle(
                         "log_text": f"[重连成功] 欢迎回来，{restored.player_name}！天道人格：【{restored.heaven_persona}】",
                         "cultivation": restored.cultivation,
                         "sin_value": restored.sin_value,
+                        "sin_max": REALM_CONFIG[restored.realm_code]["sin_max"],
                         "luck": restored.luck,
                         "foundation": restored.foundation,
                         "realm": get_realm_name(restored.realm_code),
@@ -337,6 +349,7 @@ async def _handle_lifecycle(
                 "log_text": start_log,
                 "cultivation": session.cultivation,
                 "sin_value": session.sin_value,
+                "sin_max": REALM_CONFIG[session.realm_code]["sin_max"],
                 "luck": session.luck,
                 "foundation": session.foundation,
                 "realm": get_realm_name(session.realm_code),
@@ -410,6 +423,7 @@ async def _handle_lifecycle(
                             "log_text": f"[天道监察] 言行不端，天道震怒！扣除 {penalty} 功德。",
                             "cultivation": engine.session.cultivation if engine.session else 0,
                             "sin_value": engine.session.sin_value if engine.session else 0,
+                            "sin_max": REALM_CONFIG[engine.session.realm_code]["sin_max"] if engine.session else REALM_CONFIG[1]["sin_max"],
                             "luck": engine.session.luck if engine.session else 50,
                             "foundation": engine.session.foundation if engine.session else 50,
                             "realm": get_realm_name(engine.session.realm_code) if engine.session else "练气期",
@@ -419,11 +433,14 @@ async def _handle_lifecycle(
                         continue
 
                 streamed_story_chars = 0
+                streamed_segments: dict[str, int] = {}
 
-                async def on_chunk(chunk: str):
+                async def on_chunk(segment: str, chunk: str):
                     nonlocal streamed_story_chars
-                    streamed_story_chars += len(chunk)
-                    await ws.send_json(_build_story_stream(chunk, is_last=False))
+                    streamed_segments[segment] = streamed_segments.get(segment, 0) + len(chunk)
+                    if segment in ("reason_text", "story_text"):
+                        streamed_story_chars += len(chunk)
+                    await ws.send_json(_build_story_stream(chunk, is_last=False, segment=segment))
 
                 result = await engine.submit_decision(
                     choice_id=choice_id,
@@ -431,13 +448,27 @@ async def _handle_lifecycle(
                     on_chunk=on_chunk,
                 )
 
+                if result.settlement:
+                    if streamed_segments.get("event_title", 0) == 0 and result.settlement.event_title:
+                        await ws.send_json(_build_story_stream(result.settlement.event_title, is_last=False, segment="event_title"))
+                    if streamed_story_chars == 0 and result.settlement.reason_text:
+                        logger.warning(
+                            "[Decision] 未收到流式正文，改为补发因由 player_id=%s story_len=%s",
+                            player_id,
+                            len(result.settlement.reason_text),
+                        )
+                        await ws.send_json(_build_story_stream(result.settlement.reason_text, is_last=False, segment="reason_text"))
+                    if streamed_segments.get("verdict_text", 0) == 0 and result.settlement.verdict_text:
+                        await ws.send_json(_build_story_stream(result.settlement.verdict_text, is_last=False, segment="verdict_text"))
+
                 if streamed_story_chars == 0 and result.settlement and result.settlement.story_text:
                     logger.warning(
                         "[Decision] 未收到流式正文，改为补发全文 player_id=%s story_len=%s",
                         player_id,
                         len(result.settlement.story_text),
                     )
-                    await ws.send_json(_build_story_stream(result.settlement.story_text, is_last=False))
+                    if not result.settlement.reason_text:
+                        await ws.send_json(_build_story_stream(result.settlement.story_text, is_last=False, segment="reason_text"))
 
                 logger.info(
                     "[Decision] 结算完成 player_id=%s streamed_chars=%s total=%.0fms game_over=%s",

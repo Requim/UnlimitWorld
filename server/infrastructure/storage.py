@@ -51,8 +51,28 @@ class PlayerAccountRepository:
         async with self._sf() as sess:
             row = await sess.get(PlayerAccountModel, player_id)
             if row:
-                row.heaven_points += delta
+                row.heaven_points = max(0, row.heaven_points + delta)
                 await sess.commit()
+
+    async def consume_deafness_protocol(self, player_id: str) -> bool:
+        """消费 1 次天道失聪协议库存。"""
+        async with self._sf() as sess:
+            row = await sess.get(PlayerAccountModel, player_id)
+            if row is None or row.deafness_protocol <= 0:
+                return False
+            row.deafness_protocol -= 1
+            await sess.commit()
+            return True
+
+    async def consume_karma_shield(self, player_id: str) -> bool:
+        """消费 1 张因果遮蔽卡库存。"""
+        async with self._sf() as sess:
+            row = await sess.get(PlayerAccountModel, player_id)
+            if row is None or row.karma_shield <= 0:
+                return False
+            row.karma_shield -= 1
+            await sess.commit()
+            return True
 
     async def get(self, player_id: str) -> PlayerAccount | None:
         async with self._sf() as sess:

@@ -25,7 +25,7 @@
 }
 
 .plaque-inner {
-  background: linear-gradient(175deg, var(--paper-dark) 0%, #1a1e2e 40%, var(--paper-mid) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 241, 232, 0.96) 100%);
   border: 1rpx solid rgba(200, 160, 80, 0.3);
   border-radius: 8rpx;
   padding: 28rpx 32rpx;
@@ -34,7 +34,7 @@
   align-items: center;
   position: relative;
   box-shadow:
-    0 2rpx 20rpx rgba(0, 0, 0, 0.5),
+    0 2rpx 20rpx rgba(128, 112, 88, 0.12),
     0 0 32rpx rgba(200, 160, 80, 0.06);
 }
 
@@ -120,7 +120,7 @@
 .item-card {
   width: 100%;
   margin-bottom: 28rpx;
-  background: linear-gradient(170deg, var(--paper-dark) 0%, #13172a 50%, var(--paper-mid) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 241, 232, 0.97) 100%);
   border: 1rpx solid var(--border-ink-light);
   border-radius: 6rpx;
   padding: 24rpx 24rpx 20rpx;
@@ -132,17 +132,17 @@
 /* 卡片底色微差 */
 .card-shield {
   border-color: rgba(200, 160, 80, 0.25);
-  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(200, 160, 80, 0.04);
+  box-shadow: 0 2rpx 16rpx rgba(128, 112, 88, 0.1), 0 0 20rpx rgba(200, 160, 80, 0.04);
 }
 
 .card-ear {
   border-color: rgba(90, 174, 130, 0.25);
-  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(90, 174, 130, 0.04);
+  box-shadow: 0 2rpx 16rpx rgba(128, 112, 88, 0.1), 0 0 20rpx rgba(90, 174, 130, 0.04);
 }
 
 .card-wash {
   border-color: rgba(212, 61, 61, 0.2);
-  box-shadow: 0 2rpx 16rpx rgba(0, 0, 0, 0.4), 0 0 20rpx rgba(212, 61, 61, 0.04);
+  box-shadow: 0 2rpx 16rpx rgba(128, 112, 88, 0.1), 0 0 20rpx rgba(212, 61, 61, 0.04);
 }
 
 /* ── 四角封印纹 ── */
@@ -269,7 +269,7 @@
   align-items: baseline;
   gap: 12rpx;
   padding: 10rpx 14rpx;
-  background: rgba(0, 0, 0, 0.3);
+  background: rgba(244, 237, 226, 0.82);
   border-left: 3rpx solid var(--gold-dim);
   border-radius: 0 3rpx 3rpx 0;
 }
@@ -403,7 +403,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(2, 0, 8, 0.85);
+  background: rgba(248, 244, 236, 0.85);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -412,7 +412,7 @@
 }
 
 .toast-card {
-  background: linear-gradient(170deg, var(--paper-dark) 0%, #13172a 50%, var(--paper-mid) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(247, 241, 232, 0.97) 100%);
   border: 1rpx solid var(--border-gold-glow);
   border-radius: 8rpx;
   padding: 40rpx 36rpx 32rpx;
@@ -423,13 +423,13 @@
   max-width: 520rpx;
   width: 85%;
   position: relative;
-  box-shadow: 0 4rpx 40rpx rgba(0, 0, 0, 0.6), 0 0 48rpx rgba(200, 160, 80, 0.1);
+  box-shadow: 0 4rpx 40rpx rgba(128, 112, 88, 0.16), 0 0 48rpx rgba(200, 160, 80, 0.08);
   animation: ink-reveal 0.5s ease-out;
 }
 
 .toast-card.cinnabar {
   border-color: rgba(212, 61, 61, 0.35);
-  box-shadow: 0 4rpx 40rpx rgba(0, 0, 0, 0.6), 0 0 48rpx rgba(212, 61, 61, 0.1);
+  box-shadow: 0 4rpx 40rpx rgba(128, 112, 88, 0.16), 0 0 48rpx rgba(212, 61, 61, 0.08);
 }
 
 .toast-seal-broken {

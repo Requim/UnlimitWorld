@@ -2,17 +2,15 @@
  * WebSocket 单例管理器
  *
  * 封装原生 wx.connectSocket，提供全局可调用的 send() / onMessage()。
- * 职责：连接建立、心跳维持、指数退避重连、消息分发、DEBUG 日志。
+ * 职责：连接建立、心跳维持、固定延迟重连、消息分发、DEBUG 日志。
  */
 
 import { CS_PING } from './actions';
-import { BASE_URL, WS_URL } from './config';
+import { WS_CONNECT_TIMEOUT, WS_URL } from './config';
 
 /* ── 常量 ── */
-const HEARTBEAT_INTERVAL = 30_000;   // 心跳间隔 30s
-const RECONNECT_BASE = 1_000;        // 重连基础延迟 1s
-const RECONNECT_MAX = 16_000;        // 重连最大延迟 16s
-const CONNECT_TIMEOUT = 10_000;      // 连接超时 10s
+const HEARTBEAT_INTERVAL = 10_000;   // M3：心跳间隔 10s
+const RECONNECT_DELAY = 3_000;       // M3：断线后 3s 固定重连
 const DEBUG = true;                  // 日志开关
 
 /* ── 类型 ── */
@@ -59,7 +57,7 @@ export class WsManager {
     this._socket = wx.connectSocket({
       url: this._url,
       tcpNoDelay: true,
-      timeout: CONNECT_TIMEOUT,
+      timeout: WS_CONNECT_TIMEOUT,
       fail: (err: { errMsg: string }) => {
         this._log(`连接失败: ${err.errMsg}`);
         this._status = 'closed';
@@ -186,24 +184,20 @@ export class WsManager {
     }, HEARTBEAT_INTERVAL) as unknown as number;
   }
 
-  /** 指数退避重连 */
+  /** 固定 3s 重连 */
   private _scheduleReconnect(): void {
     if (this._reconnectTimer !== null) return;
 
-    const delay = Math.min(
-      RECONNECT_BASE * Math.pow(2, this._reconnectAttempts),
-      RECONNECT_MAX
-    );
     this._reconnectAttempts += 1;
 
-    this._log(`${delay / 1000}s 后进行第 ${this._reconnectAttempts} 次重连`);
+    this._log(`${RECONNECT_DELAY / 1000}s 后进行第 ${this._reconnectAttempts} 次重连`);
 
     this._reconnectTimer = setTimeout(() => {
       this._reconnectTimer = null;
       if (this._playerId) {
         this.connect(this._playerId);
       }
-    }, delay) as unknown as number;
+    }, RECONNECT_DELAY) as unknown as number;
   }
 
   /** 清理所有定时器 */

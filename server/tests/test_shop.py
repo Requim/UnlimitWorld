@@ -121,6 +121,116 @@ class TestShopEndpoints:
         assert resp.status_code in (404, 503)
 
 
+class TestSettlementAssetSync:
+    """WebSocket 结算后局内资产同步回局外账号（无 DB 纯 mock）"""
+
+    @pytest.mark.asyncio
+    async def test_sync_consumes_shield_and_adds_points(self):
+        from server.interface.ws import ConnectionManager, _sync_account_after_settlement
+        from server.application.game_engine import GameEngine, TickResult, Stage
+        from server.domain.event import EventSettlement, AttributeChanges
+
+        class FakeAccountRepo:
+            def __init__(self):
+                self.shield_consumed = 0
+                self.points_delta = 0
+
+            async def consume_karma_shield(self, player_id):
+                self.shield_consumed += 1
+                return True
+
+            async def update_heaven_points(self, player_id, delta):
+                self.points_delta += delta
+
+        repo = FakeAccountRepo()
+        mgr = ConnectionManager(account_repo=repo)
+        engine = GameEngine()
+        engine.new_game(player_id="sync_p1")
+
+        settlement = EventSettlement(
+            event_id="evt_sync",
+            is_dead=False,
+            story_text="被捞回",
+            attribute_changes=AttributeChanges(),
+            intercepted_by_shield=True,
+            heaven_points_earned=42,
+        )
+        result = TickResult(
+            stage=Stage.IDLE,
+            settlement=settlement,
+            heaven_points_earned=42,
+        )
+
+        await _sync_account_after_settlement(mgr, "sync_p1", engine, result)
+
+        assert repo.shield_consumed == 1
+        assert repo.points_delta == 42
+
+    @pytest.mark.asyncio
+    async def test_sync_skips_when_no_settlement_effect(self):
+        from server.interface.ws import ConnectionManager, _sync_account_after_settlement
+        from server.application.game_engine import GameEngine, TickResult, Stage
+
+        class FakeAccountRepo:
+            def __init__(self):
+                self.shield_consumed = 0
+                self.points_delta = 0
+
+            async def consume_karma_shield(self, player_id):
+                self.shield_consumed += 1
+                return True
+
+            async def update_heaven_points(self, player_id, delta):
+                self.points_delta += delta
+
+        repo = FakeAccountRepo()
+        mgr = ConnectionManager(account_repo=repo)
+        engine = GameEngine()
+        engine.new_game(player_id="sync_p2")
+        result = TickResult(stage=Stage.IDLE, heaven_points_earned=0)
+
+        await _sync_account_after_settlement(mgr, "sync_p2", engine, result)
+
+        assert repo.shield_consumed == 0
+        assert repo.points_delta == 0
+
+    @pytest.mark.asyncio
+    async def test_sync_penalty_deducts_points(self):
+        from server.interface.ws import ConnectionManager, _sync_account_penalty
+
+        class FakeAccountRepo:
+            def __init__(self):
+                self.points_delta = 0
+
+            async def update_heaven_points(self, player_id, delta):
+                self.points_delta += delta
+
+        repo = FakeAccountRepo()
+        mgr = ConnectionManager(account_repo=repo)
+
+        await _sync_account_penalty(mgr, "sync_p3", 25)
+
+        assert repo.points_delta == -25
+
+    @pytest.mark.asyncio
+    async def test_sync_penalty_skips_non_positive(self):
+        from server.interface.ws import ConnectionManager, _sync_account_penalty
+
+        class FakeAccountRepo:
+            def __init__(self):
+                self.points_delta = 0
+
+            async def update_heaven_points(self, player_id, delta):
+                self.points_delta += delta
+
+        repo = FakeAccountRepo()
+        mgr = ConnectionManager(account_repo=repo)
+
+        await _sync_account_penalty(mgr, "sync_p4", 0)
+
+        assert repo.points_delta == 0
+
+
 @_mysql_skip
 class TestShopBuyItemLogic:
     """PlayerAccountRepository.buy_item 逻辑测试（需要数据库）"""
@@ -280,3 +390,89 @@ class TestShopBuyItemLogic:
         assert updated.heaven_points == 370  # 500 - 100 - 30
         assert updated.karma_shield == 2
         assert updated.deafness_protocol == 1
+
+    @pytest.mark.asyncio
+    async def test_consume_deafness_protocol_once(self):
+        """失聪协议进入新局时消费 1 次库存"""
+        from server.infrastructure.db import get_engine, get_session_factory
+        from server.infrastructure.models import Base
+        from server.infrastructure.storage import PlayerAccountRepository
+        from server.domain.player import PlayerAccount
+
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        sf = get_session_factory()
+        repo = PlayerAccountRepository(sf)
+
+        account = PlayerAccount(
+            player_id="test_consume_deafness",
+            player_name="失聪修士",
+            deafness_protocol=2,
+        )
+        await repo.save(account)
+
+        assert await repo.consume_deafness_protocol("test_consume_deafness") is True
+        updated = await repo.get("test_consume_deafness")
+        assert updated.deafness_protocol == 1
+
+        assert await repo.consume_deafness_protocol("test_consume_deafness") is True
+        updated2 = await repo.get("test_consume_deafness")
+        assert updated2.deafness_protocol == 0
+
+        assert await repo.consume_deafness_protocol("test_consume_deafness") is False
+
+    @pytest.mark.asyncio
+    async def test_consume_karma_shield_once(self):
+        """因果遮蔽卡触发时消费 1 张库存"""
+        from server.infrastructure.db import get_engine, get_session_factory
+        from server.infrastructure.models import Base
+        from server.infrastructure.storage import PlayerAccountRepository
+        from server.domain.player import PlayerAccount
+
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        sf = get_session_factory()
+        repo = PlayerAccountRepository(sf)
+
+        account = PlayerAccount(
+            player_id="test_consume_shield",
+            player_name="遮蔽修士",
+            karma_shield=1,
+        )
+        await repo.save(account)
+
+        assert await repo.consume_karma_shield("test_consume_shield") is True
+        updated = await repo.get("test_consume_shield")
+        assert updated.karma_shield == 0
+
+        assert await repo.consume_karma_shield("test_consume_shield") is False
+
+    @pytest.mark.asyncio
+    async def test_update_heaven_points_clamped_at_zero(self):
+        """账户扣点不会把天道点减成负数"""
+        from server.infrastructure.db import get_engine, get_session_factory
+        from server.infrastructure.models import Base
+        from server.infrastructure.storage import PlayerAccountRepository
+        from server.domain.player import PlayerAccount
+
+        engine = get_engine()
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+
+        sf = get_session_factory()
+        repo = PlayerAccountRepository(sf)
+
+        account = PlayerAccount(
+            player_id="test_penalty_clamp",
+            player_name="倒霉修士",
+            heaven_points=8,
+        )
+        await repo.save(account)
+
+        await repo.update_heaven_points("test_penalty_clamp", -50)
+        updated = await repo.get("test_penalty_clamp")
+        assert updated.heaven_points == 0

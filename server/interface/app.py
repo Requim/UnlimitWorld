@@ -14,6 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import text
 
 from server.config import settings
 from server.interface.ws import ConnectionManager, router as ws_router
@@ -28,6 +29,34 @@ _wechat_client: WeChatClient | None = None
 _session_factory = None  # Phase 3B：供 REST API 使用
 _account_repo = None     # Phase 3B：PlayerAccountRepository
 _hall_repo = None        # Phase 3C：ImmortalHallRepository
+
+
+async def _ensure_player_account_columns(engine):
+    """对旧库做幂等补列，避免 create_all 无法修改已有表结构。"""
+    async with engine.begin() as conn:
+        result = await conn.execute(
+            text(
+                """
+                SELECT COLUMN_NAME
+                FROM INFORMATION_SCHEMA.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'player_account'
+                """
+            )
+        )
+        existing = {row[0] for row in result.fetchall()}
+
+        if "pending_sin_reset" not in existing:
+            await conn.execute(
+                text(
+                    """
+                    ALTER TABLE player_account
+                    ADD COLUMN pending_sin_reset INT NOT NULL DEFAULT 0
+                    AFTER karma_shield
+                    """
+                )
+            )
+            logger.info("[DB] player_account 补列：pending_sin_reset")
 
 
 def get_connection_manager() -> ConnectionManager:
@@ -77,6 +106,7 @@ async def lifespan(app: FastAPI):
         # 自动建表（幂等，不覆盖已有表）
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        await _ensure_player_account_columns(engine)
     except Exception:
         pass  # MySQL 不可用时降级运行
 

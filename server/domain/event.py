@@ -69,6 +69,8 @@ class AttributeChanges(BaseModel):
 
 class LLMOutput(BaseModel):
     """大模型必须严格返回此结构，否则触发 Retry"""
+    reason_text: str = ""
+    verdict_text: str = ""
     event_title: str = ""
     story_text: str = ""
     is_dead: bool = False
@@ -96,6 +98,9 @@ class EventSettlement(BaseModel):
     event_id: str
     is_dead: bool
     dead_title: str = ""
+    reason_text: str = ""
+    verdict_text: str = ""
+    event_title: str = ""
     story_text: str = ""                   # 完整剧情文本
     attribute_changes: AttributeChanges = Field(default_factory=AttributeChanges)
     intercepted_by_shield: bool = False    # 是否被因果遮蔽卡拦截

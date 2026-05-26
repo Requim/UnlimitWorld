@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
+    deepseek_request_timeout: float = 15.0
+    deepseek_temperature: float = 0.6
 
     # ── 应用环境 ──
     app_env: str = "development"
@@ -36,7 +38,7 @@ class Settings(BaseSettings):
     heaven_point_cultivation_multiplier: float = 0.01
 
     # ── 大模型容错 ──
-    llm_max_retries: int = 2     # 修复重试上限
+    llm_max_retries: int = 1     # 修复重试上限（默认 2 次请求，避免坏响应拖太久）
 
     # ── 飞升门槛 ──
     ascension_cultivation: int = 50_000_000  # 渡劫期满修为 5000W

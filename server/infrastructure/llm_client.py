@@ -7,11 +7,87 @@ DeepSeek 异步流式客户端
 """
 
 import json
+import logging
 import random
+import time
 from typing import AsyncGenerator, Optional
 
 from server.config import settings
 from server.domain.event import LLMInputContext, LLMOutput, AttributeChanges
+
+
+logger = logging.getLogger("uvicorn")
+
+
+class StreamFieldExtractor:
+    """从流式 JSON 中增量提取多个字符串字段。"""
+
+    def __init__(self, target_keys: list[str]):
+        self._target_keys = {f'"{key}"': key for key in target_keys}
+        self._phase = "seek_key"
+        self._recent = ""
+        self._escape = False
+        self._unicode_buffer = ""
+        self._current_key = ""
+
+    def feed(self, chunk: str) -> list[tuple[str, str]]:
+        out: list[tuple[str, str]] = []
+        for ch in chunk:
+            if self._phase == "seek_key":
+                self._recent = (self._recent + ch)[-48:]
+                for quoted_key, key in self._target_keys.items():
+                    if self._recent.endswith(quoted_key):
+                        self._current_key = key
+                        self._phase = "seek_colon"
+                        break
+            elif self._phase == "seek_colon":
+                if ch == ":":
+                    self._phase = "seek_open_quote"
+            elif self._phase == "seek_open_quote":
+                if ch == '"':
+                    self._phase = "capture"
+            elif self._phase == "capture":
+                if self._unicode_buffer:
+                    self._unicode_buffer += ch
+                    if len(self._unicode_buffer) == 4:
+                        try:
+                            out.append((self._current_key, chr(int(self._unicode_buffer, 16))))
+                        except ValueError:
+                            pass
+                        self._unicode_buffer = ""
+                        self._escape = False
+                    continue
+
+                if self._escape:
+                    mapping = {
+                        '"': '"',
+                        "\\": "\\",
+                        "/": "/",
+                        "b": "\b",
+                        "f": "\f",
+                        "n": "\n",
+                        "r": "\r",
+                        "t": "\t",
+                    }
+                    if ch == "u":
+                        self._unicode_buffer = ""
+                    else:
+                        out.append((self._current_key, mapping.get(ch, ch)))
+                        self._escape = False
+                    continue
+
+                if ch == "\\":
+                    self._escape = True
+                    continue
+
+                if ch == '"':
+                    self._phase = "seek_key"
+                    self._current_key = ""
+                    self._recent = ""
+                    continue
+
+                out.append((self._current_key, ch))
+        return out
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -30,6 +106,12 @@ class DeepSeekClient:
         self.api_key = api_key or settings.deepseek_api_key
         self.base_url = base_url or settings.deepseek_base_url
         self.model = model or settings.deepseek_model
+
+    def _build_messages(self, system_prompt: str, user_content: str) -> list[dict]:
+        return [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ]
 
     async def chat_stream(
         self,
@@ -50,16 +132,18 @@ class DeepSeekClient:
                 yield chunk
             return
 
-        client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
+        client = AsyncOpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            timeout=settings.deepseek_request_timeout,
+        )
 
         response = await client.chat.completions.create(
             model=self.model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ],
-            temperature=0.9,
+            messages=self._build_messages(system_prompt, user_content),
+            temperature=settings.deepseek_temperature,
             max_tokens=512,
+            response_format={"type": "json_object"},
             stream=True,
         )
 
@@ -80,11 +164,41 @@ class DeepSeekClient:
             yield char
 
     async def chat_complete(self, system_prompt: str, user_content: str) -> str:
-        """非流式调用，返回完整文本（用于需要完整 JSON 的解析场景）"""
-        full_text = ""
-        async for chunk in self.chat_stream(system_prompt, user_content):
-            full_text += chunk
-        return full_text
+        """非流式调用，直接返回 message.content（用于需要完整 JSON 的解析场景）"""
+        try:
+            from openai import AsyncOpenAI
+        except ImportError:
+            full_text = ""
+            async for chunk in self._mock_stream(system_prompt, user_content):
+                full_text += chunk
+            return full_text
+
+        client = AsyncOpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            timeout=settings.deepseek_request_timeout,
+        )
+        response = await client.chat.completions.create(
+            model=self.model,
+            messages=self._build_messages(system_prompt, user_content),
+            temperature=settings.deepseek_temperature,
+            max_tokens=512,
+            response_format={"type": "json_object"},
+            stream=False,
+        )
+        if not response.choices:
+            return ""
+
+        content = response.choices[0].message.content or ""
+        if isinstance(content, list):
+            parts = []
+            for item in content:
+                if isinstance(item, dict) and item.get("type") == "text":
+                    parts.append(item.get("text", ""))
+                else:
+                    parts.append(str(item))
+            return "".join(parts)
+        return str(content)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -105,6 +219,21 @@ class LLMOrchestrator:
     def __init__(self, client: Optional[DeepSeekClient] = None):
         self.client = client or DeepSeekClient()
 
+    @staticmethod
+    def _compose_story_text(reason_text: str, verdict_text: str) -> str:
+        reason = (reason_text or "").strip()
+        verdict = (verdict_text or "").strip()
+        if reason and verdict:
+            return f"{reason}\n\n{verdict}"
+        return reason or verdict
+
+    def _normalize_output_segments(self, output: LLMOutput, fallback_story: str = "") -> LLMOutput:
+        if not output.reason_text:
+            output.reason_text = (output.story_text or fallback_story or "").strip()
+        output.verdict_text = (output.verdict_text or "").strip()
+        output.story_text = self._compose_story_text(output.reason_text, output.verdict_text)
+        return output
+
     async def process(
         self,
         system_prompt: str,
@@ -118,6 +247,7 @@ class LLMOrchestrator:
         user_content = context.model_dump_json(ensure_ascii=False)
         raw_text = ""
         fix_hint = ""
+        request_started_at = time.perf_counter()
 
         for attempt in range(settings.llm_max_retries + 1):
             try:
@@ -129,39 +259,116 @@ class LLMOrchestrator:
 
                 raw_text = await self.client.chat_complete(corrected_prompt, user_content)
                 output = self._parse_and_validate(raw_text)
-
-                # 硬保护：is_dead 必须等于后端公式计算结果
                 output.is_dead = context.is_dead
                 if context.is_dead and not output.dead_title:
                     output.dead_title = self._generate_fallback_dead_title(context)
+                output = self._normalize_output_segments(output)
 
+                logger.info(
+                    "[LLM] 非流式完成 total=%.0fms trigger=%s persona=%s attempt=%s",
+                    (time.perf_counter() - request_started_at) * 1000,
+                    context.trigger_type,
+                    context.heaven_persona,
+                    attempt + 1,
+                )
                 return output
 
             except Exception as e:
                 fix_hint = str(e)
+                logger.warning(
+                    "[LLM] 非流式失败 attempt=%s reason=%s raw=%s",
+                    attempt + 1,
+                    fix_hint,
+                    self._summarize_raw_text(raw_text),
+                )
                 if attempt < settings.llm_max_retries:
                     continue
                 # 重试耗尽，降级
                 break
 
         # 降级兜底：本地规则引擎
-        return self._fallback_resolve(context)
+        logger.warning(
+            "[LLM] 非流式触发降级 fallback total=%.0fms trigger=%s persona=%s",
+            (time.perf_counter() - request_started_at) * 1000,
+            context.trigger_type,
+            context.heaven_persona,
+        )
+        return self._normalize_output_segments(self._fallback_resolve(context))
 
     def _parse_and_validate(self, raw_text: str) -> LLMOutput:
         """从 LLM 返回文本中提取 JSON 并用 Pydantic 校验"""
+        text = self._extract_json_candidate(raw_text)
+        data = json.loads(text)
+        output = LLMOutput.model_validate(data)
+        return self._normalize_output_segments(output)
+
+    def _extract_json_candidate(self, raw_text: str) -> str:
+        """尽量从模型返回中剥离出最像 JSON 的主体。"""
         text = raw_text.strip()
 
-        # 移除可能的 Markdown 代码块标记
         if text.startswith("```"):
             lines = text.split("\n")
-            # 移除首行 ```json（外层已确保以 ``` 开头）和末行 ```
             lines = lines[1:]
             if lines and lines[-1].strip() == "```":
                 lines = lines[:-1]
             text = "\n".join(lines).strip()
 
-        data = json.loads(text)
-        return LLMOutput.model_validate(data)
+        if not text:
+            return text
+
+        start = text.find("{")
+        end = text.rfind("}")
+        if start != -1 and end != -1 and end > start:
+            return text[start:end + 1].strip()
+        return text
+
+    def _summarize_raw_text(self, raw_text: str, limit: int = 240) -> str:
+        """压缩失败原文用于日志，避免整段刷屏。"""
+        compact = raw_text.replace("\n", "\\n").replace("\r", "\\r")
+        if len(compact) <= limit:
+            return compact
+        head = limit // 2
+        tail = limit - head - 3
+        return f"{compact[:head]}...{compact[-tail:]}"
+
+    def _fallback_with_preserved_story(self, context: LLMInputContext, story_text: str) -> LLMOutput:
+        """解析失败但正文已流出时，保留正文，只对结构字段做兜底。"""
+        output = self._fallback_resolve(context)
+        cleaned_story = story_text.strip()
+        if cleaned_story:
+            output.reason_text = cleaned_story
+        return self._normalize_output_segments(output, fallback_story=cleaned_story)
+
+    async def _rescue_structured_output(
+        self,
+        system_prompt: str,
+        user_content: str,
+        context: LLMInputContext,
+        streamed_story: str,
+        attempt: int,
+        request_started_at: float,
+    ) -> LLMOutput:
+        """当流式 JSON 损坏但正文已成功流出时，用非流式补拉完整结构。"""
+        repaired_raw = await self.client.chat_complete(system_prompt, user_content)
+        output = self._parse_and_validate(repaired_raw)
+        output.is_dead = context.is_dead
+        if context.is_dead and not output.dead_title:
+            output.dead_title = self._generate_fallback_dead_title(context)
+        output = self._normalize_output_segments(output, fallback_story=streamed_story)
+
+        cleaned_story = streamed_story.strip()
+        if cleaned_story:
+            output.reason_text = cleaned_story
+            output.story_text = self._compose_story_text(output.reason_text, output.verdict_text)
+
+        logger.info(
+            "[LLM] 流式损坏后非流式补全成功 total=%.0fms trigger=%s persona=%s attempt=%s",
+            (time.perf_counter() - request_started_at) * 1000,
+            context.trigger_type,
+            context.heaven_persona,
+            attempt,
+        )
+        return output
 
     def _fallback_resolve(self, context: LLMInputContext) -> LLMOutput:
         """降级兜底：本地规则引擎生成保底结果"""
@@ -173,8 +380,10 @@ class LLMOrchestrator:
             )
             dead_title = self._generate_fallback_dead_title(context)
             return LLMOutput(
+                reason_text=story,
+                verdict_text=dead_title,
                 event_title="天道裁决",
-                story_text=story,
+                story_text=self._compose_story_text(story, dead_title),
                 is_dead=True,
                 dead_title=dead_title,
                 attribute_changes=AttributeChanges(),
@@ -186,8 +395,10 @@ class LLMOrchestrator:
                 f"在危机中勉强站稳了脚跟。天道虽然不悦，但规则之下，你活了下来。"
             )
             return LLMOutput(
+                reason_text=story,
+                verdict_text="记账在案，暂缓追缴。",
                 event_title="劫后余生",
-                story_text=story,
+                story_text=self._compose_story_text(story, "记账在案，暂缓追缴。"),
                 is_dead=False,
                 dead_title="",
                 attribute_changes=AttributeChanges(
@@ -211,7 +422,7 @@ class LLMOrchestrator:
         self,
         system_prompt: str,
         context: LLMInputContext,
-    ) -> AsyncGenerator[str | LLMOutput, None]:
+    ) -> AsyncGenerator[dict | LLMOutput, None]:
         """
         流式处理 + 最终返回 LLMOutput。
 
@@ -226,6 +437,9 @@ class LLMOrchestrator:
         user_content = context.model_dump_json(ensure_ascii=False)
         full_text = ""
         fix_hint = ""
+        request_started_at = time.perf_counter()
+        best_streamed_story = ""
+        best_streamed_title = ""
 
         for attempt in range(settings.llm_max_retries + 1):
             try:
@@ -235,26 +449,119 @@ class LLMOrchestrator:
                     corrected_prompt = system_prompt
 
                 full_text = ""
+                extractor = StreamFieldExtractor(["event_title", "reason_text", "verdict_text", "story_text"])
+                first_token_logged = False
+                first_story_logged = False
+                attempt_story = ""
+                attempt_title = ""
+
+                logger.info(
+                    "[LLM] 开始流式推演 trigger=%s persona=%s attempt=%s",
+                    context.trigger_type,
+                    context.heaven_persona,
+                    attempt + 1,
+                )
                 async for chunk in self.client.chat_stream(corrected_prompt, user_content):
                     full_text += chunk
-                    yield chunk
+                    now = time.perf_counter()
+                    if not first_token_logged:
+                        logger.info(
+                            "[LLM] 首 token 到达 %.0fms attempt=%s",
+                            (now - request_started_at) * 1000,
+                            attempt + 1,
+                        )
+                        first_token_logged = True
+
+                    for segment, segment_chunk in extractor.feed(chunk):
+                        if segment == "event_title":
+                            attempt_title += segment_chunk
+                        elif segment in ("reason_text", "story_text"):
+                            attempt_story += segment_chunk
+                            if not first_story_logged:
+                                logger.info(
+                                    "[LLM] 首个正文字符到达 %.0fms attempt=%s",
+                                    (now - request_started_at) * 1000,
+                                    attempt + 1,
+                                )
+                                first_story_logged = True
+                        yield {"segment": segment, "chunk": segment_chunk}
+
+                if not full_text.strip():
+                    logger.warning(
+                        "[LLM] 流式未收到 content，转非流式补拉 trigger=%s persona=%s attempt=%s",
+                        context.trigger_type,
+                        context.heaven_persona,
+                        attempt + 1,
+                    )
+                    full_text = await self.client.chat_complete(corrected_prompt, user_content)
 
                 output = self._parse_and_validate(full_text)
                 output.is_dead = context.is_dead
                 if context.is_dead and not output.dead_title:
                     output.dead_title = self._generate_fallback_dead_title(context)
+                output = self._normalize_output_segments(output, fallback_story=attempt_story)
+                if attempt_title.strip():
+                    output.event_title = attempt_title.strip()
+                logger.info(
+                    "[LLM] 流式完成 total=%.0fms story_len=%s attempt=%s",
+                    (time.perf_counter() - request_started_at) * 1000,
+                    len(output.reason_text or ""),
+                    attempt + 1,
+                )
                 yield output
                 return
 
             except Exception as e:
                 fix_hint = str(e)
+                if len(attempt_story.strip()) > len(best_streamed_story.strip()):
+                    best_streamed_story = attempt_story.strip()
+                if len(attempt_title.strip()) > len(best_streamed_title.strip()):
+                    best_streamed_title = attempt_title.strip()
+                logger.warning(
+                    "[LLM] 流式推演失败 attempt=%s reason=%s raw=%s",
+                    attempt + 1,
+                    fix_hint,
+                    self._summarize_raw_text(full_text),
+                )
+                if attempt_story.strip():
+                    try:
+                        output = await self._rescue_structured_output(
+                            corrected_prompt,
+                            user_content,
+                            context,
+                            attempt_story,
+                            attempt + 1,
+                            request_started_at,
+                        )
+                        if attempt_title.strip():
+                            output.event_title = attempt_title.strip()
+                        yield output
+                        return
+                    except Exception as repair_error:
+                        fix_hint = f"{fix_hint}; rescue={repair_error}"
+                        logger.warning(
+                            "[LLM] 非流式补全失败 attempt=%s reason=%s",
+                            attempt + 1,
+                            repair_error,
+                        )
+                        break
                 if attempt < settings.llm_max_retries:
                     continue
                 break
 
         # 降级
-        output = self._fallback_resolve(context)
-        story = output.story_text
-        for char in story:
-            yield char
+        output = self._fallback_with_preserved_story(context, best_streamed_story)
+        if best_streamed_title:
+            output.event_title = best_streamed_title
+        logger.warning(
+            "[LLM] 触发降级 fallback total=%.0fms trigger=%s persona=%s preserved_story_chars=%s",
+            (time.perf_counter() - request_started_at) * 1000,
+            context.trigger_type,
+            context.heaven_persona,
+            len(best_streamed_story),
+        )
+        if not best_streamed_story:
+            story = output.story_text
+            for char in story:
+                yield {"segment": "reason_text", "chunk": char}
         yield output

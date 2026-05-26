@@ -34,3 +34,10 @@ htmlcov/
 
 # Claude Code
 .claude/
+
+# Local indexes and scratch files
+.codegraph/
+tmp_*.html
+
+# WeChat mini-program TypeScript build output
+client/pages/**/*.js

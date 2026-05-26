@@ -451,13 +451,13 @@ class TestSubmitDecision:
 
         chunks = []
 
-        async def on_chunk(chunk: str):
-            chunks.append(chunk)
+        async def on_chunk(segment: str, chunk: str):
+            chunks.append((segment, chunk))
 
         result = await engine.submit_decision("A", "", on_chunk=on_chunk)
 
         assert result.settlement is not None
-        assert "".join(chunks) == result.settlement.story_text
+        assert "".join(piece for segment, piece in chunks if segment in ("reason_text", "story_text")) == result.settlement.reason_text
 
     @pytest.mark.asyncio
     async def test_submit_llm_exception_falls_back(self):

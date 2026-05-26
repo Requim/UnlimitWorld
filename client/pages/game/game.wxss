@@ -45,7 +45,7 @@
   gap: 12rpx;
   padding: 16rpx 12rpx 14rpx;
   background: linear-gradient(180deg, rgba(255, 252, 247, 0.98) 0%, rgba(244, 237, 226, 0.98) 100%);
-  border-bottom: 1rpx solid var(--border-ink-light);
+  border-bottom: 1rpx solid var(--border-ink-light);  
   flex-shrink: 0;
   position: relative;
   z-index: 1;
@@ -695,6 +695,39 @@
   padding: 20rpx 24rpx !important;
 }
 
+.stream-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.stream-eyebrow {
+  font-size: 22rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 6rpx;
+  text-align: center;
+}
+
+.stream-title-card,
+.stream-verdict-card {
+  background: linear-gradient(180deg, rgba(255, 252, 247, 0.96), rgba(245, 239, 229, 0.92));
+  border: 1rpx solid rgba(200, 160, 80, 0.24);
+  border-radius: 12rpx;
+  padding: 20rpx 22rpx;
+  box-shadow: 0 10rpx 24rpx rgba(120, 105, 80, 0.08);
+}
+
+.stream-title-card {
+  text-align: center;
+}
+
+.stream-title-text {
+  font-size: 34rpx;
+  color: var(--gold-leaf);
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
 .story-area {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(247, 241, 232, 0.96));
   border: 1rpx solid rgba(200, 160, 80, 0.2);
@@ -728,6 +761,21 @@
   border-radius: var(--radius-sm);
 }
 
+.story-section-label {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 14rpx;
+  font-size: 20rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 6rpx;
+}
+
+.verdict-label {
+  margin-bottom: 10rpx;
+}
+
 .story-text {
   font-size: 30rpx;
   color: var(--text-parchment);
@@ -749,6 +797,14 @@
 
 .streaming-hint text {
   animation: qi-pulse 2.5s ease-in-out infinite;
+}
+
+.stream-verdict-text {
+  font-size: 30rpx;
+  line-height: 1.75;
+  color: var(--gold-leaf);
+  font-weight: 700;
+  text-align: center;
 }
 
 /* ═══════════════════════════════════════════
@@ -796,12 +852,53 @@
   letter-spacing: 6rpx;
 }
 
+.settlement-title {
+  margin-bottom: 18rpx;
+  text-align: center;
+  font-size: 30rpx;
+  color: var(--ink-strong);
+  font-weight: 700;
+  letter-spacing: 4rpx;
+}
+
 .settlement-body {
   font-size: 28rpx;
   color: var(--text-parchment);
   line-height: 1.9;
   letter-spacing: 1rpx;
   text-align: justify;
+}
+
+.settlement-reason {
+  font-size: 28rpx;
+  color: var(--text-parchment);
+  line-height: 1.9;
+  letter-spacing: 1rpx;
+  text-align: justify;
+}
+
+.settlement-verdict {
+  margin-top: 18rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(200, 160, 80, 0.28);
+  border-radius: 12rpx;
+  background: rgba(248, 243, 234, 0.92);
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: var(--gold-leaf);
+  font-weight: 700;
+  text-align: center;
+}
+
+.settlement-return {
+  margin-top: 18rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  font-size: 24rpx;
+  color: var(--text-mist);
+  letter-spacing: 2rpx;
 }
 
 .settlement-points {

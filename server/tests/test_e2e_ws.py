@@ -20,7 +20,7 @@ from fastapi.testclient import TestClient
 from server.interface.app import app
 from server.application.game_engine import TickResult, Stage
 from server.domain.event import EventSettlement, AttributeChanges
-from server.config import settings
+from server.config import REALM_CONFIG, settings
 
 
 # ── 测试辅助 ─────────────────────────────────────────
@@ -169,6 +169,7 @@ class TestTickLoop:
             assert "log_text" in tick, "缺少 log_text"
             assert "cultivation" in tick, "缺少 cultivation"
             assert "sin_value" in tick, "缺少 sin_value"
+            assert "sin_max" in tick, "缺少 sin_max"
             assert "luck" in tick, "缺少 luck"
             assert "foundation" in tick, "缺少 foundation"
             assert "realm" in tick, "缺少 realm"
@@ -178,6 +179,7 @@ class TestTickLoop:
             assert isinstance(tick["log_text"], str)
             assert isinstance(tick["cultivation"], int)
             assert isinstance(tick["sin_value"], int)
+            assert isinstance(tick["sin_max"], int)
             assert isinstance(tick["luck"], int)
             assert isinstance(tick["foundation"], int)
             assert isinstance(tick["realm"], str)
@@ -337,9 +339,10 @@ class TestDownstreamFrameStructure:
         with client.websocket_connect("/ws/game?player_id=e2e_struct_gl") as ws:
             resp, _ = _start_game_with_destiny(ws, "结构测试")
             assert resp["action"] == "SC_GAME_LOG"
-            # _onGameLog 读取: log_text, cultivation, sin_value, luck, foundation, realm, sin_phase, stage
-            for key in ("log_text", "cultivation", "sin_value", "luck", "foundation", "realm", "sin_phase", "stage"):
+            # _onGameLog 读取: log_text, cultivation, sin_value, sin_max, luck, foundation, realm, sin_phase, stage
+            for key in ("log_text", "cultivation", "sin_value", "sin_max", "luck", "foundation", "realm", "sin_phase", "stage"):
                 assert key in resp, f"SC_GAME_LOG 缺少字段: {key}"
+            assert resp["sin_max"] == REALM_CONFIG[1]["sin_max"]
 
     def test_sc_pong_format(self, client, fast_tick):
         """SC_PONG 格式校验（需先开局再 PING）"""
@@ -362,6 +365,8 @@ class TestDownstreamFrameStructure:
         """SC_HEAVEN_EVENT_TRIGGER 结构校验（前端 _onEventTrigger 对齐）"""
         # 使用 TestClient 直接测试 engine，手动构造 trigger 帧
         from server.domain.event import EventTrigger
+        from server.interface.ws import _build_event_trigger
+        from server.application.game_engine import TickResult
 
         trigger = EventTrigger(
             event_id="evt_test001",
@@ -385,9 +390,23 @@ class TestDownstreamFrameStructure:
             assert "id" in opt, "fixed_options 每项必须有 id"
             assert "text" in opt, "fixed_options 每项必须有 text"
 
+        result = TickResult(
+            stage=Stage.AWAIT_DECISION,
+            cultivation=234,
+            sin_value=45,
+            luck=67,
+            foundation=89,
+            realm=REALM_CONFIG[4]["name"],
+            sin_phase="warning",
+            trigger=trigger,
+        )
+        frame = _build_event_trigger(result)
+        assert frame["sin_max"] == REALM_CONFIG[4]["sin_max"]
+
     def test_sc_event_settlement_structure(self, client, fast_tick):
         """SC_EVENT_SETTLEMENT 结构校验（前端 _onEventSettlement 对齐）"""
         from server.domain.event import EventSettlement, AttributeChanges
+        from server.interface.ws import _build_event_settlement
 
         settlement = EventSettlement(
             event_id="evt_test002",
@@ -401,6 +420,8 @@ class TestDownstreamFrameStructure:
 
         dump = settlement.model_dump()
         assert "dead_title" in dump, f"EventSettlement 缺少 dead_title，实际字段: {list(dump.keys())}"
+        assert "reason_text" in dump
+        assert "verdict_text" in dump
         assert "story_text" in dump
         assert "is_dead" in dump
         assert "attribute_changes" in dump
@@ -409,6 +430,20 @@ class TestDownstreamFrameStructure:
         # 前端 game.ts _onEventSettlement 读取:
         #   settlement.story_text, settlement.dead_title, frame.game_over, frame.heaven_points_earned
         assert dump["dead_title"] == "测试死亡标题"
+
+        result = TickResult(
+            stage=Stage.SETTLEMENT,
+            cultivation=456,
+            sin_value=55,
+            luck=40,
+            foundation=60,
+            realm=REALM_CONFIG[3]["name"],
+            sin_phase="danger",
+            settlement=settlement,
+            heaven_points_earned=50,
+        )
+        frame = _build_event_settlement(result)
+        assert frame["sin_max"] == REALM_CONFIG[3]["sin_max"]
 
 
 class TestStreamingFallback:

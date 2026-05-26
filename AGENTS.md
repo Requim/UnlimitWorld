@@ -13,7 +13,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 - **M2 阶段 ✅（已完成）：** [M2-networking.md](M2-networking.md) — 弱联机全生态与网络层建设 (WebSocket + Web 版)
 - **M3 阶段（当前）：** [M3-client-launch.md](M3-client-launch.md) — 客户端全量合流与微信生态上架 (小程序商业版)
 
-当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）与玩法扩展首轮 Phase 3F/3G/3H（规划落档 + 命格签 + 天道人格扩容）；后续待收口 Phase 3D/3E 的真机联调与 Phase 3I 的部署上架。
+当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）与玩法扩展首轮 Phase 3F/3G/3H（规划落档 + 命格签 + 天道人格扩容）；下一轮优先进入 Phase 3I/3J/3K（目标感闭环 + 异步因果偷渡 + 平常事件扩展），国内云部署与微信审核顺延为 Phase 3L。
 
 编码时优先读取对应阶段的需求文档，确保实现与 PRD 一致。
 

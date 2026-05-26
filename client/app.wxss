@@ -1,27 +1,27 @@
 /**
- * 天道不正经 — 全局样式（水墨宇宙 · 墨韵修仙暗黑美学）
+ * 天道不正经 — 全局样式（水墨宇宙 · 白宣纸水墨美学）
  */
 
 /* ═══════════════════════════════════════════
    设计令牌 — 墨色层次体系
    ═══════════════════════════════════════════ */
 page {
-  /* 墨色基底层 */
-  --void-deep: #020008;
-  --ink-black: #080814;
-  --ink-blue: #0c101c;
-  --ink-navy: #111627;
+  /* 宣纸基底层 */
+  --void-deep: #e9e3d7;
+  --ink-black: #f7f3ea;
+  --ink-blue: #f1ebdf;
+  --ink-navy: #e8e1d3;
 
-  /* 纸面色层（墨渍纸底） */
-  --paper-dark: #161a2b;
-  --paper-mid: #1c2036;
-  --paper-light: #232843;
+  /* 纸面色层（宣纸层叠） */
+  --paper-dark: #ffffff;
+  --paper-mid: #f8f4ec;
+  --paper-light: #efe7d9;
 
   /* 金箔体系 */
   --gold-bright: #e8c45a;
   --gold-leaf: #c9a050;
   --gold-dim: #8b6d38;
-  --gold-pale: #a89060;
+  --gold-pale: #9a8458;
 
   /* 朱砂体系（天谴/危险） */
   --cinnabar: #d43d3d;
@@ -35,22 +35,22 @@ page {
   --jade-dark: #3a7054;
 
   /* 文字色 */
-  --text-parchment: #d4c8a8;
-  --text-parchment-light: #e8dbc0;
-  --text-mist: #7a8090;
-  --text-mist-dim: #505668;
-  --text-void: #2a2d3a;
+  --text-parchment: #463d31;
+  --text-parchment-light: #2f281f;
+  --text-mist: #6f6558;
+  --text-mist-dim: #94897b;
+  --text-void: #b8aea2;
 
   /* 边框/分隔 */
-  --border-ink: #1e2440;
-  --border-ink-light: #2a3050;
-  --border-gold-glow: rgba(200, 160, 80, 0.35);
-  --border-cinnabar-glow: rgba(212, 61, 61, 0.35);
+  --border-ink: #d8cfc2;
+  --border-ink-light: #cfc4b5;
+  --border-gold-glow: rgba(200, 160, 80, 0.3);
+  --border-cinnabar-glow: rgba(212, 61, 61, 0.22);
 
   /* 阴影 */
-  --shadow-card: 0 4rpx 24rpx rgba(0, 0, 0, 0.5);
-  --shadow-gold: 0 0 24rpx rgba(200, 160, 80, 0.12);
-  --shadow-cinnabar: 0 0 20rpx rgba(212, 61, 61, 0.15);
+  --shadow-card: 0 10rpx 28rpx rgba(98, 82, 58, 0.08);
+  --shadow-gold: 0 0 24rpx rgba(200, 160, 80, 0.08);
+  --shadow-cinnabar: 0 0 20rpx rgba(212, 61, 61, 0.1);
 
   /* 间距 */
   --space-xs: 8rpx;
@@ -78,14 +78,11 @@ page {
 .ink-bg {
   position: relative;
   background:
-    /* 远山雾霭 */
-    radial-gradient(ellipse 80% 50% at 20% 80%, rgba(28, 36, 60, 0.6) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 85% 20%, rgba(22, 26, 43, 0.5) 0%, transparent 55%),
-    /* 墨渍斑驳 */
-    radial-gradient(circle 120rpx at 15% 45%, rgba(30, 38, 58, 0.4) 0%, transparent 70%),
-    radial-gradient(circle 90rpx at 75% 70%, rgba(26, 32, 50, 0.35) 0%, transparent 65%),
-    /* 基底 */
-    var(--ink-black);
+    radial-gradient(ellipse 88% 58% at 18% 82%, rgba(126, 118, 104, 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 62% 38% at 84% 16%, rgba(172, 160, 141, 0.13) 0%, transparent 58%),
+    radial-gradient(circle 130rpx at 16% 44%, rgba(88, 79, 67, 0.08) 0%, transparent 72%),
+    radial-gradient(circle 100rpx at 76% 70%, rgba(122, 110, 90, 0.08) 0%, transparent 68%),
+    linear-gradient(180deg, #fbf8f2 0%, #f4eee4 100%);
 }
 
 .ink-bg::after {
@@ -102,8 +99,8 @@ page {
       0deg,
       transparent,
       transparent 2rpx,
-      rgba(200, 160, 80, 0.008) 2rpx,
-      rgba(200, 160, 80, 0.008) 4rpx
+      rgba(140, 124, 96, 0.035) 2rpx,
+      rgba(140, 124, 96, 0.035) 4rpx
     );
 }
 
@@ -111,7 +108,7 @@ page {
    通用组件 — 卡片
    ═══════════════════════════════════════════ */
 .card {
-  background: linear-gradient(175deg, var(--paper-dark), var(--paper-mid));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 236, 0.95));
   border: 1rpx solid var(--border-ink-light);
   border-radius: var(--radius-md);
   padding: var(--space-md);
@@ -138,7 +135,7 @@ page {
 
 /* 朱砂边卡片（天谴/死亡） */
 .card-cinnabar {
-  border-color: rgba(212, 61, 61, 0.45);
+  border-color: rgba(212, 61, 61, 0.28);
   box-shadow: var(--shadow-card), var(--shadow-cinnabar);
 }
 
@@ -158,8 +155,8 @@ page {
 
 /* 金箔主按钮 */
 .btn-gold {
-  background: linear-gradient(160deg, #7a5a20, #c9983a 40%, #e8c45a 50%, #c9983a 60%, #7a5a20);
-  color: #0d0d14;
+  background: linear-gradient(160deg, #b69252, #e0c184 48%, #f2dfb0 52%, #dec08a 62%, #b69252);
+  color: #3c3226;
   border: 1rpx solid rgba(200, 160, 80, 0.5);
   border-radius: var(--radius-sm);
   padding: 18rpx 36rpx;
@@ -172,14 +169,14 @@ page {
 }
 
 .btn-gold:active {
-  background: linear-gradient(160deg, #8b6a28, #d4a840 40%, #f0d060 50%, #d4a840 60%, #8b6a28);
-  box-shadow: 0 1rpx 8rpx rgba(180, 140, 60, 0.35);
+  background: linear-gradient(160deg, #c09d5b, #e6cb94 48%, #f5e4b8 52%, #e3c88f 62%, #c09d5b);
+  box-shadow: 0 1rpx 8rpx rgba(180, 140, 60, 0.22);
   transform: scale(0.97);
 }
 
 /* 暗色次按钮 */
 .btn-dark {
-  background: var(--paper-dark);
+  background: rgba(255, 255, 255, 0.88);
   color: var(--text-mist);
   border: 1rpx solid var(--border-ink-light);
   border-radius: var(--radius-sm);
@@ -192,13 +189,13 @@ page {
 .btn-dark:active {
   border-color: var(--gold-dim);
   color: var(--gold-pale);
-  background: var(--paper-mid);
+  background: rgba(248, 244, 236, 0.96);
 }
 
 /* 朱砂危险按钮 */
 .btn-danger {
-  background: linear-gradient(160deg, #5c1010, #8b1a1a 40%, #c0392b 50%, #8b1a1a 60%, #5c1010);
-  color: #f0d0d0;
+  background: linear-gradient(160deg, #c27f73, #d99a8f 46%, #eab4aa 54%, #d18d81 62%, #b97167);
+  color: #fffaf7;
   border: 1rpx solid rgba(212, 61, 61, 0.4);
   border-radius: var(--radius-sm);
   padding: 18rpx 36rpx;
@@ -221,7 +218,7 @@ page {
   flex-wrap: wrap;
   justify-content: space-around;
   padding: 14rpx 16rpx;
-  background: linear-gradient(180deg, var(--ink-navy) 0%, var(--paper-dark) 100%);
+  background: linear-gradient(180deg, rgba(255, 252, 246, 0.96) 0%, rgba(245, 239, 228, 0.98) 100%);
   border-bottom: 1rpx solid var(--border-ink-light);
   position: relative;
 }
@@ -287,7 +284,7 @@ page {
 
 /* 故事文卷区 */
 .story-area {
-  background: linear-gradient(180deg, var(--paper-dark) 0%, var(--paper-mid) 100%);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 244, 236, 0.96) 100%);
   border: 1rpx solid var(--border-gold-glow);
   border-radius: var(--radius-sm);
   padding: 24rpx;
@@ -321,7 +318,7 @@ page {
 
 /* 结算面板 */
 .settlement-panel {
-  background: linear-gradient(175deg, var(--paper-dark), var(--paper-mid));
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.97), rgba(247, 241, 232, 0.97));
   border: 1rpx solid var(--border-gold-glow);
   border-radius: var(--radius-lg);
   padding: var(--space-md);

@@ -113,6 +113,14 @@ def determine_next_event(
     return EventType.LOCAL_EVENT
 
 
+def compose_story_text(reason_text: str, verdict_text: str) -> str:
+    reason = (reason_text or "").strip()
+    verdict = (verdict_text or "").strip()
+    if reason and verdict:
+        return f"{reason}\n\n{verdict}"
+    return reason or verdict
+
+
 # ═══════════════════════════════════════════════════════════════
 # Tick 返回结果
 # ═══════════════════════════════════════════════════════════════
@@ -603,7 +611,7 @@ class GameEngine:
         self,
         choice_id: str = "A",
         custom_text: str = "",
-        on_chunk: Optional[Callable[[str], Awaitable[None]]] = None,
+        on_chunk: Optional[Callable[[str, str], Awaitable[None]]] = None,
     ) -> TickResult:
         """处理玩家的对线决策（选择 A/B 或自定义骚话 C）
 
@@ -668,10 +676,17 @@ class GameEngine:
             async for chunk in self.orchestrator.process_streaming(system_prompt, llm_context):
                 if isinstance(chunk, LLMOutput):
                     llm_output = chunk
-                else:
+                elif isinstance(chunk, str):
                     full_story += chunk
                     if on_chunk is not None:
-                        await on_chunk(chunk)
+                        await on_chunk("reason_text", chunk)
+                else:
+                    segment = str(chunk.get("segment", "reason_text"))
+                    piece = str(chunk.get("chunk", ""))
+                    if segment in ("reason_text", "story_text"):
+                        full_story += piece
+                    if on_chunk is not None:
+                        await on_chunk(segment, piece)
         except Exception:
             pass
 
@@ -698,14 +713,18 @@ class GameEngine:
         if session is None:
             return TickResult(stage=Stage.INIT, log_text="[系统] 会话丢失")
         intercepted = False
-        story_text = llm_output.story_text or full_story
+        reason_text = llm_output.reason_text or llm_output.story_text or full_story
+        verdict_text = llm_output.verdict_text or llm_output.event_title
+        story_text = llm_output.story_text or compose_story_text(reason_text, verdict_text)
 
         # 因果遮蔽卡拦截
         if backend_is_dead and session.karma_shield > 0:
             session.karma_shield -= 1
             backend_is_dead = False
             intercepted = True
-            story_text += "\n\n【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
+            shield_line = "【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
+            verdict_text = shield_line
+            story_text = compose_story_text(reason_text, shield_line)
 
         # 应用属性变化
         if not backend_is_dead:
@@ -792,6 +811,9 @@ class GameEngine:
             event_id=trigger.event_id,
             is_dead=backend_is_dead,
             dead_title=llm_output.dead_title if backend_is_dead else "",
+            reason_text=reason_text,
+            verdict_text=verdict_text,
+            event_title=llm_output.event_title,
             story_text=story_text,
             attribute_changes=llm_output.attribute_changes,
             intercepted_by_shield=intercepted,

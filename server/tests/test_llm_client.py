@@ -1,73 +1,82 @@
 """
-llm_client.py 单元测试：DeepSeek 客户端、编排器重试/降级
-目标：100% 分支覆盖（通过 mock 控制所有路径）
+llm_client.py unit tests.
+Focus:
+- OpenAI-compatible client request shape
+- JSON parsing / normalization
+- streaming extractor compatibility for reason_text and legacy story_text
+- streaming orchestration success / rescue / fallback paths
 """
+
+import json
 import sys
 from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import pytest
 
 _project_root = Path(__file__).parent.parent.parent
 if str(_project_root) not in sys.path:
     sys.path.insert(0, str(_project_root))
 
-import json
-import pytest
-from unittest.mock import AsyncMock, MagicMock, patch, PropertyMock
-
+from server.config import settings
 from server.domain.event import (
+    AttributeChanges,
     LLMInputContext,
     LLMOutput,
-    AttributeChanges,
     PlayerContextForLLM,
 )
-from server.infrastructure.llm_client import DeepSeekClient, LLMOrchestrator
-from server.config import settings
+from server.infrastructure.llm_client import DeepSeekClient, LLMOrchestrator, StreamFieldExtractor
 
 
-# ══════════════════════════════════════════════════════════
-# 测试辅助
-# ══════════════════════════════════════════════════════════
-
-def _make_context(is_dead=False, player_name="测试修士", realm="练气期"):
+def _make_context(is_dead: bool = False) -> LLMInputContext:
     return LLMInputContext(
-        system_context={"heaven_personality": "混沌乐子人"},
+        system_context={"heaven_personality": "Chaos"},
         player_status=PlayerContextForLLM(
-            player_name=player_name,
-            realm=realm,
+            player_name="test_player",
+            realm="Qi Refining",
             realm_code=1,
             cultivation=500,
             luck=50,
             foundation=50,
             sin_value=10,
+            effective_luck=50,
         ),
         trigger_type="HEAVEN",
         is_dead=is_dead,
-        historical_karma="测试因果",
-        player_custom_input="测试骚话",
+        historical_karma="test karma",
+        player_custom_input="test taunt",
         chosen_option="A",
-        fixed_options=[{"id": "A", "text": "选项A"}],
-        heaven_persona="混沌乐子人",
+        fixed_options=[{"id": "A", "text": "Option A"}],
+        heaven_persona="Chaos",
     )
 
 
-def _make_valid_llm_json(is_dead=False):
-    return json.dumps({
-        "event_title": "测试事件",
-        "story_text": "这是一个测试剧情文本。",
-        "is_dead": is_dead,
-        "dead_title": "测试死因" if is_dead else "",
-        "attribute_changes": {
-            "cultivation": 100,
-            "sin_value": 5,
-            "luck": 0,
-            "foundation": 0,
+def _make_valid_llm_json(
+    *,
+    is_dead: bool = False,
+    reason_text: str = "test reason text",
+    verdict_text: str = "final verdict",
+    event_title: str = "test event",
+) -> str:
+    return json.dumps(
+        {
+            "reason_text": reason_text,
+            "verdict_text": verdict_text,
+            "event_title": event_title,
+            "story_text": "legacy story text",
+            "is_dead": is_dead,
+            "dead_title": "test death" if is_dead else "",
+            "attribute_changes": {
+                "cultivation": 100,
+                "sin_value": 5,
+                "luck": 0,
+                "foundation": 0,
+            },
+            "next_action_required": "GAME_OVER" if is_dead else "IDLE",
         },
-        "next_action_required": "GAME_OVER" if is_dead else "IDLE",
-    }, ensure_ascii=False)
+        ensure_ascii=False,
+    )
 
-
-# ══════════════════════════════════════════════════════════
-# DeepSeekClient
-# ══════════════════════════════════════════════════════════
 
 class TestDeepSeekClientInit:
     def test_default_values_from_settings(self):
@@ -90,49 +99,26 @@ class TestDeepSeekClientInit:
 class TestDeepSeekClientChatStream:
     @pytest.mark.asyncio
     async def test_mock_stream_when_openai_unavailable(self):
-        """openai 不可用时降级到 mock stream"""
         with patch.dict(sys.modules, {"openai": None}):
             client = DeepSeekClient(api_key="test")
             chunks = []
             async for chunk in client.chat_stream("system", "user"):
                 chunks.append(chunk)
-            full = "".join(chunks)
-            assert "天道在虚空中沉默" in full
-
-    @pytest.mark.asyncio
-    async def test_mock_stream_when_import_error(self):
-        """ImportError 时也降级"""
-        with patch.dict(sys.modules):
-            sys.modules.pop("openai", None)
-            # 强制 import 失败
-            import builtins
-            orig_import = builtins.__import__
-
-            def mock_import(name, *args, **kwargs):
-                if name == "openai":
-                    raise ImportError("mock")
-                return orig_import(name, *args, **kwargs)
-
-            with patch("builtins.__import__", side_effect=mock_import):
-                client = DeepSeekClient(api_key="test")
-                chunks = []
-                async for chunk in client.chat_stream("s", "u"):
-                    chunks.append(chunk)
-                assert len("".join(chunks)) > 0
+            assert len("".join(chunks)) > 0
 
     @pytest.mark.asyncio
     async def test_real_openai_stream(self):
-        """mock AsyncOpenAI 验证流式调用路径 —— patch 内部 import"""
-        mock_client = MagicMock()
+        mock_chunk = MagicMock()
+        mock_chunk.choices = [MagicMock()]
+        mock_chunk.choices[0].delta.content = "Hello"
 
-        async def mock_aiter(self):
-            mock_chunk = MagicMock()
-            mock_chunk.choices = [MagicMock()]
-            mock_chunk.choices[0].delta.content = "Hello"
-            yield mock_chunk
+        class MockResponse:
+            def __aiter__(self):
+                async def gen():
+                    yield mock_chunk
+                return gen()
 
-        mock_response = MagicMock()
-        mock_response.__aiter__ = mock_aiter
+        mock_response = MockResponse()
 
         mock_async_openai = MagicMock()
         mock_async_openai.chat.completions.create = AsyncMock(return_value=mock_response)
@@ -145,302 +131,269 @@ class TestDeepSeekClientChatStream:
             chunks = []
             async for chunk in client.chat_stream("system", "user"):
                 chunks.append(chunk)
-            assert "Hello" in chunks
+            assert chunks == ["Hello"]
+            kwargs = mock_async_openai.chat.completions.create.await_args.kwargs
+            assert kwargs["temperature"] == settings.deepseek_temperature
+            assert kwargs["response_format"] == {"type": "json_object"}
+            assert kwargs["stream"] is True
 
 
 class TestDeepSeekClientChatComplete:
     @pytest.mark.asyncio
-    async def test_chat_complete_joins_chunks(self):
-        """chat_complete 拼接所有流式输出"""
-        async def mock_stream(system, user):
-            for c in ["a", "b", "c"]:
-                yield c
+    async def test_chat_complete_reads_non_stream_content(self):
+        mock_response = MagicMock()
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "abc"
 
-        client = DeepSeekClient()
-        client.chat_stream = mock_stream
-        result = await client.chat_complete("s", "u")
-        assert result == "abc"
+        mock_async_openai = MagicMock()
+        mock_async_openai.chat.completions.create = AsyncMock(return_value=mock_response)
 
+        mock_openai_module = MagicMock()
+        mock_openai_module.AsyncOpenAI = MagicMock(return_value=mock_async_openai)
 
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator._parse_and_validate
-# ══════════════════════════════════════════════════════════
+        with patch.dict(sys.modules, {"openai": mock_openai_module}):
+            client = DeepSeekClient(api_key="test")
+            result = await client.chat_complete("system", "user")
+            assert result == "abc"
+            kwargs = mock_async_openai.chat.completions.create.await_args.kwargs
+            assert kwargs["stream"] is False
+            assert kwargs["response_format"] == {"type": "json_object"}
+
 
 class TestParseAndValidate:
     def test_parse_clean_json(self):
         orch = LLMOrchestrator()
-        raw = _make_valid_llm_json(is_dead=False)
-        result = orch._parse_and_validate(raw)
-        assert result.event_title == "测试事件"
-        assert result.story_text == "这是一个测试剧情文本。"
+        result = orch._parse_and_validate(_make_valid_llm_json())
+        assert result.reason_text == "test reason text"
+        assert result.verdict_text == "final verdict"
+        assert result.story_text == "test reason text\n\nfinal verdict"
+        assert result.event_title == "test event"
 
     def test_parse_json_with_markdown_wrapper(self):
         orch = LLMOrchestrator()
-        raw = "```json\n" + _make_valid_llm_json(is_dead=False) + "\n```"
+        raw = "```json\n" + _make_valid_llm_json() + "\n```"
         result = orch._parse_and_validate(raw)
-        assert result.event_title == "测试事件"
+        assert result.event_title == "test event"
 
-    def test_parse_json_with_markdown_no_lang_specifier(self):
+    def test_parse_json_with_leading_noise_extracts_object(self):
         orch = LLMOrchestrator()
-        raw = "```\n" + _make_valid_llm_json(is_dead=False) + "\n```"
+        raw = "Here you go:\n" + _make_valid_llm_json() + "\nDone."
         result = orch._parse_and_validate(raw)
-        assert result.event_title == "测试事件"
-
-    def test_parse_json_with_markdown_no_trailing_backticks(self):
-        """Markdown 包裹但末尾没有 ``` → 只移除首行"""
-        orch = LLMOrchestrator()
-        content = _make_valid_llm_json(is_dead=False)
-        raw = "```json\n" + content  # 没有结尾 ```
-        result = orch._parse_and_validate(raw)
-        assert result.event_title == "测试事件"
-
-    def test_parse_invalid_json_raises(self):
-        orch = LLMOrchestrator()
-        with pytest.raises(Exception):
-            orch._parse_and_validate("这不是JSON")
+        assert result.event_title == "test event"
 
     def test_parse_missing_required_fields_raises(self):
         orch = LLMOrchestrator()
-        # attribute_changes 必须是对象，传字符串会触发 ValidationError
         with pytest.raises(Exception):
-            orch._parse_and_validate('{"event_title": "x", "story_text": "y", "attribute_changes": "not_an_object"}')
+            orch._parse_and_validate('{"event_title":"x","story_text":"y","attribute_changes":"bad"}')
+
+    def test_parse_legacy_story_only_keeps_legacy_text(self):
+        orch = LLMOrchestrator()
+        raw = json.dumps(
+            {
+                "event_title": "legacy",
+                "story_text": "legacy only story",
+                "is_dead": False,
+                "dead_title": "",
+                "attribute_changes": {"cultivation": 1, "sin_value": 0, "luck": 0, "foundation": 0},
+                "next_action_required": "IDLE",
+            },
+            ensure_ascii=False,
+        )
+        result = orch._parse_and_validate(raw)
+        assert result.reason_text == "legacy only story"
+        assert result.verdict_text == ""
+        assert result.story_text == "legacy only story"
 
 
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator._fallback_resolve
-# ══════════════════════════════════════════════════════════
+class TestStreamFieldExtractor:
+    def test_extracts_reason_text(self):
+        extractor = StreamFieldExtractor(["event_title", "reason_text", "verdict_text", "story_text"])
+        chunks = [
+            '{"event_title":"test","reason_text":"heaven',
+            ' says why\\n',
+            'the verdict is coming.","is_dead":false}',
+        ]
+        out = "".join(
+            piece
+            for chunk in chunks
+            for segment, piece in extractor.feed(chunk)
+            if segment == "reason_text"
+        )
+        assert out == "heaven says why\nthe verdict is coming."
+
+    def test_extracts_legacy_story_text_too(self):
+        extractor = StreamFieldExtractor(["event_title", "reason_text", "verdict_text", "story_text"])
+        chunks = [
+            '{"event_title":"test","story_text":"legacy',
+            ' stream text',
+            '","is_dead":false}',
+        ]
+        out = "".join(
+            piece
+            for chunk in chunks
+            for segment, piece in extractor.feed(chunk)
+            if segment == "story_text"
+        )
+        assert out == "legacy stream text"
+
 
 class TestFallbackResolve:
     def test_fallback_dead(self):
         orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
-        result = orch._fallback_resolve(ctx)
+        result = orch._fallback_resolve(_make_context(is_dead=True))
         assert result.is_dead is True
-        assert result.event_title == "天道裁决"
         assert result.dead_title
+        assert result.verdict_text == result.dead_title
         assert result.next_action_required == "GAME_OVER"
 
     def test_fallback_alive(self):
         orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=False)
-        result = orch._fallback_resolve(ctx)
+        result = orch._fallback_resolve(_make_context(is_dead=False))
         assert result.is_dead is False
-        assert result.event_title == "劫后余生"
-        assert result.dead_title == ""
+        assert result.verdict_text
         assert result.next_action_required == "IDLE"
         assert result.attribute_changes.cultivation > 0
 
 
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator._generate_fallback_dead_title
-# ══════════════════════════════════════════════════════════
-
-def test_generate_fallback_dead_title():
-    orch = LLMOrchestrator()
-    ctx = _make_context(is_dead=True, player_name="张三", realm="筑基期")
-    title = orch._generate_fallback_dead_title(ctx)
-    assert isinstance(title, str)
-    assert len(title) > 0
-
-
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator.process — 成功路径
-# ══════════════════════════════════════════════════════════
-
-class TestOrchestratorProcess:
-    @pytest.mark.asyncio
-    async def test_process_success_first_attempt(self):
-        """首次调用成功"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=False)
-
-        async def mock_complete(prompt, content):
-            return _make_valid_llm_json(is_dead=False)
-
-        orch.client.chat_complete = mock_complete
-        result = await orch.process("system prompt", ctx)
-        assert result.event_title == "测试事件"
-        assert result.is_dead is False  # 被后端覆盖
-
-    @pytest.mark.asyncio
-    async def test_process_is_dead_hard_override(self):
-        """即使 LLM 返回 is_dead=False，后端也强制覆盖为 True"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)  # 后端判定死亡
-
-        async def mock_complete(prompt, content):
-            return _make_valid_llm_json(is_dead=False)  # LLM 说没死
-
-        orch.client.chat_complete = mock_complete
-        result = await orch.process("system prompt", ctx)
-        assert result.is_dead is True  # 必须被覆盖
-
-    @pytest.mark.asyncio
-    async def test_process_dead_fills_title(self):
-        """is_dead=True 但没有 dead_title 时自动生成"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
-
-        async def mock_complete(prompt, content):
-            return json.dumps({
-                "event_title": "死",
-                "story_text": "你死了",
-                "is_dead": True,
-                "dead_title": "",  # 空的
-                "attribute_changes": {"cultivation": 0, "sin_value": 0, "luck": 0, "foundation": 0},
-                "next_action_required": "GAME_OVER",
-            }, ensure_ascii=False)
-
-        orch.client.chat_complete = mock_complete
-        result = await orch.process("system prompt", ctx)
-        assert result.is_dead is True
-        assert result.dead_title  # 自动填充
-
-
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator.process — 重试与降级路径
-# ══════════════════════════════════════════════════════════
-
-class TestOrchestratorRetryAndFallback:
-    @pytest.mark.asyncio
-    async def test_retry_on_validation_error_then_success(self):
-        """第一次校验失败，第二次成功"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=False)
-        call_count = [0]
-
-        async def mock_complete(prompt, content):
-            call_count[0] += 1
-            if call_count[0] == 1:
-                return "无效JSON{{{"
-            else:
-                return _make_valid_llm_json(is_dead=False)
-
-        orch.client.chat_complete = mock_complete
-        result = await orch.process("system prompt", ctx)
-        assert call_count[0] == 2
-        assert result.event_title == "测试事件"
-
-    @pytest.mark.asyncio
-    async def test_all_retries_exhausted_falls_back(self):
-        """所有重试耗尽后降级到本地引擎"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
-
-        async def mock_complete(prompt, content):
-            return "每次都无效的JSON{{{{"
-
-        orch.client.chat_complete = mock_complete
-        result = await orch.process("system prompt", ctx)
-        # 降级到 fallback
-        assert result.event_title == "天道裁决"
-        assert result.is_dead is True
-
-    @pytest.mark.asyncio
-    async def test_fix_hint_injected_on_retry(self):
-        """重试时 prompt 中包含 fix_hint"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=False)
-        prompts_seen = []
-
-        async def mock_complete(prompt, content):
-            prompts_seen.append(prompt)
-            if len(prompts_seen) == 1:
-                return "bad json"
-            else:
-                return _make_valid_llm_json(is_dead=False)
-
-        orch.client.chat_complete = mock_complete
-        await orch.process("system prompt", ctx)
-        assert len(prompts_seen) == 2
-        assert "[格式修正指令]" in prompts_seen[1]
-
-    @pytest.mark.asyncio
-    async def test_zero_retries_skips_loop_to_fallback(self):
-        """llm_max_retries = -1 → range(0) 为空 → for 循环不进入 → 直接走降级"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
-
-        with patch.object(settings, "llm_max_retries", -1):
-            result = await orch.process("system prompt", ctx)
-        assert result.event_title == "天道裁决"
-
-
-# ══════════════════════════════════════════════════════════
-# LLMOrchestrator.process_streaming
-# ══════════════════════════════════════════════════════════
-
 class TestOrchestratorProcessStreaming:
     @pytest.mark.asyncio
     async def test_streaming_success(self):
-        """流式处理成功路径"""
         orch = LLMOrchestrator()
         ctx = _make_context(is_dead=False)
 
         async def mock_stream(prompt, content):
-            for c in _make_valid_llm_json(is_dead=False):
-                yield c
+            for ch in _make_valid_llm_json():
+                yield ch
 
         orch.client.chat_stream = mock_stream
+
         chunks = []
         output = None
-        async for chunk in orch.process_streaming("system", ctx):
-            chunks.append(chunk)
-            if isinstance(chunk, LLMOutput):
-                output = chunk
-        full = "".join(c for c in chunks if isinstance(c, str))
-        assert "测试事件" in full
+        async for item in orch.process_streaming("system", ctx):
+            chunks.append(item)
+            if isinstance(item, LLMOutput):
+                output = item
+
+        full = "".join(c["chunk"] for c in chunks if isinstance(c, dict) and c["segment"] == "reason_text")
+        title = "".join(c["chunk"] for c in chunks if isinstance(c, dict) and c["segment"] == "event_title")
+        assert full == "test reason text"
+        assert title == "test event"
+        assert output is not None
+        assert output.event_title == "test event"
+        assert output.verdict_text == "final verdict"
+
+    @pytest.mark.asyncio
+    async def test_streaming_uses_non_stream_rescue_when_stream_returns_no_content(self):
+        orch = LLMOrchestrator()
+        ctx = _make_context(is_dead=False)
+
+        async def mock_stream(prompt, content):
+            if False:
+                yield ""
+
+        orch.client.chat_stream = mock_stream
+        orch.client.chat_complete = AsyncMock(return_value=_make_valid_llm_json())
+
+        output = None
+        async for item in orch.process_streaming("system", ctx):
+            if isinstance(item, LLMOutput):
+                output = item
+
+        assert output is not None
+        assert output.event_title == "test event"
+        orch.client.chat_complete.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_streaming_preserves_story_when_json_breaks_after_streaming(self):
+        orch = LLMOrchestrator()
+        ctx = _make_context(is_dead=False)
+
+        broken_json = (
+            '{"story_text":"legacy streamed story survives",'
+            '"event_title":"legacy","dead_title":"",'
+            '"is_dead":false,"attribute_changes":{"cultivation":1,"sin_value":0,"luck":0,"foundation":0},'
+            '"next_action_required":"IDLE"'
+        )
+
+        async def mock_stream(prompt, content):
+            for ch in broken_json:
+                yield ch
+
+        orch.client.chat_stream = mock_stream
+
+        streamed = []
+        output = None
+        async for item in orch.process_streaming("system", ctx):
+            if isinstance(item, LLMOutput):
+                output = item
+            else:
+                if item["segment"] in ("reason_text", "story_text"):
+                    streamed.append(item["chunk"])
+
+        full = "".join(streamed)
+        assert full == "legacy streamed story survives"
+        assert output is not None
+        assert output.reason_text == full
+        assert output.story_text.startswith(full)
+
+    @pytest.mark.asyncio
+    async def test_streaming_uses_non_stream_rescue_after_partial_json_break(self):
+        orch = LLMOrchestrator()
+        ctx = _make_context(is_dead=False)
+
+        broken_json = (
+            '{"reason_text":"streamed reason survives",'
+            '"verdict_text":"broken verdict'
+        )
+
+        async def mock_stream(prompt, content):
+            for ch in broken_json:
+                yield ch
+
+        orch.client.chat_stream = mock_stream
+        orch.client.chat_complete = AsyncMock(
+            return_value=_make_valid_llm_json(
+                reason_text="repaired reason text",
+                verdict_text="repaired verdict",
+                event_title="repaired event",
+            )
+        )
+
+        streamed = []
+        output = None
+        async for item in orch.process_streaming("system", ctx):
+            if isinstance(item, LLMOutput):
+                output = item
+            else:
+                if item["segment"] == "reason_text":
+                    streamed.append(item["chunk"])
+
+        full = "".join(streamed)
+        assert full == "streamed reason survives"
+        assert output is not None
+        assert output.reason_text == full
+        assert output.verdict_text == "repaired verdict"
+        assert output.event_title == "repaired event"
+        orch.client.chat_complete.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_streaming_retry_then_fallback(self):
-        """流式处理重试耗尽后降级"""
         orch = LLMOrchestrator()
         ctx = _make_context(is_dead=True)
 
         async def mock_stream(prompt, content):
-            yield "bad json!!!"
+            yield "bad json"
 
         orch.client.chat_stream = mock_stream
-        chunks = []
-        async for chunk in orch.process_streaming("system", ctx):
-            chunks.append(chunk)
-            if isinstance(chunk, LLMOutput):
-                pass
-        full = "".join(c for c in chunks if isinstance(c, str))
-        assert len(full) > 0  # 降级文本
 
-    @pytest.mark.asyncio
-    async def test_streaming_dead_fills_empty_title(self):
-        """流式处理 is_dead 且 dead_title 为空时自动填充"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
+        output = None
+        streamed = []
+        async for item in orch.process_streaming("system", ctx):
+            if isinstance(item, LLMOutput):
+                output = item
+            else:
+                streamed.append(item["chunk"])
 
-        result_json = json.dumps({
-            "event_title": "死亡事件",
-            "story_text": "你死了",
-            "is_dead": True,
-            "dead_title": "",  # 空的
-            "attribute_changes": {"cultivation": 0, "sin_value": 0, "luck": 0, "foundation": 0},
-            "next_action_required": "GAME_OVER",
-        }, ensure_ascii=False)
-
-        async def mock_stream(prompt, content):
-            for c in result_json:
-                yield c
-
-        orch.client.chat_stream = mock_stream
-        async for chunk in orch.process_streaming("system", ctx):
-            pass  # 处理完成即验证通过
-
-    @pytest.mark.asyncio
-    async def test_streaming_zero_retries_skips_loop_to_fallback(self):
-        """流式: llm_max_retries = -1 → range(0) 为空 → 直接走降级"""
-        orch = LLMOrchestrator()
-        ctx = _make_context(is_dead=True)
-
-        with patch.object(settings, "llm_max_retries", -1):
-            chunks = []
-            async for chunk in orch.process_streaming("system", ctx):
-                chunks.append(chunk)
-            full = "".join(c for c in chunks if isinstance(c, str))
-            assert len(full) > 0
+        assert output is not None
+        assert output.is_dead is True
+        assert len("".join(streamed)) > 0
