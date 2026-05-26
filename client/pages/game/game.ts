@@ -112,6 +112,10 @@ Page({
     heavenPointsEarned: 0,
     gameOver: false,
     gameOverTitle: '' as string,
+    epitaphTitle: '' as string,
+    leaderboardType: '' as string,
+    leaderboardScore: 0 as number,
+    nextGoalHint: '' as string,
     returnCountdown: 0,
     returnHint: '' as string,
     shieldRescueActive: false,
@@ -275,6 +279,10 @@ Page({
       heavenPointsEarned: 0,
       gameOver: false,
       gameOverTitle: '',
+      epitaphTitle: '',
+      leaderboardType: '',
+      leaderboardScore: 0,
+      nextGoalHint: '',
       returnCountdown: 0,
       returnHint: '',
       cultivation: 0,
@@ -556,6 +564,10 @@ Page({
       heavenPointsEarned: (frame.heaven_points_earned as number) || 0,
       gameOver,
       gameOverTitle: gameOver ? ((settlement?.dead_title as string) || '修士道陨') : '',
+      epitaphTitle: (settlement?.epitaph_title as string) || '',
+      leaderboardType: mapLeaderboardType((settlement?.leaderboard_type as string) || ''),
+      leaderboardScore: (settlement?.leaderboard_score as number) || 0,
+      nextGoalHint: (settlement?.next_goal_hint as string) || '',
       returnCountdown: gameOver ? 0 : 3,
       returnHint: gameOver ? '' : '裁决已落，神识归位中',
       shieldRescueActive: interceptedByShield,
@@ -671,6 +683,17 @@ function mapSinPhase(phase: string): string {
     danger: '天谴',
   };
   return map[phase] || phase;
+}
+
+function mapLeaderboardType(type: string): string {
+  const map: Record<string, string> = {
+    ascension: '飞升榜候选',
+    death: '暴毙榜候选',
+    taunt: '嘴硬榜候选',
+    gamble: '赌命榜候选',
+    karma_pollution: '因果污染榜候选',
+  };
+  return map[type] || '';
 }
 
 function clearCountdown() {

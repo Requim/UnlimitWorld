@@ -243,10 +243,15 @@
     <scroll-view scroll-y style="flex:1;">
       <view class="settlement-panel game-over-panel">
         <view class="game-over-icon">✦</view>
-        <view class="game-over-title">道陨</view>
+        <view class="game-over-title">{{epitaphTitle || '道陨'}}</view>
+        <view wx:if="{{leaderboardType}}" class="epitaph-board">
+          <text>{{leaderboardType}}</text>
+          <text>评分 {{leaderboardScore}}</text>
+        </view>
         <view class="settlement-title" wx:if="{{streamEventTitle}}">{{streamEventTitle}}</view>
         <view class="settlement-reason" wx:if="{{settlementReason}}">{{settlementReason}}</view>
         <view class="settlement-verdict">{{settlementVerdict}}</view>
+        <view class="next-goal-hint" wx:if="{{nextGoalHint}}">{{nextGoalHint}}</view>
         <view class="settlement-points" wx:if="{{heavenPointsEarned > 0}}">
           天道点 +{{heavenPointsEarned}}
         </view>

@@ -451,6 +451,10 @@ class TestDownstreamFrameStructure:
             attribute_changes=AttributeChanges(cultivation=100, sin_value=10),
             intercepted_by_shield=False,
             heaven_points_earned=50,
+            epitaph_title="雷劫嘴硬体验官",
+            leaderboard_type="taunt",
+            leaderboard_score=88,
+            next_goal_hint="继续挑战嘴硬榜。",
         )
 
         dump = settlement.model_dump()
@@ -461,6 +465,10 @@ class TestDownstreamFrameStructure:
         assert "is_dead" in dump
         assert "attribute_changes" in dump
         assert "heaven_points_earned" in dump
+        assert "epitaph_title" in dump
+        assert "leaderboard_type" in dump
+        assert "leaderboard_score" in dump
+        assert "next_goal_hint" in dump
 
         # 前端 game.ts _onEventSettlement 读取:
         #   settlement.story_text, settlement.dead_title, frame.game_over, frame.heaven_points_earned

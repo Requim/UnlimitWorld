@@ -105,3 +105,7 @@ class EventSettlement(BaseModel):
     attribute_changes: AttributeChanges = Field(default_factory=AttributeChanges)
     intercepted_by_shield: bool = False    # 是否被因果遮蔽卡拦截
     heaven_points_earned: int = 0          # 若死亡/飞升，结算的天道点
+    epitaph_title: str = ""                # 盖棺定论称号
+    leaderboard_type: str = ""             # ascension / death / taunt / gamble 等候选榜
+    leaderboard_score: int = 0
+    next_goal_hint: str = ""

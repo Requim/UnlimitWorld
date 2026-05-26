@@ -562,6 +562,9 @@ class TestSettle:
         assert engine.stage == Stage.GAME_OVER
         assert len(engine._dead_list) == 1
         assert engine._dead_list[0].player_name == "无名修士"
+        assert result.settlement.epitaph_title == "天道重点观察对象"
+        assert result.settlement.leaderboard_type == "death"
+        assert result.settlement.leaderboard_score > 0
 
     @pytest.mark.asyncio
     async def test_settle_ascension_success(self):
@@ -573,6 +576,8 @@ class TestSettle:
         assert result.is_dead is False
         assert result.heaven_points_earned > 0
         assert len(engine._hall_list) == 1
+        assert result.settlement.epitaph_title == "飞升案首"
+        assert result.settlement.leaderboard_type == "ascension"
 
     @pytest.mark.asyncio
     async def test_settle_ascension_dies(self):

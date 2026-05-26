@@ -875,3 +875,39 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3I-2 | 多榜单与盖棺定论结算：先做飞升榜、暴毙榜、嘴硬榜的统一评分与结算展示 |
 | 3I | 执念进度推进仍是静态字段，后续需要在自由文本、突破、死亡、赌命事件中累计进度 |
 | 3J | `污染因果` 执念需要等 `KarmaTrace` 入池与触发回写后才具备完整闭环 |
+
+### 5.19 Phase 3I-2 盖棺定论最小闭环实施记录
+
+> 实施日期：2026-05-26 | 实施人：Codex | 范围：终局称号 + 候选榜类型 + 结算评分 + 下局目标提示 | 测试：90 passed（Ambition / GameEngine / WebSocket E2E 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/domain/event.py` | `EventSettlement` 新增 `epitaph_title / leaderboard_type / leaderboard_score / next_goal_hint` |
+| `server/application/game_engine.py` | 新增 `build_run_epitaph()`，在死亡、飞升、嘴硬结算时生成候选榜信息 |
+| `client/pages/game/game.ts/wxml/wxss` | Game Over 面板展示“本局称号、候选榜、评分、下局提示” |
+| `server/tests/test_game_engine.py` | 覆盖死亡与飞升的盖棺定论字段 |
+| `server/tests/test_e2e_ws.py` | 扩展 `SC_EVENT_SETTLEMENT` 结构契约，确保前端依赖字段下发 |
+
+#### 设计决策
+
+- **先做候选榜，不先建正式榜单表**：本轮目标是终局爽感最小闭环，让玩家先看到“我这局属于什么榜”；正式持久化排行榜留给后续榜单仓储阶段。
+- **失败也给身份**：死亡默认进入暴毙榜候选，使用自由文本死亡优先进入嘴硬榜候选，飞升成功进入飞升榜候选。
+- **评分轻量可解释**：首版评分只由境界、天谴比例、存活时间、天道点、是否嘴硬等本地可得字段组成，不额外调用 LLM。
+- **前端只展示四块信息**：本局称号、候选榜、评分、下局提示，避免结算页信息过载。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_ambition.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`
+  - 结果：90 passed
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3I-3 | 正式多榜单持久化与 hall 页面 Tab 化：飞升榜、暴毙榜、嘴硬榜 |
+| 3I | 执念进度仍未按事件实时推进，需要在自由文本、突破、死亡和高风险事件中累计 |
+| 3J | 因果污染榜需要等 `KarmaTrace` 投毒/触发系统落地 |

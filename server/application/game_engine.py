@@ -122,6 +122,36 @@ def compose_story_text(reason_text: str, verdict_text: str) -> str:
     return reason or verdict
 
 
+def build_run_epitaph(
+    session: PlayerState,
+    backend_is_dead: bool,
+    is_ascension: bool,
+    used_custom_input: bool,
+    trigger_type: str,
+) -> tuple[str, str, int, str]:
+    """生成盖棺定论的最小榜单候选信息。"""
+    sin_max = get_realm_config(session.realm_code)["sin_max"]
+    sin_ratio = session.sin_value / sin_max if sin_max > 0 else 0
+    realm_name = get_realm_name(session.realm_code)
+
+    if is_ascension and not backend_is_dead:
+        score = int(session.heaven_points + session.foundation + session.survival_seconds / 10)
+        return "飞升案首", "ascension", score, "下局可挑战嘴硬榜或赌命榜，给天道一点新麻烦。"
+
+    if backend_is_dead:
+        score = int(session.realm_code * 100 + sin_ratio * 100 + session.survival_seconds / 10)
+        if used_custom_input:
+            return "雷劫嘴硬体验官", "taunt", score + 30, "继续挑战嘴硬榜：话越硬，死法越有机会出圈。"
+        if trigger_type == "ASCENSION":
+            return "飞升门口摔跤仙", "death", score + 40, "下局可以先选苟活执念，把飞升门槛踩稳。"
+        return "天道重点观察对象", "death", score, "下局可挑战暴毙榜：死不可怕，没记忆点才可怕。"
+
+    if used_custom_input:
+        return "在逃嘴硬修士", "taunt", 30 + int(sin_ratio * 50), "本局嘴硬已被天道记账，继续活下去才更有节目效果。"
+
+    return "", "", 0, ""
+
+
 # ═══════════════════════════════════════════════════════════════
 # Tick 返回结果
 # ═══════════════════════════════════════════════════════════════
@@ -839,6 +869,13 @@ class GameEngine:
 
         session.prd_counter = 0
         self._current_trigger = None
+        epitaph_title, leaderboard_type, leaderboard_score, next_goal_hint = build_run_epitaph(
+            session=session,
+            backend_is_dead=backend_is_dead,
+            is_ascension=is_ascension,
+            used_custom_input=used_custom_input,
+            trigger_type=trigger.trigger_type,
+        )
 
         settlement = EventSettlement(
             event_id=trigger.event_id,
@@ -851,6 +888,10 @@ class GameEngine:
             attribute_changes=llm_output.attribute_changes,
             intercepted_by_shield=intercepted,
             heaven_points_earned=heaven_points_earned,
+            epitaph_title=epitaph_title,
+            leaderboard_type=leaderboard_type,
+            leaderboard_score=leaderboard_score,
+            next_goal_hint=next_goal_hint,
         )
 
         return TickResult(
