@@ -132,6 +132,24 @@
         {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
       </text>
     </view>
+    <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
+      <view class="phase3k-meta">
+        <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
+        <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
+        <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>
+      </view>
+      <view wx:if="{{showLightChoice}}" class="light-choice-card">
+        <text class="light-choice-label">轻选择自动结算</text>
+        <text class="light-choice-text">{{lightChoiceText}}</text>
+      </view>
+      <view wx:if="{{hasRunStats}}" class="run-stats">
+        <text wx:if="{{runStats.leaderboardScoreDelta > 0}}" class="run-stat">榜 +{{runStats.leaderboardScoreDelta}}</text>
+        <text wx:if="{{runStats.tauntCount > 0}}" class="run-stat">嘴硬 {{runStats.tauntCount}}</text>
+        <text wx:if="{{runStats.gambleSurviveCount > 0}}" class="run-stat">赌命 {{runStats.gambleSurviveCount}}</text>
+        <text wx:if="{{runStats.karmaPollutionScore > 0}}" class="run-stat">污染 {{runStats.karmaPollutionScore}}</text>
+        <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
+      </view>
+    </view>
     <view class="idle-hero">
       <view class="meditation-loader idle-loader">
         <view class="meditation-aura aura-outer"></view>

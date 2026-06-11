@@ -315,80 +315,24 @@ Repository 层封装：`PlayerAccountRepository` / `DeadRegistryRepository` / `I
 
 ## 十五、Milestone 开发排期
 
-| 里程碑 | 天数 | 状态 | 交付 |
-|--------|------|------|------|
-| M1 核心因果流 | 3 天 | ✅ 完成 | Python 后端 + CLI 原型闭环 |
-| M2 弱联机连接 | 3 天 | 🔄 进行中 | WebSocket + MySQL + 极简小程序 |
-| M3 数值调优与视觉 | 4 天 | ⏳ 待开始 | 火焰进度条/打字机动效/抽卡/内测上线 |
+当前开发进度以 [PROJECT_STATUS.md](PROJECT_STATUS.md) 为准；README 只保留项目介绍与启动说明。
 
-**M2 子阶段进度：**
-| Phase | 内容 | 状态 |
-|-------|------|------|
-| 2A | WebSocket 服务器 + Action Frame 协议 | ✅ |
-| 2A' | 微信小程序骨架 + WS 客户端 | ✅ |
-| 2B | MySQL 持久化 + Redis 缓存 | ✅ |
-| 2C | 全服因果池 | ✅ |
-| 2D | GameEngine 重构注入 | ✅ |
-| 2E | 并发压力测试 | ✅ |
-
-### M3 Phase 进度
-
-| Phase | 内容 | 状态 |
-|-------|------|------|
-| 3A | 微信登录 + openid + msgSecCheck 内容安全 | ✅ |
-| 3B | 局外商店（模型/API/道具生效 + 前端页面） | ⏳ |
-| 3C | 名人堂读 API + 前端排行榜 + 战报图分享 | ⏳ |
-| 3D | 前端 UI 进阶（进度条/Modal/震动/图标/配置） | ⏳ |
-| 3E | 因果遮蔽卡前端特效 + 耳塞协议 + 集成测试 | ⏳ |
-| 3F | 玩法扩展规划落档（命格签 + 天道人格扩容） | ✅ |
-| 3G | 命格签系统（开局三选一 + 局内修正） | ✅ |
-| 3H | 天道人格扩容（4 → 8） | ✅ |
-| 3I | 国内云部署 + ICP 备案 + 微信审核 | ⏳ |
+| 里程碑 | 状态 | 说明 |
+|--------|------|------|
+| M1 核心因果流 | ✅ 已归档 | Python 后端 + CLI 原型闭环 |
+| M2 弱联机连接 | ✅ 已归档 | WebSocket + MySQL/Redis + 基础小程序 |
+| M3 客户端合流与微信生态 | 🔄 当前 | 已完成到 Phase 3K-2，下一步为 Phase 3L |
 
 ---
 
 ## 十六、当前进度
 
-### M1 模块状态 ✅
-
-全部 17 个模块完成，单元测试通过。
-
-### M2 模块状态 ✅
-
-| 模块 | 状态 |
-|------|------|
-| `server/interface/app.py` | ✅ Phase 2A |
-| `server/interface/ws.py` | ✅ Phase 2A |
-| `server/main.py --server` | ✅ Phase 2A |
-| `server/tests/smoke_test_ws.py` | ✅ Phase 2A (4 项) |
-| `server/tests/test_e2e_ws.py` | ✅ Phase 2A (26 项) |
-| `client/` (17 文件) | ✅ Phase 2A' |
-| `server/infrastructure/db.py` | ✅ Phase 2B |
-| `server/infrastructure/models.py` | ✅ Phase 2B |
-| `server/infrastructure/redis.py` | ✅ Phase 2B |
-| `server/infrastructure/storage.py` | ✅ Phase 2B |
-| `server/infrastructure/shared_state.py` | ✅ Phase 2C |
-| `server/infrastructure/karma_pool.py` | ✅ Phase 2C |
-| `server/application/game_engine.py` | ✅ Phase 2D（注入 SharedState + 怨念路由 + 重连 + 超时） |
-| `server/interface/ws.py` | ✅ Phase 2D（超时检测 + 断线重连 + 会话持久化） |
-| `server/interface/app.py` | ✅ Phase 2D（SharedState 初始化 + 怨念池后台任务） |
-| `server/tests/test_concurrency.py` | ✅ Phase 2E（13 项：5并发 + 高频刷新 + 流式 + 断线重连） |
-| `server/tests/test_e2e_ws.py` | ✅ Phase 2E（26 项 E2E WebSocket） |
-
-### M3 模块状态
-
-| 模块 | 状态 |
-|------|------|
-| `server/infrastructure/wechat/client.py` | ✅ Phase 3A（微信 API：登录 + token + 内容安全） |
-| `server/interface/app.py` | ✅ Phase 3A（/api/auth/login 端点） |
-| `server/interface/ws.py` | ✅ Phase 3A（msgSecCheck 内容安全审查） |
-| `server/config.py` | ✅ Phase 3A（WECHAT_APPID / SECRET / MSG_SEC_CHECK_ENABLED） |
-| `client/app.ts` | ✅ Phase 3A（wx.login → openid 换 player_id） |
-| `client/utils/config.ts` | ✅ Phase 3A（环境配置：BASE_URL / WS_URL） |
-| `client/utils/ws.ts` | ✅ Phase 3A（使用 config.ts 可配置地址） |
-| `server/tests/test_wechat.py` | ✅ Phase 3A（19 项） |
-
-**测试总计：244 项全部通过**
+请先读取 [PROJECT_STATUS.md](PROJECT_STATUS.md)。该文件维护：
+- 当前阶段与下一阶段；
+- 已完成 Phase；
+- 已知测试风险；
+- 后续需求 Backlog；
+- 推荐文档读取顺序。
 
 ---
 

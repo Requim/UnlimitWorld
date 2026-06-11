@@ -187,6 +187,7 @@ class TickResult:
         gamble_survive_count: int = 0,
         karma_pollution_score: int = 0,
         death_drama_score: int = 0,
+        karma_trace_hook: str = "",
     ):
         self.stage = stage
         self.log_text = log_text
@@ -214,6 +215,7 @@ class TickResult:
         self.gamble_survive_count = gamble_survive_count
         self.karma_pollution_score = karma_pollution_score
         self.death_drama_score = death_drama_score
+        self.karma_trace_hook = karma_trace_hook
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -462,6 +464,15 @@ class GameEngine:
 
         session.survival_seconds += settings.tick_interval
 
+        return self._build_local_tick_result(local, log_prefix)
+
+    def _build_local_tick_result(
+        self,
+        local: LocalEventResult,
+        log_prefix: str,
+    ) -> TickResult:
+        """组装普通事件 tick 返回帧，集中维护 3K 字段映射。"""
+        session = self.session
         return TickResult(
             stage=Stage.IDLE,
             log_text=f"{log_prefix}{local.log_text}",
@@ -487,6 +498,7 @@ class GameEngine:
             gamble_survive_count=getattr(local, "gamble_survive_count", 0),
             karma_pollution_score=getattr(local, "karma_pollution_score", 0),
             death_drama_score=getattr(local, "death_drama_score", 0),
+            karma_trace_hook=getattr(local, "karma_trace_hook", "") or "",
         )
 
     def _resolve_local_ambition_delta(self, local: LocalEventResult) -> int:

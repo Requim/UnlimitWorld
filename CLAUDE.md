@@ -12,13 +12,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 里程碑需求文档
 
-根据当前开发阶段，参考对应的里程碑需求文档：
+进入项目后先读取 [PROJECT_STATUS.md](PROJECT_STATUS.md)，它是当前开发进度、下一阶段和已知风险的唯一事实源。再根据当前阶段读取对应的里程碑需求文档：
 
 - **M1 阶段 ✅（已完成）：** [M1-core-gameplay.md](M1-core-gameplay.md) — 核心玩法与数学公式验证原型 (CLI 版)
 - **M2 阶段 ✅（已完成）：** [M2-networking.md](M2-networking.md) — 弱联机全生态与网络层建设 (WebSocket + Web 版)
 - **M3 阶段（当前）：** [M3-client-launch.md](M3-client-launch.md) — 客户端全量合流与微信生态上架 (小程序商业版)
 
-当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）、玩法扩展首轮 Phase 3F/3G/3H（规划落档 + 命格签 + 天道人格扩容）、Phase 3I（目标感闭环：本局执念 + 多榜单 + 盖棺定论）、Phase 3J（异步因果偷渡：KarmaTrace 入池/触发/主动遗言）与 Phase 3K-1（普通事件分池 + 轻选择自动结算 + 人格权重 + 执念推进）；下一轮优先收口 Phase 3K-2（轻选择前端体验/局内统计/差异化 KarmaTrace hook），国内云部署与微信审核顺延为 Phase 3L。
+当前开发焦点、下一阶段、验证状态与 Backlog 以 [PROJECT_STATUS.md](PROJECT_STATUS.md) 为准；本文件只保留协作规则、阶段门控与架构约束。
 
 编码时优先读取对应阶段的需求文档，确保实现与 PRD 一致。
 
@@ -26,13 +26,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 每进入一个新阶段，必须遵循以下流程：
 
-**Step 1 — 需求分析：** 调用 `/grill-me` skill 对当前阶段需求文档进行深度分析。逐项审查每个系统需求的实现细节、边界条件、潜在风险，并与已有代码对照找出偏差。
+**Step 1 — Plan Mode 需求分析：** 先进入 Plan Mode，对当前阶段需求文档进行只读分析与计划制定。逐项审查系统需求、范围边界、接口/数据流、验收标准、潜在风险，并与已有代码对照找出偏差。Plan Mode 阶段只能做只读探索和计划输出，不得直接修改文件或实施功能。
 
-**Step 2 — 文档更新：** 将分析结论写回需求文档（作为新章节，如「需求分析记录」），记录所有设计决策、文档与代码偏差、预埋钩子等。
+**Step 2 — 计划确认与文档更新：** 用户确认 Plan Mode 输出的 `<proposed_plan>` 后，将计划摘要和关键决策写回对应需求文档（作为新章节，如「需求分析记录」），记录设计决策、文档与代码偏差、预埋钩子、测试计划等。
 
-**Step 3 — 实现与验证：** 按需求实现功能。全部完成后运行全量测试确认覆盖率 100%，对照验收标准逐项检查。
+**Step 3 — 执行模式实现与验证：** 退出 Plan Mode / 进入执行模式后，按已确认计划实现功能。全部完成后运行对应测试，必要时运行全量测试，对照验收标准逐项检查。
 
-**Step 4 — 阶段切换判定：** 确认当前阶段所有验收项达标后，更新本文件中的阶段完成状态（✅），将下一阶段标记为（当前），然后进入 Step 1。
+**Step 4 — 阶段切换判定：** 确认当前阶段所有验收项达标后，先更新 `PROJECT_STATUS.md` 中的当前阶段、完成状态、下一阶段与已知风险，再同步对应 `M*.md` 的阶段状态，然后进入 Step 1。
 
 严禁跳过任一阶段直接编码，严禁在未完成当前阶段验收的情况下切换到下一阶段。
 
@@ -57,7 +57,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 纯 bugfix、局部样式微调、变量重命名、格式化、typo、少量测试补充
 - 不改变设计约定、验收结论或跨模块行为的内部实现细节
 
-`AGENTS.md` / `CLAUDE.md` 只记录阶段状态、工作流程和当前开发焦点；具体流水、设计决策、验收记录写入对应 `M*.md`。
+`PROJECT_STATUS.md` 记录当前阶段状态、下一步、风险和 Backlog；`AGENTS.md` / `CLAUDE.md` 只记录工作流程与协作规则；具体流水、设计决策、验收记录写入对应 `M*.md`。
 
 ## 项目身份
 

@@ -1,5 +1,7 @@
 # Milestone 1：核心玩法与数学公式验证原型 (CLI 版)
 
+> 状态：已完成并归档。当前开发进度请先读取 [PROJECT_STATUS.md](PROJECT_STATUS.md)。
+
 ## 1. 阶段目标
 
 本阶段属于核心可玩性原型（Prototype）验证。不引入微信小程序、不引入数据库、不引入网络通信。通过纯 Python 控制台（CLI）交互，闭环验证：
@@ -40,7 +42,7 @@ $$P_{final} = P_{base} + (1 - P_{base}) \times \left( \frac{S_{current}}{S_{max}
 
 ---
 
-## 4. 需求分析记录（/grill-me 深度分析）
+## 4. 历史需求分析记录
 
 > 分析日期：2026-05-20 | 分析人：Claude Code
 

@@ -459,9 +459,10 @@ class TestSubmitDecision:
         assert result.settlement is not None
 
     @pytest.mark.asyncio
-    async def test_destiny_custom_text_bonus_applies(self):
+    async def test_destiny_custom_text_bonus_applies(self, monkeypatch):
         engine = GameEngine()
         engine.new_game(destiny_sign_id="sharp_tongue")
+        monkeypatch.setattr("server.application.game_engine.roll_death_check", lambda *_: False)
 
         mock_orch = _make_mock_orchestrator(
             LLMOutput(

@@ -1,5 +1,40 @@
 # Milestone 3：客户端全量合流与微信生态上架 (小程序商业版)
 
+> 当前进度以 [PROJECT_STATUS.md](PROJECT_STATUS.md) 为唯一事实源。本文档保留 M3 基线需求、当前阶段计划、实施记录和历史归档。
+
+## 0. 当前进度快照
+
+- **当前阶段：** M3 进行中，已完成到 Phase 3K-2。
+- **下一阶段：** Phase 3L（国内云部署、ICP 备案、微信审核提交）。
+- **已完成主线：** 3A、3D/3E、3F、3G、3H、3I、3J、3K-1、3K-2。
+- **已知测试风险：** 旧并发/重连测试仍假设开局第一帧为 `SC_GAME_LOG`；3I 后真实协议先返回 `SC_DESTINY_OFFER`，需要后续测试适配。
+
+### 0.1 Phase 状态表
+
+| Phase | 状态 | 当前判断 |
+|-------|------|----------|
+| 3A | ✅ 完成 | 微信登录、openid 绑定、msgSecCheck 内容安全 |
+| 3B/3C | ✅ 已合流到后续实现 | 局外商店与 Hall 能力已在后续 Phase 中落地，README 不再单独维护旧状态 |
+| 3D/3E | ✅ 完成 | 前端体验、道具消费、内容安全处罚、协议补丁 |
+| 3F | ✅ 完成 | 玩法扩展规划 |
+| 3G | ✅ 完成 | 命格签系统 |
+| 3H | ✅ 完成 | 天道人格扩容 |
+| 3I | ✅ 完成 | 本局执念、多榜单、盖棺定论 |
+| 3J | ✅ 完成 | KarmaTrace 入池、触发、主动遗言 |
+| 3K-1 | ✅ 完成 | 普通事件分池、轻选择自动结算、人格权重、执念推进 |
+| 3K-2 | ✅ 完成 | 轻选择前端体验、局内统计、差异化 KarmaTrace hook |
+| 3L | ⏭ 下一步 | 国内云部署、ICP 备案、微信审核 |
+
+### 0.2 Phase 3L 当前需求
+
+目标：进入国内云部署、ICP 备案、微信审核提交的上架准备阶段。
+
+验收方向：
+- 正式域名、HTTPS、WebSocket 域名与微信小程序后台配置对齐。
+- 国内云部署路径、服务守护和环境变量方案明确。
+- ICP、隐私合规、内容安全审核材料完成。
+- 保留已有 M3 玩法能力，不在 3L 引入新玩法范围。
+
 ## 1. 阶段目标
 
 本阶段将前端（微信原生小程序）与后端进行全量合流。完善因果遮蔽卡、60秒对线超时等核心游戏机制，并对接微信内容合规、广告/支付组件，最终完成在微信平台的上线。
@@ -38,9 +73,10 @@
 
 ---
 
-## 5. 需求分析记录（/grill-me 深度分析）
+## 5. 历史需求分析与实施记录
 
 > 分析日期：2026-05-21 | 分析人：Claude Code | 代码基线：M2 commit 871ddc7（225 测试全部通过）
+> 注意：5.1 - 5.6 是 M3 初始基线分析，部分状态已被后续 Phase 覆盖。当前进度以本文 0 节和 `PROJECT_STATUS.md` 为准。
 
 ### 5.1 现状总览：M2→M3 的起点状态
 
@@ -159,9 +195,9 @@ M2 Phase 2D 已实现：
 
 M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行）、game/shop/hall 三页面 WXSS 重写，效果显著。M3 延续此流程。
 
-### 5.6 建议 Phase 拆分
+### 5.6 初始 Phase 拆分（历史基线）
 
-基于以上分析，M3 建议拆分为 6 个 Phase：
+基于 2026-05-21 的起点分析，M3 曾建议拆分为以下 Phase。该表保留为历史基线，不再作为当前进度判断依据。
 
 | Phase | 内容 | 类型 | 前端设计 | 状态 |
 |-------|------|------|----------|------|
@@ -266,7 +302,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 - `python -m pytest server\tests\test_shop.py server\tests\test_wechat.py server\tests\test_e2e_ws.py -q`：59 passed, 9 skipped。
 - `python -m compileall server -q`：通过。
 
-### 5.10 Phase 3F 玩法扩展规划记录（/grill-me 深度分析）
+### 5.10 Phase 3F 玩法扩展规划记录
 
 > 分析日期：2026-05-22 | 分析人：Codex | 范围：命格签系统 + 天道人格扩容 | 结论：先做 3F 文档落档，再按 3G / 3H 分阶段实施
 
@@ -411,7 +447,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 |-------|----------|
 | 3H | 后续可在真机联调阶段补一轮截图审校，确认新人格名在前端标题与日志中的可读性 |
 
-### 5.13 Phase 3D/3E 收口分析与协议补丁记录（/grill-me 深度分析）
+### 5.13 Phase 3D/3E 收口分析与协议补丁记录
 
 > 分析/实施日期：2026-05-23 | 实施人：Codex | 范围：前端天谴进度展示契约收口 | 测试：93 passed, 14 skipped（WebSocket / Shop / Hall / WeChat / LLM 定向套件）
 
@@ -523,26 +559,13 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
   - 结果：通过
 
 
-### 5.16 Phase 3D/3E ??????????
+### 5.16 Phase 3D/3E 历史乱码记录（待核对）
 
-> ?????2026-05-25 | ????Codex | ????????????????? + ????????????????
+> 记录日期：2026-05-25 | 记录人：Codex | 说明：本段原文已出现编码损坏，仅作为历史占位，不作为当前需求或进度依据。
 
-#### ?????
-- ??? `SC_EVENT_SETTLEMENT` ???????????????????????????????????
-- ????????? `story_text` ????????????????????????????????????????
+原记录正文已不可读，后续开发不得引用本节作为需求、设计决策或验收依据。
 
-#### ????
-- ?? `LLMOutput` / `EventSettlement` ?? `reason_text` ? `verdict_text`??? `story_text` ???????
-- ??????????? `reason_text`?????????????????
-- ??????? `verdict_text`???? Game Over ????? 3 ?????????????????????
-- ???????? `verdict_text`???????? `event_title` / `dead_title`???????????
-
-#### ?????
-- Heaven / Resentment ????????? reason?????? verdict?
-- ?????????????????????????
-- ? fallback ?? JSON ??????????
-
-### 5.17 Phase 3I/3J/3K 目标感与异步因果玩法方案（/grill-me 深度分析）
+### 5.17 Phase 3I/3J/3K 目标感与异步因果玩法方案
 
 > 分析日期：2026-05-26 | 分析人：Codex | 范围：本局目标感、多榜单、弱社交因果偷渡、平常事件扩展 | 结论：部署上架前先补齐“每局以什么方式被世界记住”的玩法闭环
 
@@ -559,7 +582,7 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 - 作恶可以因果污染上榜；
 - 前人死亡可以变成后来者的事件内容。
 
-#### /grill-me 关键设计树与推荐答案
+#### 关键设计树与推荐答案
 
 | 问题 | 推荐答案 |
 |------|----------|
@@ -1138,3 +1161,42 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3K-2 | 若真机体验需要，可把轻选择从自动结算升级成局中短弹窗选择，但需先设计与 `EVENT_TRIGGER` 的状态机边界 |
 | 3K | `leaderboard_score_delta` 等局中分数暂未持久化，后续可接入局内统计面板或终局结算加权 |
 | 3K | `karma_trace_hook` 目前是配置语义钩子，尚未按不同 hook 生成差异化 KarmaTrace 投放事件 |
+
+### 5.27 Phase 3K-2 轻选择体验与 KarmaTrace hook 收口记录
+
+> 实施日期：2026-06-11 | 实施人：Codex | 范围：轻选择前端展示 + 局内统计累计 + 差异化 KarmaTrace hook | 测试：144 passed, 9 skipped（EventConfig / GameEngine / WebSocket E2E / Shop 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/application/game_engine.py` | `TickResult` 贯通 `karma_trace_hook`，普通事件结果携带 hook 到 WS 层 |
+| `server/interface/ws.py` | `SC_GAME_LOG` 下发 `karma_trace_hook`；KarmaTrace 投放按 `taunt_inscription / grave_warning / corpse_note / mislead_choice / last_words` 生成差异化标签与轻量统计效果 |
+| `client/pages/game/game.ts` | 读取 `event_pool / risk_level / chosen_choice / karma_trace_hook`，累计局内 3K 统计，不再让非 3K 帧清空上一条轻选择展示 |
+| `client/pages/game/game.wxml` | 挂机页新增 3K 信息面板：事件池、风险等级、hook、轻选择自动结算结果、局内统计 |
+| `client/pages/game/game.wxss` | 增加紧凑 3K 面板样式，沿用水墨/金色/朱砂视觉体系 |
+| `server/tests/test_e2e_ws.py` | 扩展 `SC_GAME_LOG` 契约，校验 3K-2 字段 |
+| `server/tests/test_shop.py` | 覆盖 KarmaTrace trap/gift 在不同 hook 下的差异化日志、统计与 harm 回写 |
+
+#### 设计决策
+
+- **不新增阻塞式轻选择状态机**：3K-2 继续沿用 3K-1 的自动结算边界，只把结果可视化，避免普通挂机事件抢占天道对线的 `AWAIT_DECISION`。
+- **局内统计只展示不持久化**：`leaderboard_score_delta` 等字段先作为本局反馈累计，不直接写入正式排行榜，避免挂机刷榜。
+- **hook 做轻量差异化**：`karma_trace_hook` 先影响投放标签、日志文案和少量统计/天谴效果，不引入数据库筛选或复杂归因。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_event_config.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py server\tests\test_shop.py -q`
+  - 结果：144 passed, 9 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+- `npx -p typescript tsc -p client\tsconfig.json --noEmit`
+  - 结果：未通过，仍受既有工具链阻塞影响：缺少 `wechat-miniprogram` 类型定义，TypeScript 6 对 `moduleResolution/baseUrl` 报弃用提示。
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3L | 国内云部署、ICP 备案、微信审核提交 |
+| M3 后续 | 若真机验证显示自动结算反馈仍不够强，再设计非阻塞短弹窗；不要直接复用天道对线状态机 |
+| M3 后续 | `death_caused_count` 仍未接入真实死亡归因，可在高危因果事件阶段补 |

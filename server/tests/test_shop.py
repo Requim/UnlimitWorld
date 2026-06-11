@@ -294,13 +294,15 @@ class TestKarmaTraceTickEvents:
             event_type="LOCAL",
             sin_value=0,
             foundation=engine.session.foundation,
+            karma_trace_hook="mislead_choice",
         )
 
         await _maybe_apply_karma_trace_event(mgr, engine, result)
 
-        assert "因果偷渡" in result.log_text
-        assert engine.session.sin_value == 3
-        assert repo.marked == [(7, 3, False)]
+        assert "误导残响" in result.log_text
+        assert engine.session.sin_value == 4
+        assert result.gamble_survive_count == 1
+        assert repo.marked == [(7, 4, False)]
 
     @pytest.mark.asyncio
     async def test_maybe_apply_karma_trace_gift(self, monkeypatch):
@@ -335,12 +337,14 @@ class TestKarmaTraceTickEvents:
             event_type="LOCAL",
             sin_value=0,
             foundation=old_foundation,
+            karma_trace_hook="last_words",
         )
 
         await _maybe_apply_karma_trace_event(mgr, engine, result)
 
-        assert "前人馈赠" in result.log_text
-        assert engine.session.foundation == min(100, old_foundation + 1)
+        assert "前人遗言·前人馈赠" in result.log_text
+        assert result.death_drama_score == 1
+        assert engine.session.foundation == min(100, old_foundation + 2)
         assert repo.marked == [(8, 0, False)]
 
 

@@ -548,6 +548,71 @@
   letter-spacing: 1rpx;
 }
 
+.phase3k-panel {
+  margin: 0 26rpx 16rpx;
+  padding: 18rpx 20rpx;
+  border: 1rpx solid rgba(156, 139, 111, 0.32);
+  border-radius: 8rpx;
+  background: rgba(255, 252, 247, 0.82);
+  box-shadow: 0 10rpx 24rpx rgba(90, 78, 58, 0.08);
+}
+
+.phase3k-meta,
+.run-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.phase3k-chip,
+.run-stat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42rpx;
+  padding: 0 14rpx;
+  border-radius: 6rpx;
+  background: rgba(34, 30, 24, 0.08);
+  color: var(--text-mist);
+  font-size: 21rpx;
+  letter-spacing: 1rpx;
+}
+
+.phase3k-chip.risk-medium {
+  color: var(--gold-leaf);
+  background: rgba(203, 162, 91, 0.12);
+}
+
+.phase3k-chip.risk-high {
+  color: var(--cinnabar);
+  background: rgba(176, 51, 38, 0.1);
+}
+
+.light-choice-card {
+  margin-top: 14rpx;
+  padding-top: 14rpx;
+  border-top: 1rpx solid rgba(156, 139, 111, 0.2);
+}
+
+.light-choice-label {
+  display: block;
+  font-size: 20rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 4rpx;
+}
+
+.light-choice-text {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--ink-strong);
+  font-size: 24rpx;
+  line-height: 1.55;
+  letter-spacing: 0;
+}
+
+.run-stats {
+  margin-top: 14rpx;
+}
+
 .epitaph-board {
   display: flex;
   justify-content: center;

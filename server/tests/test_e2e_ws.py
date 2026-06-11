@@ -379,6 +379,8 @@ class TestDownstreamFrameStructure:
                 assert key in resp, f"SC_GAME_LOG 缺少字段: {key}"
             for key in ("ambition_progress", "ambition_target", "ambition_progress_label", "event_pool", "risk_level"):
                 assert key in resp, f"SC_GAME_LOG 缺少 3K 字段: {key}"
+            for key in ("chosen_choice", "leaderboard_score_delta", "taunt_count", "gamble_survive_count", "karma_pollution_score", "death_drama_score", "karma_trace_hook"):
+                assert key in resp, f"SC_GAME_LOG 缺少 3K-2 字段: {key}"
             assert resp["sin_max"] == REALM_CONFIG[1]["sin_max"]
 
     def test_sc_pong_format(self, client, fast_tick):

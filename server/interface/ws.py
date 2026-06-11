@@ -195,6 +195,7 @@ def _build_game_log(result: TickResult) -> dict:
         "gamble_survive_count": result.gamble_survive_count,
         "karma_pollution_score": result.karma_pollution_score,
         "death_drama_score": result.death_drama_score,
+        "karma_trace_hook": result.karma_trace_hook,
     }
 
 
@@ -209,6 +210,7 @@ def _empty_phase3k_log_fields() -> dict:
         "gamble_survive_count": 0,
         "karma_pollution_score": 0,
         "death_drama_score": 0,
+        "karma_trace_hook": "",
     }
 
 
@@ -688,6 +690,44 @@ def _build_karma_trace_message(engine: GameEngine, settlement: EventSettlement, 
     return f"前人【{player_name}】在此留下因果遗毒：{title}。天道看完后笑了一声。"
 
 
+def _karma_hook_label(hook: str) -> str:
+    """把 3K 语义 hook 映射为玩家可读的投放标签。"""
+    labels = {
+        "taunt_inscription": "嘴硬碑文",
+        "grave_warning": "墓碑警示",
+        "corpse_note": "尸骸批注",
+        "mislead_choice": "误导残响",
+        "last_words": "前人遗言",
+    }
+    return labels.get(hook, "因果偷渡")
+
+
+def _apply_hook_side_effect(engine: GameEngine, result: TickResult, hook: str) -> int:
+    """按事件 hook 追加轻量差异化效果，返回额外 harm。"""
+    session = engine.session
+    if not session:
+        return 0
+    if hook == "taunt_inscription":
+        result.taunt_count += 1
+        result.karma_pollution_score += 1
+        return 1
+    if hook == "grave_warning":
+        result.death_drama_score += 1
+        return 0
+    if hook == "corpse_note":
+        result.karma_pollution_score += 1
+        return 0
+    if hook == "mislead_choice":
+        result.gamble_survive_count += 1
+        return 1
+    if hook == "last_words":
+        result.death_drama_score += 1
+        session.foundation = min(100, session.foundation + 1)
+        result.foundation = session.foundation
+        return 0
+    return 0
+
+
 async def _maybe_apply_karma_trace_event(mgr: ConnectionManager, engine: GameEngine, result: TickResult):
     """普通挂机日志低概率触发前人因果痕迹。"""
     if not mgr._karma_trace_repo or not engine.session:
@@ -704,19 +744,22 @@ async def _maybe_apply_karma_trace_event(mgr: ConnectionManager, engine: GameEng
     session = engine.session
     trace_id = int(trace["trace_id"])
     trace_type = trace.get("trace_type", "trap")
+    hook = result.karma_trace_hook or ""
+    hook_label = _karma_hook_label(hook)
     if trace_type == "gift":
         session.foundation = min(100, session.foundation + 1)
         result.foundation = session.foundation
-        result.log_text += f" 【前人馈赠】{trace['message']} 根基 +1。"
+        _apply_hook_side_effect(engine, result, hook)
+        result.log_text += f" 【{hook_label}·前人馈赠】{trace['message']} 根基 +1。"
         await mgr._karma_trace_repo.mark_triggered(trace_id, harm_delta=0)
         return
 
-    harm = max(1, int(trace.get("toxicity_score", 1)))
+    harm = max(1, int(trace.get("toxicity_score", 1))) + _apply_hook_side_effect(engine, result, hook)
     sin_max = REALM_CONFIG[session.realm_code]["sin_max"]
     session.sin_value = min(sin_max, session.sin_value + harm)
     result.sin_value = session.sin_value
     result.sin_phase = session.sin_phase()
-    result.log_text += f" 【因果偷渡】{trace['message']} 天谴 +{harm}。"
+    result.log_text += f" 【{hook_label}】{trace['message']} 天谴 +{harm}。"
     await mgr._karma_trace_repo.mark_triggered(trace_id, harm_delta=harm)
 
 

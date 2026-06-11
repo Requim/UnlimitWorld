@@ -27,6 +27,14 @@ type AmbitionOffer = {
   reward_hint: string;
 };
 type StreamSegment = 'event_title' | 'reason_text' | 'verdict_text' | 'story_text';
+type LightChoice = { id?: string; text?: string; result_text?: string; effects?: Record<string, unknown> };
+type RunStats = {
+  leaderboardScoreDelta: number;
+  tauntCount: number;
+  gambleSurviveCount: number;
+  karmaPollutionScore: number;
+  deathDramaScore: number;
+};
 
 function normalizeOffers<T>(rawOffers: unknown): T[] {
   if (Array.isArray(rawOffers)) return rawOffers as T[];
@@ -86,6 +94,39 @@ function resolveSinMax(frame: WsFrame, fallbackRealm: string): number {
   return getSinMaxByRealm(fallbackRealm);
 }
 
+function getNumber(frame: WsFrame, key: string): number {
+  const value = frame[key];
+  return typeof value === 'number' ? value : 0;
+}
+
+function normalizeChoice(raw: unknown): LightChoice | null {
+  if (!raw || typeof raw !== 'object') return null;
+  return raw as LightChoice;
+}
+
+function buildChoiceSummary(choice: LightChoice | null): string {
+  if (!choice) return '';
+  return (choice.result_text || choice.text || '').trim();
+}
+
+function hasRunStats(stats: RunStats): boolean {
+  return Object.values(stats).some((value) => value > 0);
+}
+
+function hasPhase3kFrame(frame: WsFrame): boolean {
+  return Boolean(
+    frame.event_pool
+    || frame.risk_level
+    || frame.chosen_choice
+    || frame.karma_trace_hook
+    || getNumber(frame, 'leaderboard_score_delta') > 0
+    || getNumber(frame, 'taunt_count') > 0
+    || getNumber(frame, 'gamble_survive_count') > 0
+    || getNumber(frame, 'karma_pollution_score') > 0
+    || getNumber(frame, 'death_drama_score') > 0,
+  );
+}
+
 Page({
   data: {
     uiState: UIState.CONNECTING as string,
@@ -107,6 +148,19 @@ Page({
     ambitionProgress: 0 as number,
     ambitionTarget: 0 as number,
     ambitionProgressLabel: '' as string,
+    eventPool: '' as string,
+    riskLevel: '' as string,
+    karmaTraceHook: '' as string,
+    lightChoiceText: '' as string,
+    showLightChoice: false,
+    runStats: {
+      leaderboardScoreDelta: 0,
+      tauntCount: 0,
+      gambleSurviveCount: 0,
+      karmaPollutionScore: 0,
+      deathDramaScore: 0,
+    } as RunStats,
+    hasRunStats: false,
     triggerTitle: '' as string,
     triggerDescription: '' as string,
     triggerOptions: [] as { id: string; label: string }[],
@@ -278,6 +332,19 @@ Page({
       ambitionProgress: 0,
       ambitionTarget: 0,
       ambitionProgressLabel: '',
+      eventPool: '',
+      riskLevel: '',
+      karmaTraceHook: '',
+      lightChoiceText: '',
+      showLightChoice: false,
+      runStats: {
+        leaderboardScoreDelta: 0,
+        tauntCount: 0,
+        gambleSurviveCount: 0,
+        karmaPollutionScore: 0,
+        deathDramaScore: 0,
+      },
+      hasRunStats: false,
       triggerTitle: '',
       triggerDescription: '',
       triggerOptions: [],
@@ -445,12 +512,38 @@ Page({
     }
 
     const now = Date.now();
+    const nextStats = {
+      leaderboardScoreDelta: this.data.runStats.leaderboardScoreDelta + getNumber(frame, 'leaderboard_score_delta'),
+      tauntCount: this.data.runStats.tauntCount + getNumber(frame, 'taunt_count'),
+      gambleSurviveCount: this.data.runStats.gambleSurviveCount + getNumber(frame, 'gamble_survive_count'),
+      karmaPollutionScore: this.data.runStats.karmaPollutionScore + getNumber(frame, 'karma_pollution_score'),
+      deathDramaScore: this.data.runStats.deathDramaScore + getNumber(frame, 'death_drama_score'),
+    };
+    const chosenChoice = normalizeChoice(frame.chosen_choice);
+    const choiceSummary = buildChoiceSummary(chosenChoice);
+    const shouldUpdatePhase3k = hasPhase3kFrame(frame);
+    const phase3kState = shouldUpdatePhase3k
+      ? {
+          eventPool: (frame.event_pool as string) || '',
+          riskLevel: (frame.risk_level as string) || '',
+          karmaTraceHook: (frame.karma_trace_hook as string) || '',
+          lightChoiceText: choiceSummary,
+          showLightChoice: Boolean(choiceSummary),
+          runStats: nextStats,
+          hasRunStats: hasRunStats(nextStats),
+        }
+      : {
+          runStats: nextStats,
+          hasRunStats: hasRunStats(nextStats),
+        };
+
     if (now - lastStatusUpdate >= 1000) {
       lastStatusUpdate = now;
       const realm = ((frame.realm as string) ?? this.data.realm) as string;
       const sinValue = ((frame.sin_value as number) ?? this.data.sinValue) as number;
       const sinMax = resolveSinMax(frame, realm);
       this.setData({
+        ...phase3kState,
         cultivation: (frame.cultivation as number) ?? this.data.cultivation,
         sinValue,
         luck: (frame.luck as number) ?? this.data.luck,
@@ -464,6 +557,8 @@ Page({
         ambitionTarget: (frame.ambition_target as number) ?? this.data.ambitionTarget,
         ambitionProgressLabel: (frame.ambition_progress_label as string) || this.data.ambitionProgressLabel,
       });
+    } else {
+      this.setData(phase3kState);
     }
 
     if (this.data.uiState !== UIState.IDLE) {
