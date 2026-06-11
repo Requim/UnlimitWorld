@@ -4,6 +4,20 @@
 # Logs: docker compose logs -f app
 
 services:
+  caddy:
+    image: caddy:2-alpine
+    container_name: tiandao-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - app
+
   mysql:
     image: mysql:8.0
     container_name: tiandao-mysql
@@ -44,8 +58,7 @@ services:
     container_name: tiandao-app
     restart: unless-stopped
     ports:
-      - "${SERVER_PORT:-8000}:8000"
-      - "80:8000"
+      - "127.0.0.1:${SERVER_PORT:-8000}:8000"
     env_file:
       - ./.env
     environment:
@@ -67,5 +80,7 @@ services:
         condition: service_healthy
 
 volumes:
+  caddy_data:
+  caddy_config:
   mysql_data:
   redis_data:
