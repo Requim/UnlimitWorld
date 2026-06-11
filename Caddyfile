@@ -2,7 +2,7 @@ http://47.109.108.225 {
 	reverse_proxy app:8000
 }
 
-47.109.108.225.sslip.io {
+myunlimatedlife.top {
 	encode zstd gzip
 	reverse_proxy app:8000
 }
