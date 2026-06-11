@@ -124,51 +124,53 @@
     </view>
   </view>
 
-  <view wx:if="{{uiState === 'idle'}}" class="content-area">
-    <view wx:if="{{ambitionTitle}}" class="ambition-ribbon">
-      <text class="ambition-ribbon-label">本局执念</text>
-      <text class="ambition-ribbon-title">{{ambitionTitle}}</text>
-      <text wx:if="{{ambitionTarget > 0}}" class="ambition-ribbon-progress">
-        {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
-      </text>
-    </view>
-    <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
-      <view class="phase3k-meta">
-        <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
-        <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
-        <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>
+  <view wx:if="{{uiState === 'idle'}}" class="content-area idle-content">
+    <scroll-view class="idle-scroll" scroll-y scroll-into-view="log-end">
+      <view wx:if="{{ambitionTitle}}" class="ambition-ribbon">
+        <text class="ambition-ribbon-label">本局执念</text>
+        <text class="ambition-ribbon-title">{{ambitionTitle}}</text>
+        <text wx:if="{{ambitionTarget > 0}}" class="ambition-ribbon-progress">
+          {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
+        </text>
       </view>
-      <view wx:if="{{showLightChoice}}" class="light-choice-card">
-        <text class="light-choice-label">轻选择自动结算</text>
-        <text class="light-choice-text">{{lightChoiceText}}</text>
-      </view>
-      <view wx:if="{{hasRunStats}}" class="run-stats">
-        <text wx:if="{{runStats.leaderboardScoreDelta > 0}}" class="run-stat">榜 +{{runStats.leaderboardScoreDelta}}</text>
-        <text wx:if="{{runStats.tauntCount > 0}}" class="run-stat">嘴硬 {{runStats.tauntCount}}</text>
-        <text wx:if="{{runStats.gambleSurviveCount > 0}}" class="run-stat">赌命 {{runStats.gambleSurviveCount}}</text>
-        <text wx:if="{{runStats.karmaPollutionScore > 0}}" class="run-stat">污染 {{runStats.karmaPollutionScore}}</text>
-        <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
-      </view>
-    </view>
-    <view class="idle-hero">
-      <view class="meditation-loader idle-loader">
-        <view class="meditation-aura aura-outer"></view>
-        <view class="meditation-aura aura-inner"></view>
-        <view class="cultivator cultivator-idle">
-          <view class="cultivator-head"></view>
-          <view class="cultivator-body"></view>
-          <view class="cultivator-arm arm-left"></view>
-          <view class="cultivator-arm arm-right"></view>
-          <view class="cultivator-leg leg-left"></view>
-          <view class="cultivator-leg leg-right"></view>
-          <view class="cultivator-cushion"></view>
+      <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
+        <view class="phase3k-meta">
+          <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
+          <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
+          <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>
+        </view>
+        <view wx:if="{{showLightChoice}}" class="light-choice-card">
+          <text class="light-choice-label">轻选择自动结算</text>
+          <text class="light-choice-text">{{lightChoiceText}}</text>
+        </view>
+        <view wx:if="{{hasRunStats}}" class="run-stats">
+          <text wx:if="{{runStats.leaderboardScoreDelta > 0}}" class="run-stat">榜 +{{runStats.leaderboardScoreDelta}}</text>
+          <text wx:if="{{runStats.tauntCount > 0}}" class="run-stat">嘴硬 {{runStats.tauntCount}}</text>
+          <text wx:if="{{runStats.gambleSurviveCount > 0}}" class="run-stat">赌命 {{runStats.gambleSurviveCount}}</text>
+          <text wx:if="{{runStats.karmaPollutionScore > 0}}" class="run-stat">污染 {{runStats.karmaPollutionScore}}</text>
+          <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
         </view>
       </view>
-      <text class="idle-title">静坐吐纳中</text>
-      <text class="idle-subtitle">事件刷新会落在修士下方，像一卷缓慢展开的手札</text>
-    </view>
-    <scroll-view class="log-container" scroll-y scroll-into-view="log-end">
-      <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
+      <view class="idle-hero">
+        <view class="meditation-loader idle-loader">
+          <view class="meditation-aura aura-outer"></view>
+          <view class="meditation-aura aura-inner"></view>
+          <view class="cultivator cultivator-idle">
+            <view class="cultivator-head"></view>
+            <view class="cultivator-body"></view>
+            <view class="cultivator-arm arm-left"></view>
+            <view class="cultivator-arm arm-right"></view>
+            <view class="cultivator-leg leg-left"></view>
+            <view class="cultivator-leg leg-right"></view>
+            <view class="cultivator-cushion"></view>
+          </view>
+        </view>
+        <text class="idle-title">静坐吐纳中</text>
+        <text class="idle-subtitle">事件刷新会落在修士下方，像一卷缓慢展开的手札</text>
+      </view>
+      <view class="log-container">
+        <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
+      </view>
       <view id="log-end"></view>
     </scroll-view>
   </view>

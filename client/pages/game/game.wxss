@@ -696,10 +696,18 @@
 /* ═══════════════════════════════════════════
    状态 2：挂机中（IDLE）— 修炼日志
    ═══════════════════════════════════════════ */
-.log-container {
+.idle-content {
+  min-height: 0;
+}
+
+.idle-scroll {
   flex: 1;
-  padding: 12rpx 24rpx 20rpx;
-  overflow-y: auto;
+  min-height: 0;
+  height: 100%;
+}
+
+.log-container {
+  padding: 12rpx 24rpx 28rpx;
 }
 
 .idle-hero {
