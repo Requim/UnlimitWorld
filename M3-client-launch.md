@@ -1073,3 +1073,68 @@ M2 Phase 2A' 已用该 skill 完成全局设计系统重塑（`app.wxss` 478 行
 | 3J | `death_caused_count` 仍未接入真实死亡归因，后续高危因果事件可补 |
 | 3K | 普通事件分池/轻选择可以把 KarmaTrace 从“日志增强”升级成“可反制选择事件” |
 | 3K | Hall/分享图可继续按因果污染榜生成专属战报 |
+
+### 5.25 Phase 3K-1 平常事件扩展启动分析
+
+> 分析日期：2026-06-11 | 分析人：Codex | 范围：普通事件分池 + 轻选择元数据 + 人格权重 + 执念推进 | 结论：先做后端可验收闭环，轻选择首版自动结算，不新增长期状态机
+
+#### 需求分析记录
+
+- **现有代码基线**：普通事件由 `server/infrastructure/event_config.py::generate_local_event()` 从 `common / realm_specific / sin_conditional` 三层池抽取，`GameEngine._process_local_event()` 和 `_trigger_resentment_local_event()` 直接把结果应用到当局状态，`SC_GAME_LOG` 已能下发执念进度字段。
+- **主要偏差**：M3 文档要求至少 4 个普通事件池和 10 条轻选择事件；当前默认 JSON 只有三层池，且 `LocalEventResult` 不携带事件池、选择、执念标签、榜单标签或人格权重。
+- **阶段边界**：3K 首轮不把普通事件升级为 `EVENT_TRIGGER` 决策弹窗。轻选择先作为本地事件的“自动采用结果”落地，日志中展示被采用的选择，后续真机联调后再决定是否加入局中弹窗。
+- **兼容策略**：新 schema 字段全部可选；旧事件仍走旧三层池和旧模板渲染路径。`common / realm_specific / sin_conditional` 保留，新增 `normal_pools` 作为 3K 多池入口。
+- **人格权重策略**：首版只影响普通事件池抽样权重，不改暴毙公式、PRD 阈值或 LLM 裁决。至少覆盖 `因果账房先生 / 命盘赌坊主 / 朱笔记仇官 / 玉律监考官 / 混沌乐子人`。
+- **执念推进策略**：普通事件根据 `ambition_tags` 与 `choices[*].effects.ambition_progress_delta` 推进 `PlayerState.ambition_progress`，且不超过 `ambition_target`。本轮优先覆盖嘴硬、赌命、功德、因果污染等可由普通事件表达的执念。
+- **榜单/分数策略**：本轮只把轻选择产生的 `leaderboard_score_delta / taunt_count / gamble_survive_count / karma_pollution_score / death_drama_score` 放入 `LocalEventResult` 与 `TickResult` 供日志/后续接入使用，不急着写入持久化榜单，避免普通挂机刷榜。
+- **KarmaTrace 接入**：3J 已在 WebSocket 层做低概率因果触发和回写。3K 本轮只在事件配置里预留 `karma_trace_hook` 和因果回声池，真实抽取仍沿用 `_maybe_apply_karma_trace_event()`，避免 application 层依赖数据库。
+
+#### 3K-1 验收标准
+
+- 默认普通事件配置至少提供 4 个可抽取的 `normal_pools`；
+- 至少 10 条普通事件带 `choices`，并能自动结算一个轻选择；
+- 至少 3 个天道人格能调整普通事件池权重；
+- 普通事件可以推进本局执念进度，并通过 `SC_GAME_LOG` 下发；
+- 旧三层池测试继续通过，老配置事件仍能正常加载。
+
+### 5.26 Phase 3K-1 普通事件分池与轻选择实施记录
+
+> 实施日期：2026-06-11 | 实施人：Codex | 范围：`normal_pools` 配置 schema + 本地轻选择自动结算 + 人格权重 + 执念推进下发 | 测试：128 passed（EventConfig / GameEngine / WebSocket E2E 定向套件），46 passed, 14 skipped（Hall / Shop / WeChat 定向套件）
+
+#### 完成内容
+
+| 文件 | 变更 |
+|------|------|
+| `server/domain/event.py` | 新增 `LocalEventChoice`；`LocalEventResult` 扩展事件池、风险、执念标签、榜单标签、轻选择、KarmaTrace hook 与多类分数增量字段 |
+| `server/infrastructure/event_config.py` | 保留旧三层池兼容路径；新增 `normal_pools` 抽取、人格池权重修正、轻选择自动采用与 effects 结算 |
+| `server/data/Config_Normal_Events.json` | 新增 8 个 3K 普通事件池：修炼、诱惑、嘴硬、遗迹、天道窥视、因果回声、赌命、功德；新增 16 条带轻选择事件 |
+| `server/application/game_engine.py` | 本地普通事件统一应用修为、天谴、气运、根基与执念进度；普通事件与血红日志共享 3K 目标推进逻辑 |
+| `server/interface/ws.py` | `SC_GAME_LOG` 下发事件池、风险、轻选择与执念进度等 3K 字段；手写日志帧补齐空字段保证前端契约稳定 |
+| `server/tests/test_event_config.py` | 覆盖 3K 多池、轻选择 metadata、人格式权重和默认配置数量验收 |
+| `server/tests/test_game_engine.py` | 覆盖普通事件推进本局执念进度 |
+| `server/tests/test_e2e_ws.py` | 扩展 `SC_GAME_LOG` 字段契约，防止 3K 字段遗漏 |
+
+#### 设计决策
+
+- **轻选择首版自动结算**：本轮不把普通事件切成新的局中决策状态，避免和 60 秒天道对线状态机抢控制权。选择文案先进入日志，效果由本地配置自动采用。
+- **旧配置仍是兜底路径**：`common / realm_specific / sin_conditional` 不删除；只有配置存在 `normal_pools` 时才走 3K 分池抽取。
+- **人格只调池权重**：`因果账房先生 / 命盘赌坊主 / 朱笔记仇官 / 玉律监考官 / 混沌乐子人` 会提高对应普通事件池概率，但不改 PRD、暴毙公式或 LLM 裁决。
+- **普通事件只推进当局目标，不刷正式榜单**：轻选择产出的榜单分数先随 `TickResult`/`SC_GAME_LOG` 下发，暂不持久化，防止挂机日志直接污染正式排行榜。
+- **KarmaTrace 继续由 WS 层触发**：配置里的 `karma_trace_hook` 先作为语义钩子保留；真实抽取和回写仍沿用 3J 的 `_maybe_apply_karma_trace_event()`。
+
+#### 验证结果
+
+- `python -m pytest server\tests\test_event_config.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`
+  - 结果：128 passed
+- `python -m pytest server\tests\test_hall.py server\tests\test_shop.py server\tests\test_wechat.py -q`
+  - 结果：46 passed, 14 skipped
+- `python -m compileall server -q`
+  - 结果：通过
+
+#### 后续剩余项
+
+| Phase | 剩余工作 |
+|-------|----------|
+| 3K-2 | 若真机体验需要，可把轻选择从自动结算升级成局中短弹窗选择，但需先设计与 `EVENT_TRIGGER` 的状态机边界 |
+| 3K | `leaderboard_score_delta` 等局中分数暂未持久化，后续可接入局内统计面板或终局结算加权 |
+| 3K | `karma_trace_hook` 目前是配置语义钩子，尚未按不同 hook 生成差异化 KarmaTrace 投放事件 |

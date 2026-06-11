@@ -589,3 +589,98 @@ class TestGenerateLocalEventFallback:
         result = generate_local_event(1, 0)
         assert isinstance(result, LocalEventResult)
         assert result.log_text  # 非空
+
+
+# ══════════════════════════════════════════════════════════
+# Phase 3K — 普通事件分池 / 轻选择 / 人格权重
+# ══════════════════════════════════════════════════════════
+
+class TestPhase3KNormalEventPools:
+    def test_normal_pools_light_choice_metadata(self, monkeypatch):
+        """normal_pools 事件会携带轻选择、池名、标签和本地效果。"""
+        pools = {
+            "normal_pools": {
+                "taunt": {
+                    "label": "嘴硬池",
+                    "weight": 100,
+                    "events": [
+                        {
+                            "id": "taunt_001",
+                            "event_pool": "taunt",
+                            "risk_level": "medium",
+                            "template": "天道问你服不服。",
+                            "ambition_tags": ["taunt_heaven"],
+                            "leaderboard_tags": ["taunt"],
+                            "choices": [
+                                {
+                                    "id": "A",
+                                    "text": "不服",
+                                    "result_text": "你当场嘴硬。",
+                                    "effects": {
+                                        "sin_delta": 2,
+                                        "taunt_count": 1,
+                                        "ambition_progress_delta": 1,
+                                        "leaderboard_score_delta": 8,
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                }
+            }
+        }
+        monkeypatch.setattr("server.infrastructure.event_config.random.choice", lambda items: items[0])
+
+        result = generate_local_event(1, 0, pools=pools)
+
+        assert result.event_id == "taunt_001"
+        assert result.event_pool == "taunt"
+        assert result.risk_level == "medium"
+        assert result.chosen_choice.id == "A"
+        assert result.sin_delta == 2
+        assert result.taunt_count == 1
+        assert result.ambition_progress_delta == 1
+        assert result.leaderboard_score_delta == 8
+        assert "嘴硬池抉择" in result.log_text
+
+    def test_persona_weight_changes_pool_selection(self, monkeypatch):
+        """人格权重只影响 3K normal_pools 抽池权重。"""
+        captured = {}
+        pools = {
+            "normal_pools": {
+                "cultivation": {
+                    "weight": 10,
+                    "events": [{"id": "c", "template": "修炼"}],
+                },
+                "gamble": {
+                    "weight": 10,
+                    "events": [{"id": "g", "template": "赌命"}],
+                },
+            }
+        }
+
+        def fake_choices(population, weights, k):
+            captured["weights"] = weights
+            return [population[1]]
+
+        monkeypatch.setattr("server.infrastructure.event_config.random.choices", fake_choices)
+        monkeypatch.setattr("server.infrastructure.event_config.random.choice", lambda items: items[0])
+
+        result = generate_local_event(1, 0, pools=pools, heaven_persona="命盘赌坊主")
+
+        assert result.event_id == "g"
+        assert captured["weights"] == [10, 50]
+
+    def test_default_config_has_enough_phase3k_content(self):
+        """默认配置满足 3K 最小验收数量。"""
+        config = EventConfigLoader().load()
+        normal_pools = config["pools"].get("normal_pools", {})
+        choice_events = [
+            event
+            for pool in normal_pools.values()
+            for event in pool.get("events", [])
+            if event.get("choices")
+        ]
+
+        assert len(normal_pools) >= 4
+        assert len(choice_events) >= 10

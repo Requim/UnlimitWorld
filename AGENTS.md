@@ -5,6 +5,11 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 # 规则
 思考过程使用中文。
 
+- Git commit 信息必须使用中文。
+- 编码必须遵守 Clean Code：函数长度按非空、非注释行统计不得超过 50 行；超过时拆分为职责清晰的小函数。
+- 编码时必须主动防止代码腐化：避免重复逻辑、无边界临时分支、跨层依赖、破坏现有架构约束的快捷写法；必要时先做局部重构再实现功能。
+- 对外接口必须补充注释，说明用途、入参、返回值，以及关键副作用或错误约定。
+
 ## 里程碑需求文档
 
 根据当前开发阶段，参考对应的里程碑需求文档：
@@ -13,7 +18,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 - **M2 阶段 ✅（已完成）：** [M2-networking.md](M2-networking.md) — 弱联机全生态与网络层建设 (WebSocket + Web 版)
 - **M3 阶段（当前）：** [M3-client-launch.md](M3-client-launch.md) — 客户端全量合流与微信生态上架 (小程序商业版)
 
-当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）、玩法扩展首轮 Phase 3F/3G/3H（规划落档 + 命格签 + 天道人格扩容）、Phase 3I（目标感闭环：本局执念 + 多榜单 + 盖棺定论）与 Phase 3J（异步因果偷渡：KarmaTrace 入池/触发/主动遗言）；下一轮优先进入 Phase 3K（平常事件扩展），国内云部署与微信审核顺延为 Phase 3L。
+当前开发焦点：M3 已完成 Phase 3A（微信登录 + 内容安全）、玩法扩展首轮 Phase 3F/3G/3H（规划落档 + 命格签 + 天道人格扩容）、Phase 3I（目标感闭环：本局执念 + 多榜单 + 盖棺定论）、Phase 3J（异步因果偷渡：KarmaTrace 入池/触发/主动遗言）与 Phase 3K-1（普通事件分池 + 轻选择自动结算 + 人格权重 + 执念推进）；下一轮优先收口 Phase 3K-2（轻选择前端体验/局内统计/差异化 KarmaTrace hook），国内云部署与微信审核顺延为 Phase 3L。
 
 编码时优先读取对应阶段的需求文档，确保实现与 PRD 一致。
 

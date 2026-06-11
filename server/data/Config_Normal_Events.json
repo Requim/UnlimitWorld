@@ -1,5 +1,252 @@
 {
   "pools": {
+    "normal_pools": {
+      "cultivation": {
+        "label": "修炼池",
+        "weight": 34,
+        "events": [
+          {
+            "id": "n3k_cultivate_001",
+            "event_pool": "cultivation",
+            "risk_level": "low",
+            "template": "你在晨雾里听见灵脉像老牛一样喘气，地面一鼓一鼓，像是在催你别摸鱼。",
+            "ambition_tags": ["survive_foundation", "clean_merit"],
+            "leaderboard_tags": ["merit"],
+            "choices": [
+              {"id": "A", "text": "稳住吐纳", "result_text": "你按部就班搬运周天，灵气虽然不炸裂，但胜在每一口都算数。", "effects": {"cultivation_delta": [12, 24], "foundation_delta": 1, "ambition_progress_delta": 1, "leaderboard_score_delta": 3}},
+              {"id": "B", "text": "强吸一口", "result_text": "你猛吸一口，丹田差点被灵气撑成皮球，修为涨了，天道也多看了你一眼。", "effects": {"cultivation_delta": [28, 44], "sin_delta": 2}}
+            ]
+          },
+          {
+            "id": "n3k_cultivate_002",
+            "event_pool": "cultivation",
+            "risk_level": "low",
+            "template": "宗门钟声敲到第三下时，你忽然发现自己的呼吸和钟声对上了拍子。",
+            "ambition_tags": ["survive_foundation", "clean_merit"],
+            "leaderboard_tags": ["merit"],
+            "choices": [
+              {"id": "A", "text": "跟着钟声打坐", "result_text": "你一板一眼坐满整轮，修为稳步上浮，道基也少了一点毛边。", "effects": {"cultivation_delta": [10, 20], "foundation_delta": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "假装顿悟", "result_text": "你故意露出高深表情，旁人真以为你悟了，连你自己也被哄得多运转了三周天。", "effects": {"cultivation_delta": [18, 32], "taunt_count": 1}}
+            ]
+          }
+        ]
+      },
+      "temptation": {
+        "label": "诱惑池",
+        "weight": 14,
+        "events": [
+          {
+            "id": "n3k_tempt_001",
+            "event_pool": "temptation",
+            "risk_level": "high",
+            "template": "一枚来路不明的丹药滚到你脚边，丹纹上写着：吃了不一定飞升，但不吃一定后悔。",
+            "ambition_tags": ["borrowed_fate_comeback", "beautiful_death"],
+            "leaderboard_tags": ["gamble", "death_drama"],
+            "choices": [
+              {"id": "A", "text": "吞下丹药", "result_text": "你闭眼吞丹，五脏六腑同时敲锣，修为暴涨，天谴也顺手记了一笔。", "effects": {"cultivation_delta": [55, 90], "sin_delta": 6, "gamble_survive_count": 1, "ambition_progress_delta": 1, "leaderboard_score_delta": 12}},
+              {"id": "B", "text": "埋起来等别人吃", "result_text": "你把丹药埋在路中央，还贴心插了块'机缘在此'的木牌。", "effects": {"karma_pollution_score": 2, "sin_delta": 3, "ambition_progress_delta": 1}}
+            ]
+          },
+          {
+            "id": "n3k_tempt_002",
+            "event_pool": "temptation",
+            "risk_level": "medium",
+            "template": "黑市散修向你兜售一张'保熟突破券'，背面小字写着：概不退款，概不负责。",
+            "ambition_tags": ["borrowed_fate_comeback", "pollute_karma"],
+            "leaderboard_tags": ["gamble", "karma_pollution"],
+            "choices": [
+              {"id": "A", "text": "买下试试", "result_text": "你把券贴在丹田上，热得像贴了块烧红的锅巴，修为蹿了一截。", "effects": {"cultivation_delta": [35, 58], "sin_delta": 4, "gamble_survive_count": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "举报黑市", "result_text": "你反手举报，功德薄亮了一下，黑市老板临走前骂你不懂江湖规矩。", "effects": {"foundation_delta": 1, "sin_delta": -2, "ambition_progress_delta": 1, "leaderboard_score_delta": 5}}
+            ]
+          }
+        ]
+      },
+      "taunt": {
+        "label": "嘴硬池",
+        "weight": 13,
+        "events": [
+          {
+            "id": "n3k_taunt_001",
+            "event_pool": "taunt",
+            "risk_level": "medium",
+            "template": "天边雷云慢悠悠路过，云底垂下一行字：今天嘴还硬吗？",
+            "ambition_tags": ["taunt_heaven"],
+            "leaderboard_tags": ["taunt"],
+            "choices": [
+              {"id": "A", "text": "回一句还行", "result_text": "你拱手说'一般硬，主要是天道不太行'，雷云愣了一下才继续飘。", "effects": {"taunt_count": 1, "sin_delta": 2, "ambition_progress_delta": 1, "leaderboard_score_delta": 8}},
+              {"id": "B", "text": "假装没看见", "result_text": "你低头装聋，雷云在你头顶写了个'怂'，但没真劈下来。", "effects": {"cultivation_delta": [6, 12]}}
+            ]
+          },
+          {
+            "id": "n3k_taunt_002",
+            "event_pool": "taunt",
+            "risk_level": "medium",
+            "template": "你在石壁上看到前人题字：天道不过如此。旁边还有一处空白，刚好能接下句。",
+            "ambition_tags": ["taunt_heaven", "pollute_karma"],
+            "leaderboard_tags": ["taunt", "karma_pollution"],
+            "karma_trace_hook": "taunt_inscription",
+            "choices": [
+              {"id": "A", "text": "补一句更硬的", "result_text": "你写下'甚至有点普通'，石壁微微发光，像是把这句话存进了因果缓存。", "effects": {"taunt_count": 1, "sin_delta": 3, "karma_pollution_score": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "擦掉题字", "result_text": "你把前人嘴硬痕迹擦干净，石壁回敬你一点温润灵光。", "effects": {"foundation_delta": 1, "sin_delta": -1}}
+            ]
+          }
+        ]
+      },
+      "ruins": {
+        "label": "遗迹池",
+        "weight": 12,
+        "events": [
+          {
+            "id": "n3k_ruins_001",
+            "event_pool": "ruins",
+            "risk_level": "medium",
+            "template": "你在废弃洞府里挖出半块墓碑，碑上只剩一句：别信第三个选择。",
+            "ambition_tags": ["pollute_karma", "beautiful_death"],
+            "leaderboard_tags": ["karma_pollution", "death_drama"],
+            "karma_trace_hook": "grave_warning",
+            "choices": [
+              {"id": "A", "text": "认真拓印", "result_text": "你把碑文拓下来，准备以后拿去吓唬后来者。", "effects": {"karma_pollution_score": 2, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "给碑文补后半句", "result_text": "你补上'但我偏要信'，墓碑当场裂开，露出几缕暴躁灵气。", "effects": {"cultivation_delta": [20, 35], "sin_delta": 2, "death_drama_score": 2, "ambition_progress_delta": 1}}
+            ]
+          },
+          {
+            "id": "n3k_ruins_002",
+            "event_pool": "ruins",
+            "risk_level": "low",
+            "template": "一具前人遗骸盘坐在蒲团上，手里攥着一张皱巴巴的修炼小抄。",
+            "ambition_tags": ["survive_foundation", "pollute_karma"],
+            "leaderboard_tags": ["karma_pollution"],
+            "karma_trace_hook": "corpse_note",
+            "choices": [
+              {"id": "A", "text": "取走小抄", "result_text": "小抄上全是错别字，但错得很有灵感，你竟然照着练通了半段。", "effects": {"cultivation_delta": [18, 30], "ambition_progress_delta": 1}},
+              {"id": "B", "text": "给后来者留批注", "result_text": "你在旁边写下'亲测有效'，虽然你自己也不确定哪里有效。", "effects": {"karma_pollution_score": 1, "taunt_count": 1, "ambition_progress_delta": 1}}
+            ]
+          }
+        ]
+      },
+      "heaven_gaze": {
+        "label": "天道窥视池",
+        "weight": 10,
+        "events": [
+          {
+            "id": "n3k_gaze_001",
+            "event_pool": "heaven_gaze",
+            "risk_level": "medium",
+            "template": "你感觉有一道目光从云缝里落下，像监考老师发现你在草稿纸上画乌龟。",
+            "ambition_tags": ["taunt_heaven", "clean_merit"],
+            "leaderboard_tags": ["taunt", "merit"],
+            "choices": [
+              {"id": "A", "text": "端正坐姿", "result_text": "你立刻坐直，道心装得很稳，天道暂时没扣你的卷面分。", "effects": {"foundation_delta": 1, "sin_delta": -1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "冲云缝点头", "result_text": "你礼貌点头并露出'你看我干嘛'的表情，天道沉默了三息。", "effects": {"taunt_count": 1, "sin_delta": 1, "leaderboard_score_delta": 5}}
+            ]
+          },
+          {
+            "id": "n3k_gaze_002",
+            "event_pool": "heaven_gaze",
+            "risk_level": "low",
+            "template": "半空飘来一张看不见署名的评语：此人目前还算能看，但有点欠看。",
+            "ambition_tags": ["taunt_heaven", "survive_foundation"],
+            "leaderboard_tags": ["taunt"],
+            "choices": [
+              {"id": "A", "text": "虚心接受", "result_text": "你把评语贴在洞府门口，当作督促自己的丑照。", "effects": {"cultivation_delta": [10, 18], "foundation_delta": 1}},
+              {"id": "B", "text": "回评天道", "result_text": "你写下'评语一般，建议重修文采'，评语纸边缘焦了一圈。", "effects": {"taunt_count": 1, "sin_delta": 2, "ambition_progress_delta": 1}}
+            ]
+          }
+        ]
+      },
+      "karma_echo": {
+        "label": "因果回声池",
+        "weight": 8,
+        "events": [
+          {
+            "id": "n3k_karma_001",
+            "event_pool": "karma_echo",
+            "risk_level": "medium",
+            "template": "你耳边响起一段前人残音：选第二个，包飞升。残音说完还打了个嗝。",
+            "ambition_tags": ["pollute_karma", "borrowed_fate_comeback"],
+            "leaderboard_tags": ["karma_pollution", "gamble"],
+            "karma_trace_hook": "mislead_choice",
+            "choices": [
+              {"id": "A", "text": "相信前人", "result_text": "你照着残音的说法运功，修为确实涨了，但天谴值也像被人偷偷充值。", "effects": {"cultivation_delta": [30, 52], "sin_delta": 5, "gamble_survive_count": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "反向理解", "result_text": "你偏不选第二个，残音气得破音，反倒震松了你的一处经脉。", "effects": {"cultivation_delta": [16, 28], "karma_pollution_score": 1}}
+            ]
+          },
+          {
+            "id": "n3k_karma_002",
+            "event_pool": "karma_echo",
+            "risk_level": "low",
+            "template": "一阵因果回声从地缝里冒出来，反复播放某位前人临终前的'我还能操作'。",
+            "ambition_tags": ["beautiful_death", "pollute_karma"],
+            "leaderboard_tags": ["death_drama", "karma_pollution"],
+            "karma_trace_hook": "last_words",
+            "choices": [
+              {"id": "A", "text": "认真记下", "result_text": "你把这句遗言记进小本本，准备以后遇险时也这么喊。", "effects": {"death_drama_score": 2, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "接一句还能送", "result_text": "回声安静了一瞬，随后更大声地在洞府里循环。", "effects": {"taunt_count": 1, "karma_pollution_score": 1, "sin_delta": 1}}
+            ]
+          }
+        ]
+      },
+      "gamble": {
+        "label": "赌命池",
+        "weight": 7,
+        "events": [
+          {
+            "id": "n3k_gamble_001",
+            "event_pool": "gamble",
+            "risk_level": "high",
+            "template": "你捡到一枚命运骰子，六面都写着'小赢'，但骰子盒上写着'庄家最终解释权归天道所有'。",
+            "ambition_tags": ["borrowed_fate_comeback"],
+            "leaderboard_tags": ["gamble"],
+            "choices": [
+              {"id": "A", "text": "掷一次", "result_text": "骰子停在一个不存在的第七面，你莫名其妙赢了一把险局。", "effects": {"cultivation_delta": [42, 70], "sin_delta": 4, "gamble_survive_count": 1, "ambition_progress_delta": 1, "leaderboard_score_delta": 15}},
+              {"id": "B", "text": "收进怀里", "result_text": "你没敢掷，但骰子在怀里自己转了半圈，蹭出一点灵气。", "effects": {"cultivation_delta": [8, 16], "luck_delta": 1}}
+            ]
+          },
+          {
+            "id": "n3k_gamble_002",
+            "event_pool": "gamble",
+            "risk_level": "high",
+            "template": "一个看不清脸的庄家问你：拿三息寿数换一口暴涨灵气，敢不敢？",
+            "ambition_tags": ["borrowed_fate_comeback", "beautiful_death"],
+            "leaderboard_tags": ["gamble", "death_drama"],
+            "choices": [
+              {"id": "A", "text": "敢", "result_text": "你点头，三息像被剪掉一样空了一块，丹田却被灌得发烫。", "effects": {"cultivation_delta": [60, 95], "sin_delta": 5, "gamble_survive_count": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "讨价还价", "result_text": "你硬把三息砍成一息，庄家气笑了，还是给了你一点甜头。", "effects": {"cultivation_delta": [20, 34], "taunt_count": 1, "sin_delta": 2}}
+            ]
+          }
+        ]
+      },
+      "merit": {
+        "label": "功德池",
+        "weight": 10,
+        "events": [
+          {
+            "id": "n3k_merit_001",
+            "event_pool": "merit",
+            "risk_level": "low",
+            "template": "山脚小妖被雷劈得外焦里嫩，抱着你的裤脚求你帮它把遗书寄回洞里。",
+            "ambition_tags": ["clean_merit"],
+            "leaderboard_tags": ["merit"],
+            "choices": [
+              {"id": "A", "text": "帮它送信", "result_text": "你把遗书送到，小妖一家给你塞了半袋不太干净的灵果。", "effects": {"cultivation_delta": [10, 22], "sin_delta": -3, "foundation_delta": 1, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "原地超度", "result_text": "你念了三句现编经文，小妖听完觉得自己还不如不超度。", "effects": {"sin_delta": -1, "taunt_count": 1}}
+            ]
+          },
+          {
+            "id": "n3k_merit_002",
+            "event_pool": "merit",
+            "risk_level": "low",
+            "template": "你路过灵田，看见外门弟子把除草术念成了纵草术，杂草已经开始集体修仙。",
+            "ambition_tags": ["clean_merit", "survive_foundation"],
+            "leaderboard_tags": ["merit"],
+            "choices": [
+              {"id": "A", "text": "帮忙除草", "result_text": "你一边除草一边复习基础术法，意外把经脉也理顺了。", "effects": {"cultivation_delta": [12, 25], "sin_delta": -2, "ambition_progress_delta": 1}},
+              {"id": "B", "text": "教杂草修炼", "result_text": "你认真给杂草讲道，外门弟子看你的眼神像看一场事故。", "effects": {"taunt_count": 1, "karma_pollution_score": 1, "cultivation_delta": [5, 12]}}
+            ]
+          }
+        ]
+      }
+    },
     "common": {
       "weight": 70,
       "events": [

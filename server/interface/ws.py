@@ -184,6 +184,31 @@ def _build_game_log(result: TickResult) -> dict:
         "realm": result.realm,
         "sin_phase": result.sin_phase,
         "stage": result.stage,
+        "event_pool": result.event_pool,
+        "risk_level": result.risk_level,
+        "chosen_choice": result.chosen_choice,
+        "ambition_progress": result.ambition_progress,
+        "ambition_target": result.ambition_target,
+        "ambition_progress_label": result.ambition_progress_label,
+        "leaderboard_score_delta": result.leaderboard_score_delta,
+        "taunt_count": result.taunt_count,
+        "gamble_survive_count": result.gamble_survive_count,
+        "karma_pollution_score": result.karma_pollution_score,
+        "death_drama_score": result.death_drama_score,
+    }
+
+
+def _empty_phase3k_log_fields() -> dict:
+    """补齐手写 SC_GAME_LOG 的 3K 可选字段。"""
+    return {
+        "event_pool": "",
+        "risk_level": "",
+        "chosen_choice": None,
+        "leaderboard_score_delta": 0,
+        "taunt_count": 0,
+        "gamble_survive_count": 0,
+        "karma_pollution_score": 0,
+        "death_drama_score": 0,
     }
 
 
@@ -306,6 +331,11 @@ async def _handle_lifecycle(
                         "realm": get_realm_name(restored.realm_code),
                         "sin_phase": restored.sin_phase(),
                         "stage": engine.stage,
+                        "ambition_title": restored.ambition_title,
+                        "ambition_progress": restored.ambition_progress,
+                        "ambition_target": restored.ambition_target,
+                        "ambition_progress_label": restored.ambition_progress_label,
+                        **_empty_phase3k_log_fields(),
                     })
                     if engine.stage == Stage.EVENT_TRIGGER and engine._current_trigger:
                         await ws.send_json(_build_event_trigger(TickResult(
@@ -393,6 +423,7 @@ async def _handle_lifecycle(
                 "ambition_progress": session.ambition_progress,
                 "ambition_target": session.ambition_target,
                 "ambition_progress_label": session.ambition_progress_label,
+                **_empty_phase3k_log_fields(),
             })
             continue
 
@@ -467,6 +498,10 @@ async def _handle_lifecycle(
                             "realm": get_realm_name(engine.session.realm_code) if engine.session else "练气期",
                             "sin_phase": engine.session.sin_phase() if engine.session else "safe",
                             "stage": engine.stage,
+                            "ambition_progress": engine.session.ambition_progress if engine.session else 0,
+                            "ambition_target": engine.session.ambition_target if engine.session else 0,
+                            "ambition_progress_label": engine.session.ambition_progress_label if engine.session else "",
+                            **_empty_phase3k_log_fields(),
                         })
                         continue
 
@@ -560,6 +595,10 @@ async def _tick_loop(ws: WebSocket, engine: GameEngine, mgr=None, player_id=None
                         "realm": get_realm_name(engine.session.realm_code),
                         "sin_phase": "safe",
                         "stage": engine.stage,
+                        "ambition_progress": engine.session.ambition_progress,
+                        "ambition_target": engine.session.ambition_target,
+                        "ambition_progress_label": engine.session.ambition_progress_label,
+                        **_empty_phase3k_log_fields(),
                     })
 
             result = await engine.tick()

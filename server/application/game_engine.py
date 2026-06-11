@@ -176,6 +176,17 @@ class TickResult:
         heaven_points_earned: int = 0,
         waiting_for_decision: bool = False,
         game_over: bool = False,
+        event_pool: str = "",
+        risk_level: str = "",
+        chosen_choice: Optional[dict] = None,
+        ambition_progress: int = 0,
+        ambition_target: int = 0,
+        ambition_progress_label: str = "",
+        leaderboard_score_delta: int = 0,
+        taunt_count: int = 0,
+        gamble_survive_count: int = 0,
+        karma_pollution_score: int = 0,
+        death_drama_score: int = 0,
     ):
         self.stage = stage
         self.log_text = log_text
@@ -192,6 +203,17 @@ class TickResult:
         self.heaven_points_earned = heaven_points_earned
         self.waiting_for_decision = waiting_for_decision
         self.game_over = game_over
+        self.event_pool = event_pool
+        self.risk_level = risk_level
+        self.chosen_choice = chosen_choice
+        self.ambition_progress = ambition_progress
+        self.ambition_target = ambition_target
+        self.ambition_progress_label = ambition_progress_label
+        self.leaderboard_score_delta = leaderboard_score_delta
+        self.taunt_count = taunt_count
+        self.gamble_survive_count = gamble_survive_count
+        self.karma_pollution_score = karma_pollution_score
+        self.death_drama_score = death_drama_score
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -411,6 +433,82 @@ class GameEngine:
 
     # ── 事件处理 ─────────────────────────────────────────
 
+    def _apply_local_event_result(
+        self,
+        local: LocalEventResult,
+        base_gain: int,
+        log_prefix: str,
+    ) -> TickResult:
+        """应用普通事件的本地数值与 3K 目标推进效果。"""
+        session = self.session
+
+        total_gain = base_gain + local.cultivation_delta
+        session.cultivation += total_gain
+        session.luck = max(0, min(100, session.luck + getattr(local, "luck_delta", 0)))
+        session.foundation = max(0, min(100, session.foundation + getattr(local, "foundation_delta", 0)))
+        sin_max = get_realm_config(session.realm_code)["sin_max"]
+        session.sin_value = max(0, min(sin_max, session.sin_value + getattr(local, "sin_delta", 0)))
+
+        ambition_delta = self._resolve_local_ambition_delta(local)
+        if ambition_delta and session.ambition_target > 0:
+            session.ambition_progress = min(
+                session.ambition_target,
+                max(0, session.ambition_progress + ambition_delta),
+            )
+
+        new_realm = get_realm_by_cultivation(session.cultivation)
+        if new_realm != session.realm_code:
+            session.realm_code = new_realm
+
+        session.survival_seconds += settings.tick_interval
+
+        return TickResult(
+            stage=Stage.IDLE,
+            log_text=f"{log_prefix}{local.log_text}",
+            event_type="LOCAL",
+            cultivation=session.cultivation,
+            sin_value=session.sin_value,
+            luck=session.luck,
+            foundation=session.foundation,
+            realm=get_realm_name(session.realm_code),
+            sin_phase=session.sin_phase(),
+            event_pool=getattr(local, "event_pool", "common"),
+            risk_level=getattr(local, "risk_level", "low"),
+            chosen_choice=(
+                local.chosen_choice.model_dump()
+                if getattr(local, "chosen_choice", None)
+                else None
+            ),
+            ambition_progress=session.ambition_progress,
+            ambition_target=session.ambition_target,
+            ambition_progress_label=session.ambition_progress_label,
+            leaderboard_score_delta=getattr(local, "leaderboard_score_delta", 0),
+            taunt_count=getattr(local, "taunt_count", 0),
+            gamble_survive_count=getattr(local, "gamble_survive_count", 0),
+            karma_pollution_score=getattr(local, "karma_pollution_score", 0),
+            death_drama_score=getattr(local, "death_drama_score", 0),
+        )
+
+    def _resolve_local_ambition_delta(self, local: LocalEventResult) -> int:
+        """按当前执念筛选普通事件进度，避免所有轻选择都推进任意执念。"""
+        if not self.session or not self.session.ambition_id:
+            return 0
+        tags = set(getattr(local, "ambition_tags", []) or [])
+        ambition_id = self.session.ambition_id
+        if ambition_id in tags:
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        if ambition_id == "taunt_heaven" and getattr(local, "taunt_count", 0) > 0:
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        if ambition_id == "borrowed_fate_comeback" and getattr(local, "gamble_survive_count", 0) > 0:
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        if ambition_id == "pollute_karma" and getattr(local, "karma_pollution_score", 0) > 0:
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        if ambition_id == "beautiful_death" and getattr(local, "death_drama_score", 0) > 0:
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        if ambition_id == "clean_merit" and "merit" in (getattr(local, "leaderboard_tags", []) or []):
+            return max(1, getattr(local, "ambition_progress_delta", 0))
+        return 0
+
     async def _process_local_event(self) -> TickResult:
         """处理本地日常事件。Phase 2D：15% 概率插入怨念事件。"""
         session = self.session
@@ -430,28 +528,12 @@ class GameEngine:
         )
         base_gain = base_rate * settings.tick_interval
 
-        local = generate_local_event(session.realm_code, session.sin_value)
-
-        total_gain = base_gain + local.cultivation_delta
-        session.cultivation += total_gain
-
-        new_realm = get_realm_by_cultivation(session.cultivation)
-        if new_realm != session.realm_code:
-            session.realm_code = new_realm
-
-        session.survival_seconds += settings.tick_interval
-
-        return TickResult(
-            stage=Stage.IDLE,
-            log_text=f"【平淡日常】{local.log_text}",
-            event_type="LOCAL",
-            cultivation=session.cultivation,
-            sin_value=session.sin_value,
-            luck=session.luck,
-            foundation=session.foundation,
-            realm=get_realm_name(session.realm_code),
-            sin_phase=session.sin_phase(),
+        local = generate_local_event(
+            session.realm_code,
+            session.sin_value,
+            heaven_persona=session.heaven_persona,
         )
+        return self._apply_local_event_result(local, base_gain, "【平淡日常】")
 
     def _trigger_resentment_local_event(self) -> TickResult:
         """10% 怨念血红日志 —— 本地事件但日志带有全服怨念色彩"""
@@ -462,31 +544,21 @@ class GameEngine:
             realm_cfg["cultivation_rate_max"],
         )
         base_gain = base_rate * settings.tick_interval
-        local = generate_local_event(session.realm_code, session.sin_value)
-        session.cultivation += base_gain + local.cultivation_delta
-
-        new_realm = get_realm_by_cultivation(session.cultivation)
-        if new_realm != session.realm_code:
-            session.realm_code = new_realm
-
-        session.survival_seconds += settings.tick_interval
+        local = generate_local_event(
+            session.realm_code,
+            session.sin_value,
+            heaven_persona=session.heaven_persona,
+        )
 
         # 尝试从怨念池获取一条死因，附加到日志中
         karma_text = "你感到空气中弥漫着不祥的因果之力。"
         if self._dead_list:
             karma_text = self._fetch_karma_from_list()
 
-        return TickResult(
-            stage=Stage.IDLE,
-            log_text=f"【血红日志】{local.log_text} {karma_text}",
-            event_type="RESENTMENT_LOCAL",
-            cultivation=session.cultivation,
-            sin_value=session.sin_value,
-            luck=session.luck,
-            foundation=session.foundation,
-            realm=get_realm_name(session.realm_code),
-            sin_phase=session.sin_phase(),
-        )
+        result = self._apply_local_event_result(local, base_gain, "【血红日志】")
+        result.event_type = "RESENTMENT_LOCAL"
+        result.log_text = f"{result.log_text} {karma_text}"
+        return result
 
     async def _trigger_resentment_llm_event(self) -> TickResult:
         """5% 怨念心魔试炼 —— 从全服怨念池抽取死因，触发 LLM 天道事件"""

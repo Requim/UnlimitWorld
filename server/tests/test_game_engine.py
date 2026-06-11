@@ -23,6 +23,7 @@ from server.domain.player import PlayerState, DeadRecord
 from server.domain.event import (
     EventTrigger,
     EventSettlement,
+    LocalEventResult,
     LLMOutput,
     LLMInputContext,
     AttributeChanges,
@@ -337,6 +338,35 @@ class TestTickEventRouting:
 
         await engine.tick()
         assert engine.session.prd_counter > old_prd
+
+    @pytest.mark.asyncio
+    async def test_local_event_advances_ambition_progress(self):
+        engine = GameEngine()
+        engine.new_game(ambition_id="taunt_heaven")
+        engine.session.prd_counter = 0
+
+        local = LocalEventResult(
+            event_id="taunt_local",
+            log_text="天道问你服不服。【嘴硬池抉择】你说不服。",
+            cultivation_delta=0,
+            sin_delta=1,
+            event_pool="taunt",
+            risk_level="medium",
+            ambition_tags=["taunt_heaven"],
+            taunt_count=1,
+            ambition_progress_delta=1,
+            leaderboard_score_delta=8,
+        )
+
+        with patch("server.application.game_engine.random.randint", side_effect=[1, 50, 1]), \
+                patch("server.application.game_engine.generate_local_event", return_value=local):
+            result = await engine.tick()
+
+        assert result.event_type == "LOCAL"
+        assert result.event_pool == "taunt"
+        assert result.taunt_count == 1
+        assert result.ambition_progress == 1
+        assert engine.session.ambition_progress == 1
 
 
 # ══════════════════════════════════════════════════════════

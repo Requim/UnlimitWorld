@@ -13,6 +13,14 @@ from pydantic import BaseModel, Field
 # 本地事件模型
 # ═══════════════════════════════════════════════════════════════
 
+class LocalEventChoice(BaseModel):
+    """普通事件的本地轻选择结果。"""
+    id: str = ""
+    text: str = ""
+    result_text: str = ""
+    effects: dict = Field(default_factory=dict)
+
+
 class LocalEventResult(BaseModel):
     """本地轨道事件的组装结果"""
     event_id: str
@@ -23,6 +31,19 @@ class LocalEventResult(BaseModel):
     foundation_delta: int = 0
     flavor: str = "normal"  # normal / warning / danger
     special_item: Optional[str] = None
+    event_pool: str = "common"
+    risk_level: str = "low"
+    ambition_tags: list[str] = Field(default_factory=list)
+    leaderboard_tags: list[str] = Field(default_factory=list)
+    choices: list[LocalEventChoice] = Field(default_factory=list)
+    chosen_choice: Optional[LocalEventChoice] = None
+    karma_trace_hook: Optional[str] = None
+    ambition_progress_delta: int = 0
+    leaderboard_score_delta: int = 0
+    taunt_count: int = 0
+    gamble_survive_count: int = 0
+    karma_pollution_score: int = 0
+    death_drama_score: int = 0
 
 
 # ═══════════════════════════════════════════════════════════════
