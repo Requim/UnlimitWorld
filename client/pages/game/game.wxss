@@ -433,16 +433,22 @@
 .destiny-card {
   width: 100%;
   padding: 26rpx 24rpx;
+  box-sizing: border-box;
   border-radius: 8rpx;
   border: 1rpx solid rgba(156, 139, 111, 0.28);
   background:
     linear-gradient(180deg, rgba(255, 252, 247, 0.96) 0%, rgba(245, 239, 229, 0.94) 100%);
   box-shadow: 0 12rpx 30rpx rgba(107, 92, 68, 0.08);
   text-align: left;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.12s ease, border-color 0.12s ease, box-shadow 0.12s ease;
 }
 
-.destiny-card::after {
-  border: none;
+.destiny-card:active {
+  transform: scale(0.985);
+  border-color: rgba(203, 162, 91, 0.48);
+  box-shadow: 0 8rpx 22rpx rgba(107, 92, 68, 0.12);
 }
 
 .destiny-card-top {
@@ -494,6 +500,7 @@
   height: 120rpx;
   border-radius: 999rpx;
   background: radial-gradient(circle, rgba(176, 51, 38, 0.14), rgba(176, 51, 38, 0));
+  pointer-events: none;
 }
 
 .ambition-reward {

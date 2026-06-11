@@ -28,6 +28,17 @@ type AmbitionOffer = {
 };
 type StreamSegment = 'event_title' | 'reason_text' | 'verdict_text' | 'story_text';
 
+function normalizeOffers<T>(rawOffers: unknown): T[] {
+  if (Array.isArray(rawOffers)) return rawOffers as T[];
+  if (typeof rawOffers !== 'string') return [];
+  try {
+    const parsed = JSON.parse(rawOffers) as unknown;
+    return Array.isArray(parsed) ? (parsed as T[]) : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 let pendingSegments: Record<StreamSegment, string[]> = {
   event_title: [],
   reason_text: [],
@@ -202,7 +213,7 @@ Page({
   },
 
   onSelectDestiny(e: WechatMiniprogram.TouchEvent) {
-    const signId = e.currentTarget.dataset.id as string;
+    const signId = (e.currentTarget.dataset.id || e.target.dataset.id) as string;
     if (!signId) return;
 
     this.setData({ destinyError: '' });
@@ -213,7 +224,7 @@ Page({
   },
 
   onSelectAmbition(e: WechatMiniprogram.TouchEvent) {
-    const ambitionId = e.currentTarget.dataset.id as string;
+    const ambitionId = (e.currentTarget.dataset.id || e.target.dataset.id) as string;
     if (!ambitionId) return;
 
     this.setData({ destinyError: '' });
@@ -408,23 +419,23 @@ Page({
   },
 
   _onDestinyOffer(frame: WsFrame) {
-    const offers = Array.isArray(frame.offers) ? (frame.offers as DestinyOffer[]) : [];
+    const offers = normalizeOffers<DestinyOffer>(frame.offers);
     this.setData({
       uiState: UIState.PREPARING,
       destinyOffers: offers,
       ambitionOffers: [],
       selectedDestinyId: '',
-      destinyError: '',
+      destinyError: offers.length ? '' : '命格候选为空，请重新踏入仙途',
     });
   },
 
   _onAmbitionOffer(frame: WsFrame) {
-    const offers = Array.isArray(frame.offers) ? (frame.offers as AmbitionOffer[]) : [];
+    const offers = normalizeOffers<AmbitionOffer>(frame.offers);
     this.setData({
       uiState: UIState.PREPARING,
       ambitionOffers: offers,
       selectedDestinyId: (frame.destiny_sign_id as string) || '',
-      destinyError: '',
+      destinyError: offers.length ? '' : '执念候选为空，请重新选择命格',
     });
   },
 

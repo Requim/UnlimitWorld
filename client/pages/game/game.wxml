@@ -76,10 +76,11 @@
       </view>
 
       <view class="destiny-list">
-        <button
+        <view
           wx:for="{{destinyOffers}}"
           wx:key="id"
           class="destiny-card"
+          role="button"
           data-id="{{item.id}}"
           bindtap="onSelectDestiny"
         >
@@ -88,7 +89,7 @@
             <text class="destiny-card-pick">签</text>
           </view>
           <text class="destiny-card-summary">{{item.summary}}</text>
-        </button>
+        </view>
       </view>
 
       <text wx:if="{{destinyError}}" class="destiny-error">{{destinyError}}</text>
@@ -102,10 +103,11 @@
       </view>
 
       <view class="destiny-list">
-        <button
+        <view
           wx:for="{{ambitionOffers}}"
           wx:key="id"
           class="destiny-card ambition-card"
+          role="button"
           data-id="{{item.id}}"
           bindtap="onSelectAmbition"
         >
@@ -115,7 +117,7 @@
           </view>
           <text class="destiny-card-summary">{{item.summary}}</text>
           <text class="ambition-reward">{{item.reward_hint}}</text>
-        </button>
+        </view>
       </view>
 
       <text wx:if="{{destinyError}}" class="destiny-error">{{destinyError}}</text>
