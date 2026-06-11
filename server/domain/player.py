@@ -10,6 +10,7 @@ import math
 from datetime import datetime
 from pydantic import BaseModel, Field
 from server.config import REALM_CONFIG, settings
+from server.domain.run_map import RunMap
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -114,6 +115,11 @@ class PlayerState(BaseModel):
     ambition_progress: int = 0
     ambition_target: int = 0
     ambition_progress_label: str = ""
+    run_map: RunMap = Field(default_factory=RunMap)
+    run_route_gamble_count: int = 0
+    run_route_shop_count: int = 0
+    run_route_karma_count: int = 0
+    run_route_heaven_count: int = 0
 
     def apply_talent_bonus(self):
         """在开局时应用天赋加成到初始属性"""

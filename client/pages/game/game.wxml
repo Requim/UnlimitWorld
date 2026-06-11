@@ -133,8 +133,35 @@
           {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
         </text>
       </view>
+      <view wx:if="{{runMap}}" class="run-map-panel">
+        <view class="run-map-head">
+          <view>
+            <text class="run-map-eyebrow">M4 路 线</text>
+            <text class="run-map-title">{{realm}} · 三路择命</text>
+          </view>
+          <text wx:if="{{hasRunMapChoice}}" class="run-map-state">择一节点</text>
+          <text wx:elif="{{currentRunNodeId}}" class="run-map-state">行进中</text>
+          <text wx:else class="run-map-state">待刷新</text>
+        </view>
+        <view class="run-map-board">
+          <view
+            wx:for="{{runMapNodes}}"
+            wx:key="node_id"
+            class="run-node node-{{item.status}} risk-{{item.risk_level}}"
+            data-id="{{item.node_id}}"
+            data-status="{{item.status}}"
+            bindtap="onChooseMapNode"
+          >
+            <text class="run-node-route">{{item.route_label}}</text>
+            <text class="run-node-label">{{item.node_label}}</text>
+            <text class="run-node-layer">第{{item.layer + 1}}步</text>
+          </view>
+        </view>
+      </view>
       <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
         <view class="phase3k-meta">
+          <text wx:if="{{routeLabel}}" class="phase3k-chip">路 {{routeLabel}}</text>
+          <text wx:if="{{routeNodeType}}" class="phase3k-chip">点 {{routeNodeType}}</text>
           <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
           <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
           <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>

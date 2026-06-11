@@ -684,3 +684,57 @@ class TestPhase3KNormalEventPools:
 
         assert len(normal_pools) >= 4
         assert len(choice_events) >= 10
+
+    def test_preferred_pool_reuses_normal_pool_for_run_map_node(self, monkeypatch):
+        """M4 路线节点可指定 normal_pools 池名。"""
+        pools = {
+            "normal_pools": {
+                "cultivation": {
+                    "weight": 100,
+                    "events": [{"id": "c", "event_pool": "cultivation", "template": "修炼"}],
+                },
+                "gamble": {
+                    "weight": 1,
+                    "events": [{"id": "g", "event_pool": "gamble", "template": "赌命"}],
+                },
+            }
+        }
+        monkeypatch.setattr("server.infrastructure.event_config.random.choice", lambda items: items[0])
+
+        result = generate_local_event(1, 0, pools=pools, preferred_pool="gamble")
+
+        assert result.event_id == "g"
+        assert result.event_pool == "gamble"
+
+    def test_route_multipliers_modify_reward_and_risk(self):
+        """M4 路线节点倍率会影响修为、榜单收益和天谴风险。"""
+        pools = {
+            "normal_pools": {
+                "gamble": {
+                    "weight": 100,
+                    "events": [
+                        {
+                            "id": "g",
+                            "event_pool": "gamble",
+                            "template": "赌命",
+                            "cultivation_delta": 10,
+                            "sin_delta": 4,
+                            "leaderboard_score_delta": 5,
+                        }
+                    ],
+                }
+            }
+        }
+
+        result = generate_local_event(
+            1,
+            0,
+            pools=pools,
+            preferred_pool="gamble",
+            reward_multiplier=1.8,
+            risk_multiplier=1.5,
+        )
+
+        assert result.cultivation_delta == 18
+        assert result.sin_delta == 6
+        assert result.leaderboard_score_delta == 9

@@ -44,6 +44,9 @@ class LocalEventResult(BaseModel):
     gamble_survive_count: int = 0
     karma_pollution_score: int = 0
     death_drama_score: int = 0
+    node_id: str = ""
+    node_type: str = ""
+    route_label: str = ""
 
 
 # ═══════════════════════════════════════════════════════════════

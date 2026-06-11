@@ -13,6 +13,7 @@ CLI 兼容：不传 dead_registry / immortal_hall 时回退到 M1 内存模式�
 import random
 import time
 import uuid
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Optional, Awaitable, TYPE_CHECKING
 
@@ -26,6 +27,14 @@ from server.domain.player import (
     is_breakthrough,
     compute_death_rate,
     roll_death_check,
+)
+from server.domain.run_map import (
+    RunMapNode,
+    choose_run_node,
+    complete_current_node,
+    generate_run_map,
+    open_chapter_choices,
+    snapshot_run_map,
 )
 from server.domain.destiny import draw_destiny_offers, find_destiny_sign
 from server.domain.ambition import draw_ambition_offers, find_ambition
@@ -156,66 +165,50 @@ def build_run_epitaph(
 # Tick 返回结果
 # ═══════════════════════════════════════════════════════════════
 
+@dataclass
 class TickResult:
     """一次 tick() 调用的返回结果"""
+    stage: str
+    log_text: str = ""
+    event_type: str = "LOCAL"
+    cultivation: int = 0
+    sin_value: int = 0
+    luck: int = 0
+    foundation: int = 0
+    realm: str = ""
+    sin_phase: str = "safe"
+    trigger: Optional[EventTrigger] = None
+    settlement: Optional[EventSettlement] = None
+    is_dead: bool = False
+    heaven_points_earned: int = 0
+    waiting_for_decision: bool = False
+    game_over: bool = False
+    event_pool: str = ""
+    risk_level: str = ""
+    chosen_choice: Optional[dict] = None
+    ambition_progress: int = 0
+    ambition_target: int = 0
+    ambition_progress_label: str = ""
+    leaderboard_score_delta: int = 0
+    taunt_count: int = 0
+    gamble_survive_count: int = 0
+    karma_pollution_score: int = 0
+    death_drama_score: int = 0
+    karma_trace_hook: str = ""
+    node_id: str = ""
+    node_type: str = ""
+    route_label: str = ""
 
-    def __init__(
-        self,
-        stage: str,
-        log_text: str = "",
-        event_type: str = "LOCAL",
-        cultivation: int = 0,
-        sin_value: int = 0,
-        luck: int = 0,
-        foundation: int = 0,
-        realm: str = "",
-        sin_phase: str = "safe",
-        trigger: Optional[EventTrigger] = None,
-        settlement: Optional[EventSettlement] = None,
-        is_dead: bool = False,
-        heaven_points_earned: int = 0,
-        waiting_for_decision: bool = False,
-        game_over: bool = False,
-        event_pool: str = "",
-        risk_level: str = "",
-        chosen_choice: Optional[dict] = None,
-        ambition_progress: int = 0,
-        ambition_target: int = 0,
-        ambition_progress_label: str = "",
-        leaderboard_score_delta: int = 0,
-        taunt_count: int = 0,
-        gamble_survive_count: int = 0,
-        karma_pollution_score: int = 0,
-        death_drama_score: int = 0,
-        karma_trace_hook: str = "",
-    ):
-        self.stage = stage
-        self.log_text = log_text
-        self.event_type = event_type
-        self.cultivation = cultivation
-        self.sin_value = sin_value
-        self.luck = luck
-        self.foundation = foundation
-        self.realm = realm
-        self.sin_phase = sin_phase
-        self.trigger = trigger
-        self.settlement = settlement
-        self.is_dead = is_dead
-        self.heaven_points_earned = heaven_points_earned
-        self.waiting_for_decision = waiting_for_decision
-        self.game_over = game_over
-        self.event_pool = event_pool
-        self.risk_level = risk_level
-        self.chosen_choice = chosen_choice
-        self.ambition_progress = ambition_progress
-        self.ambition_target = ambition_target
-        self.ambition_progress_label = ambition_progress_label
-        self.leaderboard_score_delta = leaderboard_score_delta
-        self.taunt_count = taunt_count
-        self.gamble_survive_count = gamble_survive_count
-        self.karma_pollution_score = karma_pollution_score
-        self.death_drama_score = death_drama_score
-        self.karma_trace_hook = karma_trace_hook
+
+@dataclass
+class SettlementDraft:
+    """LLM 裁决结算过程中的临时文本与奖励状态。"""
+    reason_text: str
+    verdict_text: str
+    story_text: str
+    backend_is_dead: bool
+    intercepted: bool = False
+    heaven_points_earned: int = 0
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -235,10 +228,6 @@ class GameEngine:
         immortal_hall: Optional["ImmortalHallManager"] = None,
     ):
         self.orchestrator = orchestrator or LLMOrchestrator()
-        self.session: Optional[PlayerState] = None
-        self.stage: str = Stage.INIT
-        self._current_trigger: Optional[EventTrigger] = None
-        self._start_time: float = 0.0
 
         # Phase 2D：全服共享状态（可选，CLI 模式下为 None 回退内存）
         self._dead_registry = dead_registry
@@ -247,13 +236,23 @@ class GameEngine:
         # M1 兼容：内存列表（CLI 模式或无 SharedState 时使用）
         self._dead_list: list[DeadRecord] = []
         self._hall_list: list[dict] = []
+        self._init_runtime_state()
+        self._init_pending_selection_state()
+
+    def _init_runtime_state(self):
+        self.session: Optional[PlayerState] = None
+        self.stage: str = Stage.INIT
+        self._current_trigger: Optional[EventTrigger] = None
+        self._start_time: float = 0.0
 
         # 决策超时时间戳（秒，monotonic）
         self._decision_deadline: float = 0.0
+
+    def _init_pending_selection_state(self, player_name: str = "无名修士"):
         self._pending_destiny_offers: list[str] = []
         self._pending_ambition_offers: list[str] = []
         self._pending_destiny_sign_id: str = ""
-        self._pending_player_name: str = "无名修士"
+        self._pending_player_name: str = player_name
 
     # ── 开局 ─────────────────────────────────────────────
 
@@ -273,8 +272,41 @@ class GameEngine:
         persona = random.choice(PERSONA_NAMES)
         destiny_sign = find_destiny_sign(destiny_sign_id) if destiny_sign_id else None
         ambition = find_ambition(ambition_id) if ambition_id else None
+        self.session = self._create_player_state(
+            player_id,
+            player_name,
+            persona,
+            talent_bonus or {},
+            deafness_protocol,
+            karma_shield,
+            heaven_points,
+            destiny_sign,
+            ambition,
+        )
 
-        self.session = PlayerState(
+        self.session.apply_talent_bonus()
+        self.session.apply_destiny_sign()
+        self.stage = Stage.IDLE
+        self._start_time = time.time()
+        self._current_trigger = None
+        self._decision_deadline = 0.0
+        self._init_pending_selection_state(player_name)
+
+        return self.session
+
+    def _create_player_state(
+        self,
+        player_id: str,
+        player_name: str,
+        persona: str,
+        talent_bonus: dict,
+        deafness_protocol: int,
+        karma_shield: int,
+        heaven_points: int,
+        destiny_sign,
+        ambition,
+    ) -> PlayerState:
+        return PlayerState(
             player_id=player_id,
             player_name=player_name,
             realm_code=1,
@@ -297,20 +329,8 @@ class GameEngine:
             ambition_progress=0,
             ambition_target=ambition.target if ambition else 0,
             ambition_progress_label=ambition.progress_label if ambition else "",
+            run_map=generate_run_map(random.Random(uuid.uuid4().hex)),
         )
-
-        self.session.apply_talent_bonus()
-        self.session.apply_destiny_sign()
-        self.stage = Stage.IDLE
-        self._start_time = time.time()
-        self._current_trigger = None
-        self._decision_deadline = 0.0
-        self._pending_destiny_offers = []
-        self._pending_ambition_offers = []
-        self._pending_destiny_sign_id = ""
-        self._pending_player_name = player_name
-
-        return self.session
 
     def prepare_new_game(self, player_name: str = "无名修士") -> list[dict]:
         """生成本局开局可选命格签。"""
@@ -353,6 +373,43 @@ class GameEngine:
 
     def is_valid_pending_ambition(self, ambition_id: str) -> bool:
         return ambition_id in self._pending_ambition_offers
+
+    def get_run_map_snapshot(self) -> dict:
+        """获取当前路线地图快照。
+
+        Returns:
+            dict: 给接口层下发的 `SC_RUN_MAP` payload；没有会话时返回空字典。
+
+        Side Effects:
+            无副作用。
+        """
+        if not self.session or not self.session.run_map.run_map_id:
+            return {}
+        return snapshot_run_map(self.session.run_map)
+
+    def choose_run_map_node(self, node_id: str) -> tuple[bool, str]:
+        """选择当前可用的路线地图节点。
+
+        Args:
+            node_id: 前端提交的节点 ID。
+
+        Returns:
+            tuple[bool, str]: 是否成功，以及失败原因。
+
+        Side Effects:
+            成功时进入该节点并清空可选节点列表。
+        """
+        if not self.session:
+            return False, "尚未开局"
+        if self.stage != Stage.IDLE:
+            return False, "当前状态不能选择路线"
+        return choose_run_node(self.session.run_map, node_id)
+
+    def current_run_node(self) -> RunMapNode | None:
+        """返回当前执行中的路线节点，没有节点时返回 None。"""
+        if not self.session:
+            return None
+        return self.session.run_map.node_by_id(self.session.run_map.current_node_id)
 
     # ── 状态恢复（断线重连） ──────────────────────────────
 
@@ -403,6 +460,10 @@ class GameEngine:
             return TickResult(stage=Stage.INIT, log_text="[系统] 尚未创建游戏会话")
 
         session = self.session
+        current_node = self.current_run_node()
+        if current_node is None:
+            self._refresh_run_map_if_exhausted()
+            return self._build_waiting_route_result()
 
         # PRD 累加
         prd_step = random.randint(settings.prd_step_min, settings.prd_step_max)
@@ -429,6 +490,9 @@ class GameEngine:
 
         if event_type == EventType.BREAKTHROUGH_EVENT:
             return await self._trigger_breakthrough()
+
+        if current_node.node_type == "heaven":
+            return await self._trigger_heaven_event("RUN_MAP")
 
         # LOCAL_EVENT — Phase 2D：内部怨念判定
         return await self._process_local_event()
@@ -463,6 +527,7 @@ class GameEngine:
             session.realm_code = new_realm
 
         session.survival_seconds += settings.tick_interval
+        self._advance_run_node_progress()
 
         return self._build_local_tick_result(local, log_prefix)
 
@@ -499,7 +564,61 @@ class GameEngine:
             karma_pollution_score=getattr(local, "karma_pollution_score", 0),
             death_drama_score=getattr(local, "death_drama_score", 0),
             karma_trace_hook=getattr(local, "karma_trace_hook", "") or "",
+            node_id=getattr(local, "node_id", "") or "",
+            node_type=getattr(local, "node_type", "") or "",
+            route_label=getattr(local, "route_label", "") or "",
         )
+
+    def _build_waiting_route_result(self) -> TickResult:
+        """等待玩家选择路线节点时返回一帧轻提示。"""
+        session = self.session
+        return TickResult(
+            stage=Stage.IDLE,
+            log_text="【路线停驻】前路分作三脉，请先择一处节点继续修行。",
+            event_type="RUN_MAP_WAITING",
+            cultivation=session.cultivation,
+            sin_value=session.sin_value,
+            luck=session.luck,
+            foundation=session.foundation,
+            realm=get_realm_name(session.realm_code),
+            sin_phase=session.sin_phase(),
+            ambition_progress=session.ambition_progress,
+            ambition_target=session.ambition_target,
+            ambition_progress_label=session.ambition_progress_label,
+        )
+
+    def _refresh_run_map_if_exhausted(self):
+        """路线走空时为当前境界重开一张路线图，避免挂机流程卡死。"""
+        if not self.session:
+            return
+        run_map = self.session.run_map
+        if run_map.current_node_id or run_map.available_next_nodes:
+            return
+        self.session.run_map = generate_run_map(random.Random(uuid.uuid4().hex))
+        open_chapter_choices(self.session.run_map, self.session.realm_code)
+
+    def _advance_run_node_progress(self):
+        """扣减当前路线节点预算，耗尽后完成节点并统计路线特征。"""
+        node = self.current_run_node()
+        if not self.session or not node:
+            return
+        node.tick_budget = max(0, node.tick_budget - 1)
+        if node.tick_budget > 0:
+            return
+        completed = complete_current_node(self.session.run_map)
+        if completed:
+            self._record_run_node_stats(completed)
+
+    def _record_run_node_stats(self, node: RunMapNode):
+        """累计本局路线图特征，供终局身份与前端统计使用。"""
+        if node.node_type == "gamble":
+            self.session.run_route_gamble_count += 1
+        elif node.node_type == "shop":
+            self.session.run_route_shop_count += 1
+        elif node.node_type == "karma_echo":
+            self.session.run_route_karma_count += 1
+        elif node.node_type == "heaven":
+            self.session.run_route_heaven_count += 1
 
     def _resolve_local_ambition_delta(self, local: LocalEventResult) -> int:
         """按当前执念筛选普通事件进度，避免所有轻选择都推进任意执念。"""
@@ -540,11 +659,7 @@ class GameEngine:
         )
         base_gain = base_rate * settings.tick_interval
 
-        local = generate_local_event(
-            session.realm_code,
-            session.sin_value,
-            heaven_persona=session.heaven_persona,
-        )
+        local = self._generate_node_local_event()
         return self._apply_local_event_result(local, base_gain, "【平淡日常】")
 
     def _trigger_resentment_local_event(self) -> TickResult:
@@ -556,11 +671,7 @@ class GameEngine:
             realm_cfg["cultivation_rate_max"],
         )
         base_gain = base_rate * settings.tick_interval
-        local = generate_local_event(
-            session.realm_code,
-            session.sin_value,
-            heaven_persona=session.heaven_persona,
-        )
+        local = self._generate_node_local_event()
 
         # 尝试从怨念池获取一条死因，附加到日志中
         karma_text = "你感到空气中弥漫着不祥的因果之力。"
@@ -571,6 +682,35 @@ class GameEngine:
         result.event_type = "RESENTMENT_LOCAL"
         result.log_text = f"{result.log_text} {karma_text}"
         return result
+
+    def _generate_node_local_event(self) -> LocalEventResult:
+        """按当前路线节点生成本地事件，并写入节点元数据。"""
+        session = self.session
+        node = self.current_run_node()
+        if not node:
+            return generate_local_event(session.realm_code, session.sin_value)
+        local = generate_local_event(
+            session.realm_code,
+            session.sin_value,
+            heaven_persona=session.heaven_persona,
+            preferred_pool=node.event_pool,
+            reward_multiplier=node.reward_multiplier,
+            risk_multiplier=node.risk_multiplier,
+        )
+        self._decorate_node_local_event(local, node)
+        return local
+
+    def _decorate_node_local_event(self, local: LocalEventResult, node: RunMapNode):
+        """补充路线节点元数据和首版局内轻效果。"""
+        local.node_id = node.node_id
+        local.node_type = node.node_type
+        local.route_label = node.route_label
+        if node.node_type == "shop":
+            local.log_text = f"{local.log_text}【黑市补给】你用零碎功德换来一口回气。"
+            local.foundation_delta += 1
+        elif node.node_type == "rest":
+            local.log_text = f"{local.log_text}【歇脚调息】道心稍定，天谴余波散去。"
+            local.sin_delta -= 2
 
     async def _trigger_resentment_llm_event(self) -> TickResult:
         """5% 怨念心魔试炼 —— 从全服怨念池抽取死因，触发 LLM 天道事件"""
@@ -773,8 +913,36 @@ class GameEngine:
         self.stage = Stage.LLM_PROCESSING
         self._decision_deadline = 0.0
 
-        # 1. 组装 LLM 上下文
-        player_ctx = PlayerContextForLLM(
+        is_ascension = trigger.trigger_type == "ASCENSION"
+        is_dead = self._roll_backend_death(session, is_ascension)
+        llm_context = self._build_llm_context(
+            session,
+            trigger,
+            is_dead,
+            choice_id,
+            custom_text,
+        )
+        full_story, llm_output = await self._run_llm_stream(
+            session.heaven_persona,
+            llm_context,
+            on_chunk,
+        )
+        used_custom_input = choice_id == "C" and bool(custom_text.strip())
+        return await self._settle(
+            llm_output, trigger, is_dead, is_ascension, full_story, used_custom_input
+        )
+
+    def _roll_backend_death(self, session: PlayerState, is_ascension: bool) -> bool:
+        if is_ascension:
+            return random.random() < 0.05
+        return roll_death_check(
+            session.realm_code,
+            session.sin_value,
+            session.foundation,
+        )
+
+    def _build_player_llm_context(self, session: PlayerState) -> PlayerContextForLLM:
+        return PlayerContextForLLM(
             player_name=session.player_name,
             realm=get_realm_name(session.realm_code),
             realm_code=session.realm_code,
@@ -785,21 +953,16 @@ class GameEngine:
             effective_luck=session.effective_luck(),
         )
 
-        # 2. 后端计算 is_dead
-        is_ascension = trigger.trigger_type == "ASCENSION"
-        is_dead = False
-
-        if is_ascension:
-            is_dead = random.random() < 0.05
-        else:
-            is_dead = roll_death_check(
-                session.realm_code,
-                session.sin_value,
-                session.foundation,
-            )
-
-        # 3. 构建 LLM 输入
-        llm_context = LLMInputContext(
+    def _build_llm_context(
+        self,
+        session: PlayerState,
+        trigger: EventTrigger,
+        is_dead: bool,
+        choice_id: str,
+        custom_text: str,
+    ) -> LLMInputContext:
+        player_ctx = self._build_player_llm_context(session)
+        return LLMInputContext(
             system_context={
                 "heaven_personality": session.heaven_persona,
                 "global_rule": "玩家如果自定义发言极其搞笑、无耻且能自圆其说，给予生路；若无理取闹，直接神罚拍死。",
@@ -814,37 +977,42 @@ class GameEngine:
             heaven_persona=session.heaven_persona,
         )
 
-        # 4. 调用 LLM（流式 + Retry + Fallback）
-        system_prompt = get_persona_prompt(session.heaven_persona)
+    async def _run_llm_stream(
+        self,
+        heaven_persona: str,
+        llm_context: LLMInputContext,
+        on_chunk: Optional[Callable[[str, str], Awaitable[None]]],
+    ) -> tuple[str, LLMOutput]:
+        system_prompt = get_persona_prompt(heaven_persona)
         full_story = ""
         llm_output = None
-
         try:
             async for chunk in self.orchestrator.process_streaming(system_prompt, llm_context):
-                if isinstance(chunk, LLMOutput):
-                    llm_output = chunk
-                elif isinstance(chunk, str):
-                    full_story += chunk
-                    if on_chunk is not None:
-                        await on_chunk("reason_text", chunk)
-                else:
-                    segment = str(chunk.get("segment", "reason_text"))
-                    piece = str(chunk.get("chunk", ""))
-                    if segment in ("reason_text", "story_text"):
-                        full_story += piece
-                    if on_chunk is not None:
-                        await on_chunk(segment, piece)
+                piece, llm_output = await self._consume_llm_chunk(chunk, llm_output, on_chunk)
+                full_story += piece
         except Exception:
             pass
-
         if llm_output is None:
             llm_output = self.orchestrator._fallback_resolve(llm_context)
+        return full_story, llm_output
 
-        # 5. 结算
-        used_custom_input = choice_id == "C" and bool(custom_text.strip())
-        return await self._settle(
-            llm_output, trigger, is_dead, is_ascension, full_story, used_custom_input
-        )
+    async def _consume_llm_chunk(
+        self,
+        chunk,
+        current_output: LLMOutput | None,
+        on_chunk: Optional[Callable[[str, str], Awaitable[None]]],
+    ) -> tuple[str, LLMOutput | None]:
+        if isinstance(chunk, LLMOutput):
+            return "", chunk
+        if isinstance(chunk, str):
+            if on_chunk is not None:
+                await on_chunk("reason_text", chunk)
+            return chunk, current_output
+        segment = str(chunk.get("segment", "reason_text"))
+        piece = str(chunk.get("chunk", ""))
+        if on_chunk is not None:
+            await on_chunk(segment, piece)
+        return piece if segment in ("reason_text", "story_text") else "", current_output
 
     async def _settle(
         self,
@@ -859,100 +1027,214 @@ class GameEngine:
         session = self.session
         if session is None:
             return TickResult(stage=Stage.INIT, log_text="[系统] 会话丢失")
-        intercepted = False
+        draft = self._apply_settlement_mutations(session, llm_output, backend_is_dead, full_story)
+        game_over = draft.backend_is_dead or is_ascension
+        draft.heaven_points_earned = self._settle_heaven_points(
+            session,
+            game_over,
+            used_custom_input,
+        )
+        await self._apply_settlement_stage(session, llm_output, draft.backend_is_dead, is_ascension, game_over)
+        session.prd_counter = 0
+        self._current_trigger = None
+        return self._build_settled_tick_result(
+            session, llm_output, trigger, full_story, draft, is_ascension, used_custom_input, game_over
+        )
+
+    def _apply_settlement_mutations(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        backend_is_dead: bool,
+        full_story: str,
+    ) -> SettlementDraft:
+        draft = self._prepare_settlement_draft(session, llm_output, backend_is_dead, full_story)
+        if not draft.backend_is_dead:
+            self._apply_llm_attribute_changes(session, llm_output.attribute_changes)
+        session.survival_seconds += settings.tick_interval
+        return draft
+
+    def _build_settled_tick_result(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        trigger: EventTrigger,
+        full_story: str,
+        draft: SettlementDraft,
+        is_ascension: bool,
+        used_custom_input: bool,
+        game_over: bool,
+    ) -> TickResult:
+        settlement = self._build_settlement(
+            session,
+            llm_output,
+            trigger,
+            draft.backend_is_dead,
+            is_ascension,
+            used_custom_input,
+            draft,
+        )
+        return self._build_settlement_result(
+            session,
+            llm_output,
+            trigger,
+            full_story,
+            settlement,
+            draft.backend_is_dead,
+            draft.heaven_points_earned,
+            game_over,
+        )
+
+    def _prepare_settlement_draft(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        backend_is_dead: bool,
+        full_story: str,
+    ) -> SettlementDraft:
+        reason_text, verdict_text, story_text = self._compose_settlement_texts(
+            llm_output,
+            full_story,
+        )
+        backend_is_dead, intercepted, verdict_text, story_text = self._apply_karma_shield(
+            session,
+            backend_is_dead,
+            reason_text,
+            verdict_text,
+            story_text,
+        )
+        return SettlementDraft(
+            reason_text=reason_text,
+            verdict_text=verdict_text,
+            story_text=story_text,
+            backend_is_dead=backend_is_dead,
+            intercepted=intercepted,
+        )
+
+    def _compose_settlement_texts(
+        self,
+        llm_output: LLMOutput,
+        full_story: str,
+    ) -> tuple[str, str, str]:
         reason_text = llm_output.reason_text or llm_output.story_text or full_story
         verdict_text = llm_output.verdict_text or llm_output.event_title
         story_text = llm_output.story_text or compose_story_text(reason_text, verdict_text)
+        return reason_text, verdict_text, story_text
 
-        # 因果遮蔽卡拦截
-        if backend_is_dead and session.karma_shield > 0:
-            session.karma_shield -= 1
-            backend_is_dead = False
-            intercepted = True
-            shield_line = "【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
-            verdict_text = shield_line
-            story_text = compose_story_text(reason_text, shield_line)
+    def _apply_karma_shield(
+        self,
+        session: PlayerState,
+        backend_is_dead: bool,
+        reason_text: str,
+        verdict_text: str,
+        story_text: str,
+    ) -> tuple[bool, bool, str, str]:
+        if not backend_is_dead or session.karma_shield <= 0:
+            return backend_is_dead, False, verdict_text, story_text
+        session.karma_shield -= 1
+        shield_line = "【因果遮蔽卡触发！宗门太上老祖跨越时空长河，一掌震碎天雷，强行将你捞回！】"
+        return False, True, shield_line, compose_story_text(reason_text, shield_line)
 
-        # 应用属性变化
-        if not backend_is_dead:
-            changes = llm_output.attribute_changes
-            session.cultivation += changes.cultivation
-            realm_cfg = get_realm_config(session.realm_code)
-            session.sin_value = max(0, min(
-                realm_cfg["sin_max"],
-                session.sin_value + changes.sin_value,
-            ))
-            session.luck = max(0, min(100, session.luck + changes.luck))
-            session.foundation = max(0, min(100, session.foundation + changes.foundation))
+    def _apply_llm_attribute_changes(self, session: PlayerState, changes: AttributeChanges):
+        session.cultivation += changes.cultivation
+        realm_cfg = get_realm_config(session.realm_code)
+        session.sin_value = max(0, min(realm_cfg["sin_max"], session.sin_value + changes.sin_value))
+        session.luck = max(0, min(100, session.luck + changes.luck))
+        session.foundation = max(0, min(100, session.foundation + changes.foundation))
+        new_realm = get_realm_by_cultivation(session.cultivation)
+        if new_realm != session.realm_code:
+            session.realm_code = new_realm
 
-            new_realm = get_realm_by_cultivation(session.cultivation)
-            if new_realm != session.realm_code:
-                session.realm_code = new_realm
-
-        session.survival_seconds += settings.tick_interval
-
-        heaven_points_earned = 0
-        game_over = False
-
-        if backend_is_dead or is_ascension:
-            heaven_points_earned = self._calc_heaven_points(session)
-
+    def _settle_heaven_points(
+        self,
+        session: PlayerState,
+        game_over: bool,
+        used_custom_input: bool,
+    ) -> int:
+        earned = self._calc_heaven_points(session) if game_over else 0
         if used_custom_input:
-            session.sin_value = max(
-                0,
-                min(
-                    get_realm_config(session.realm_code)["sin_max"],
-                    session.sin_value + session.destiny_custom_sin_bonus(),
-                ),
-            )
-            heaven_points_earned += session.destiny_custom_heaven_points_bonus()
+            self._apply_custom_input_bonus(session)
+            earned += session.destiny_custom_heaven_points_bonus()
+        if earned <= 0:
+            return 0
+        earned = max(0, int(earned * session.destiny_heaven_points_multiplier()))
+        session.heaven_points += earned
+        return earned
 
-        if heaven_points_earned > 0:
-            heaven_points_earned = max(
-                0,
-                int(heaven_points_earned * session.destiny_heaven_points_multiplier()),
-            )
-            session.heaven_points += heaven_points_earned
+    def _apply_custom_input_bonus(self, session: PlayerState):
+        sin_max = get_realm_config(session.realm_code)["sin_max"]
+        session.sin_value = max(
+            0,
+            min(sin_max, session.sin_value + session.destiny_custom_sin_bonus()),
+        )
 
-        if backend_is_dead or is_ascension:
-            game_over = True
-
-            dead_record = DeadRecord(
-                player_id=session.player_id,
-                player_name=session.player_name,
-                realm=get_realm_name(session.realm_code),
-                realm_code=session.realm_code,
-                dead_title=llm_output.dead_title or "死于天道裁决",
-                sin_value=session.sin_value,
-                survived_seconds=session.survival_seconds,
-            )
-
-            if is_ascension and not backend_is_dead:
-                # 飞升：写入名人堂
-                self._hall_list.append({
-                    "player_name": session.player_name,
-                    "player_id": session.player_id,
-                    "ascension_title": llm_output.event_title or "飞升大乘",
-                    "total_heaven_points": session.heaven_points,
-                    "ascended_at": datetime.now().isoformat(),
-                })
-                if self._immortal_hall:
-                    await self._immortal_hall.add_ascension(
-                        session.player_id, session.player_name,
-                        llm_output.event_title or "飞升大乘", session.heaven_points,
-                    )
-            else:
-                # 暴毙：写入死亡因果池
-                self._dead_list.append(dead_record)
-                if self._dead_registry:
-                    await self._dead_registry.add_record(dead_record)
-
+    async def _apply_settlement_stage(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        backend_is_dead: bool,
+        is_ascension: bool,
+        game_over: bool,
+    ):
+        if game_over:
+            await self._record_final_outcome(session, llm_output, backend_is_dead, is_ascension)
             self.stage = Stage.GAME_OVER
-        else:
-            self.stage = Stage.IDLE
+            return
+        self.stage = Stage.IDLE
+        self._complete_current_run_node_after_settlement()
 
-        session.prd_counter = 0
-        self._current_trigger = None
+    async def _record_final_outcome(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        backend_is_dead: bool,
+        is_ascension: bool,
+    ):
+        if is_ascension and not backend_is_dead:
+            await self._record_ascension(session, llm_output)
+            return
+        await self._record_death(session, llm_output)
+
+    async def _record_ascension(self, session: PlayerState, llm_output: LLMOutput):
+        self._hall_list.append({
+            "player_name": session.player_name,
+            "player_id": session.player_id,
+            "ascension_title": llm_output.event_title or "飞升大乘",
+            "total_heaven_points": session.heaven_points,
+            "ascended_at": datetime.now().isoformat(),
+        })
+        if self._immortal_hall:
+            await self._immortal_hall.add_ascension(
+                session.player_id,
+                session.player_name,
+                llm_output.event_title or "飞升大乘",
+                session.heaven_points,
+            )
+
+    async def _record_death(self, session: PlayerState, llm_output: LLMOutput):
+        dead_record = DeadRecord(
+            player_id=session.player_id,
+            player_name=session.player_name,
+            realm=get_realm_name(session.realm_code),
+            realm_code=session.realm_code,
+            dead_title=llm_output.dead_title or "死于天道裁决",
+            sin_value=session.sin_value,
+            survived_seconds=session.survival_seconds,
+        )
+        self._dead_list.append(dead_record)
+        if self._dead_registry:
+            await self._dead_registry.add_record(dead_record)
+
+    def _build_settlement(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        trigger: EventTrigger,
+        backend_is_dead: bool,
+        is_ascension: bool,
+        used_custom_input: bool,
+        draft: SettlementDraft,
+    ) -> EventSettlement:
         epitaph_title, leaderboard_type, leaderboard_score, next_goal_hint = build_run_epitaph(
             session=session,
             backend_is_dead=backend_is_dead,
@@ -960,24 +1242,35 @@ class GameEngine:
             used_custom_input=used_custom_input,
             trigger_type=trigger.trigger_type,
         )
-
         settlement = EventSettlement(
             event_id=trigger.event_id,
             is_dead=backend_is_dead,
             dead_title=llm_output.dead_title if backend_is_dead else "",
-            reason_text=reason_text,
-            verdict_text=verdict_text,
+            reason_text=draft.reason_text,
+            verdict_text=draft.verdict_text,
             event_title=llm_output.event_title,
-            story_text=story_text,
+            story_text=draft.story_text,
             attribute_changes=llm_output.attribute_changes,
-            intercepted_by_shield=intercepted,
-            heaven_points_earned=heaven_points_earned,
+            intercepted_by_shield=draft.intercepted,
+            heaven_points_earned=draft.heaven_points_earned,
             epitaph_title=epitaph_title,
             leaderboard_type=leaderboard_type,
             leaderboard_score=leaderboard_score,
             next_goal_hint=next_goal_hint,
         )
+        return settlement
 
+    def _build_settlement_result(
+        self,
+        session: PlayerState,
+        llm_output: LLMOutput,
+        trigger: EventTrigger,
+        full_story: str,
+        settlement: EventSettlement,
+        backend_is_dead: bool,
+        heaven_points_earned: int,
+        game_over: bool,
+    ) -> TickResult:
         return TickResult(
             stage=self.stage,
             log_text=f"[{llm_output.event_title}] {full_story[:100]}...",
@@ -993,6 +1286,14 @@ class GameEngine:
             heaven_points_earned=heaven_points_earned,
             game_over=game_over,
         )
+
+    def _complete_current_run_node_after_settlement(self):
+        """非终局天道裁决结束后完成当前路线节点。"""
+        if not self.session or not self.session.run_map.current_node_id:
+            return
+        completed = complete_current_node(self.session.run_map)
+        if completed:
+            self._record_run_node_stats(completed)
 
     # ── 超时处理 ─────────────────────────────────────────
 

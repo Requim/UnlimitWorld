@@ -1,4 +1,5 @@
 import {
+  CS_CHOOSE_MAP_NODE,
   CS_PLAYER_DECISION,
   CS_SELECT_AMBITION,
   CS_SELECT_DESTINY_SIGN,
@@ -10,6 +11,7 @@ import {
   SC_GAME_LOG,
   SC_HEAVEN_EVENT_TRIGGER,
   SC_PONG,
+  SC_RUN_MAP,
   SC_STORY_STREAM,
   UIState,
 } from '../../utils/actions';
@@ -28,6 +30,27 @@ type AmbitionOffer = {
 };
 type StreamSegment = 'event_title' | 'reason_text' | 'verdict_text' | 'story_text';
 type LightChoice = { id?: string; text?: string; result_text?: string; effects?: Record<string, unknown> };
+type RunMapNode = {
+  node_id: string;
+  layer: number;
+  route_index: number;
+  route_label: string;
+  node_type: string;
+  node_label: string;
+  risk_level: string;
+  status: string;
+  title: string;
+  summary: string;
+};
+type RunMapChapter = { chapter: number; realm_name: string; nodes: RunMapNode[] };
+type RunMapState = {
+  run_map_id: string;
+  current_chapter: number;
+  current_node_id: string;
+  available_next_nodes: string[];
+  visited_nodes: string[];
+  chapters: RunMapChapter[];
+};
 type RunStats = {
   leaderboardScoreDelta: number;
   tauntCount: number;
@@ -119,12 +142,34 @@ function hasPhase3kFrame(frame: WsFrame): boolean {
     || frame.risk_level
     || frame.chosen_choice
     || frame.karma_trace_hook
+    || frame.node_id
+    || frame.node_type
+    || frame.route_label
     || getNumber(frame, 'leaderboard_score_delta') > 0
     || getNumber(frame, 'taunt_count') > 0
     || getNumber(frame, 'gamble_survive_count') > 0
     || getNumber(frame, 'karma_pollution_score') > 0
     || getNumber(frame, 'death_drama_score') > 0,
   );
+}
+
+function normalizeRunMap(raw: unknown): RunMapState | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const data = raw as Partial<RunMapState>;
+  return {
+    run_map_id: String(data.run_map_id || ''),
+    current_chapter: typeof data.current_chapter === 'number' ? data.current_chapter : 1,
+    current_node_id: String(data.current_node_id || ''),
+    available_next_nodes: Array.isArray(data.available_next_nodes) ? data.available_next_nodes as string[] : [],
+    visited_nodes: Array.isArray(data.visited_nodes) ? data.visited_nodes as string[] : [],
+    chapters: Array.isArray(data.chapters) ? data.chapters as RunMapChapter[] : [],
+  };
+}
+
+function currentChapterNodes(runMap: RunMapState | null): RunMapNode[] {
+  if (!runMap) return [];
+  const chapter = runMap.chapters.find((item) => item.chapter === runMap.current_chapter);
+  return chapter ? chapter.nodes : [];
 }
 
 Page({
@@ -153,6 +198,12 @@ Page({
     karmaTraceHook: '' as string,
     lightChoiceText: '' as string,
     showLightChoice: false,
+    runMap: null as RunMapState | null,
+    runMapNodes: [] as RunMapNode[],
+    currentRunNodeId: '' as string,
+    hasRunMapChoice: false,
+    routeNodeType: '' as string,
+    routeLabel: '' as string,
     runStats: {
       leaderboardScoreDelta: 0,
       tauntCount: 0,
@@ -288,6 +339,13 @@ Page({
     });
   },
 
+  onChooseMapNode(e: WechatMiniprogram.TouchEvent) {
+    const nodeId = (e.currentTarget.dataset.id || e.target.dataset.id) as string;
+    const status = (e.currentTarget.dataset.status || e.target.dataset.status) as string;
+    if (!nodeId || status !== 'available') return;
+    getWs().send(CS_CHOOSE_MAP_NODE, { node_id: nodeId });
+  },
+
   onChooseOption(e: WechatMiniprogram.TouchEvent) {
     const choiceId = e.currentTarget.dataset.id as string;
     if (!choiceId) return;
@@ -337,6 +395,12 @@ Page({
       karmaTraceHook: '',
       lightChoiceText: '',
       showLightChoice: false,
+      runMap: null,
+      runMapNodes: [],
+      currentRunNodeId: '',
+      hasRunMapChoice: false,
+      routeNodeType: '',
+      routeLabel: '',
       runStats: {
         leaderboardScoreDelta: 0,
         tauntCount: 0,
@@ -462,6 +526,9 @@ Page({
       case SC_GAME_LOG:
         this._onGameLog(frame);
         break;
+      case SC_RUN_MAP:
+        this._onRunMap(frame);
+        break;
       case SC_HEAVEN_EVENT_TRIGGER:
         this._onEventTrigger(frame);
         break;
@@ -527,6 +594,8 @@ Page({
           eventPool: (frame.event_pool as string) || '',
           riskLevel: (frame.risk_level as string) || '',
           karmaTraceHook: (frame.karma_trace_hook as string) || '',
+          routeNodeType: (frame.node_type as string) || '',
+          routeLabel: (frame.route_label as string) || '',
           lightChoiceText: choiceSummary,
           showLightChoice: Boolean(choiceSummary),
           runStats: nextStats,
@@ -564,6 +633,16 @@ Page({
     if (this.data.uiState !== UIState.IDLE) {
       this.setData({ uiState: UIState.IDLE });
     }
+  },
+
+  _onRunMap(frame: WsFrame) {
+    const runMap = normalizeRunMap(frame.run_map);
+    this.setData({
+      runMap,
+      runMapNodes: currentChapterNodes(runMap),
+      currentRunNodeId: runMap?.current_node_id || '',
+      hasRunMapChoice: Boolean(runMap && runMap.available_next_nodes.length > 0),
+    });
   },
 
   _onEventTrigger(frame: WsFrame) {

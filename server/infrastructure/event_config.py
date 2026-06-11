@@ -143,7 +143,14 @@ def _pool_weight(pool_name: str, pool_data: dict, heaven_persona: str = "") -> i
 def _choose_from_normal_pools(
     normal_pools: dict,
     heaven_persona: str = "",
+    preferred_pool: str = "",
 ) -> tuple[str, dict, dict]:
+    if preferred_pool:
+        pool_data = normal_pools.get(preferred_pool, {})
+        events = pool_data.get("events", [])
+        if events:
+            return preferred_pool, pool_data, random.choice(events)
+
     candidates = []
     weights = []
     for pool_name, pool_data in normal_pools.items():
@@ -294,10 +301,15 @@ def _select_event_template(
     current_sin: int,
     pools: dict,
     heaven_persona: str,
+    preferred_pool: str = "",
 ) -> tuple[str, str, dict]:
     normal_pools = pools.get("normal_pools", {})
     if normal_pools:
-        pool_name, pool_data, event_tpl = _choose_from_normal_pools(normal_pools, heaven_persona)
+        pool_name, pool_data, event_tpl = _choose_from_normal_pools(
+            normal_pools,
+            heaven_persona,
+            preferred_pool,
+        )
         return pool_name, pool_data.get("label", pool_name), event_tpl
     pool_name, event_tpl = _select_legacy_event(realm_code, current_sin, pools)
     return pool_name, pool_name, event_tpl
@@ -348,6 +360,9 @@ def generate_local_event(
     current_sin: int,
     pools: Optional[dict] = None,
     heaven_persona: str = "",
+    preferred_pool: str = "",
+    reward_multiplier: float = 1.0,
+    risk_multiplier: float = 1.0,
 ) -> LocalEventResult:
     """
     根据玩家状态从三层池中抽取并拼装本地事件。
@@ -357,6 +372,9 @@ def generate_local_event(
         current_sin: 玩家当前天谴值
         pools: 可选的外部配置（用于测试注入）
         heaven_persona: 当局天道人格，用于 3K 普通事件池权重修正
+        preferred_pool: 路线地图节点指定的首选 normal_pools 池名
+        reward_multiplier: 路线节点提供的修为和榜单收益倍率
+        risk_multiplier: 路线节点提供的天谴风险倍率
 
     Returns:
         LocalEventResult: 包含文本、数值增量和风味标签的完整事件
@@ -364,16 +382,43 @@ def generate_local_event(
     if pools is None:
         pools = _event_loader.pools
 
+    result = _generate_base_local_event(
+        realm_code,
+        current_sin,
+        pools,
+        heaven_persona,
+        preferred_pool,
+    )
+    _apply_route_multipliers(result, reward_multiplier, risk_multiplier)
+    return result
+
+
+def _generate_base_local_event(
+    realm_code: int,
+    current_sin: int,
+    pools: dict,
+    heaven_persona: str,
+    preferred_pool: str,
+) -> LocalEventResult:
     pool_name, pool_label, event_tpl = _select_event_template(
         realm_code,
         current_sin,
         pools,
         heaven_persona,
+        preferred_pool,
     )
-
     if not event_tpl:
         return _fallback_local_event()
+    result, chosen_choice = _build_local_event_with_choice(event_tpl, pool_name)
+    if chosen_choice:
+        _append_choice_effect(result, chosen_choice, pool_label)
+    return result
 
+
+def _build_local_event_with_choice(
+    event_tpl: dict,
+    pool_name: str,
+) -> tuple[LocalEventResult, LocalEventChoice | None]:
     final_text, cultivation_delta = _render_event_template(event_tpl)
     choices = _build_light_choices(event_tpl.get("choices", []))
     chosen_choice = _auto_pick_choice(choices)
@@ -385,11 +430,28 @@ def generate_local_event(
         choices,
         chosen_choice,
     )
+    return result, chosen_choice
 
-    if chosen_choice:
-        _apply_effects_from_dict(chosen_choice.effects, result)
-        choice_text = chosen_choice.result_text or chosen_choice.text
-        if choice_text:
-            result.log_text = f"{result.log_text}【{pool_label}抉择】{choice_text}"
 
-    return result
+def _append_choice_effect(
+    result: LocalEventResult,
+    chosen_choice: LocalEventChoice,
+    pool_label: str,
+):
+    _apply_effects_from_dict(chosen_choice.effects, result)
+    choice_text = chosen_choice.result_text or chosen_choice.text
+    if choice_text:
+        result.log_text = f"{result.log_text}【{pool_label}抉择】{choice_text}"
+
+
+def _apply_route_multipliers(
+    result: LocalEventResult,
+    reward_multiplier: float,
+    risk_multiplier: float,
+):
+    """按路线节点倍率修正普通事件结果。"""
+    if reward_multiplier != 1.0:
+        result.cultivation_delta = int(result.cultivation_delta * reward_multiplier)
+        result.leaderboard_score_delta = int(result.leaderboard_score_delta * reward_multiplier)
+    if risk_multiplier != 1.0:
+        result.sin_delta = int(result.sin_delta * risk_multiplier)

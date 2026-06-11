@@ -73,6 +73,25 @@ def _make_mock_orchestrator(llm_output=None, should_raise=False):
     return mock
 
 
+def _choose_first_run_node(engine: GameEngine):
+    """测试中选择当前可用的第一个路线节点。"""
+    node_id = engine.session.run_map.available_next_nodes[0]
+    ok, message = engine.choose_run_map_node(node_id)
+    assert ok is True, message
+    return engine.current_run_node()
+
+
+def _choose_first_non_heaven_node(engine: GameEngine):
+    """测试中选择第一个非天道路线节点。"""
+    for node_id in engine.session.run_map.available_next_nodes:
+        node = engine.session.run_map.node_by_id(node_id)
+        if node and node.node_type != "heaven":
+            ok, message = engine.choose_run_map_node(node_id)
+            assert ok is True, message
+            return node
+    return _choose_first_run_node(engine)
+
+
 # ══════════════════════════════════════════════════════════
 # determine_next_event 补充测试
 # ══════════════════════════════════════════════════════════
@@ -192,6 +211,16 @@ class TestNewGame:
             session = engine.new_game()
         assert session.heaven_persona == "玉律监考官"
 
+    def test_new_game_generates_run_map(self):
+        engine = GameEngine()
+        session = engine.new_game()
+        snapshot = engine.get_run_map_snapshot()
+
+        assert session.run_map.run_map_id.startswith("run_")
+        assert len(session.run_map.available_next_nodes) == 3
+        assert snapshot["current_chapter"] == 1
+        assert len(snapshot["chapters"]) == 6
+
 
 # ══════════════════════════════════════════════════════════
 # GameEngine.tick — 阶段守卫
@@ -222,6 +251,34 @@ class TestTickStageGuard:
 
 class TestTickEventRouting:
     @pytest.mark.asyncio
+    async def test_tick_waits_for_route_choice(self):
+        engine = GameEngine()
+        engine.new_game()
+        old_prd = engine.session.prd_counter
+
+        result = await engine.tick()
+
+        assert result.event_type == "RUN_MAP_WAITING"
+        assert engine.session.prd_counter == old_prd
+        assert "路线" in result.log_text
+
+    @pytest.mark.asyncio
+    async def test_tick_refreshes_exhausted_run_map(self):
+        engine = GameEngine()
+        engine.new_game()
+        old_map_id = engine.session.run_map.run_map_id
+        engine.session.realm_code = 3
+        engine.session.run_map.available_next_nodes = []
+        engine.session.run_map.current_node_id = ""
+
+        result = await engine.tick()
+
+        assert result.event_type == "RUN_MAP_WAITING"
+        assert engine.session.run_map.run_map_id != old_map_id
+        assert engine.session.run_map.current_chapter == 3
+        assert len(engine.session.run_map.available_next_nodes) == 3
+
+    @pytest.mark.asyncio
     async def test_process_local_event(self):
         engine = GameEngine()
         engine.new_game(player_name="测试")
@@ -232,6 +289,7 @@ class TestTickEventRouting:
 
         # Phase 2D 怨念路由有 15% 概率触发 resentment 事件，mock 走纯本地路径
         from unittest.mock import patch
+        _choose_first_non_heaven_node(engine)
         with patch("server.application.game_engine.random.randint", return_value=50):
             result = await engine.tick()
         assert result.event_type in ("LOCAL", "RESENTMENT_LOCAL")
@@ -244,6 +302,7 @@ class TestTickEventRouting:
         engine.new_game(destiny_sign_id="secluded_meditation")
         engine.session.prd_counter = 0
 
+        _choose_first_run_node(engine)
         with patch("server.application.game_engine.random.randint", return_value=2):
             result = await engine.tick()
 
@@ -259,6 +318,7 @@ class TestTickEventRouting:
         engine.session.prd_counter = 0
 
         old_survival = engine.session.survival_seconds
+        _choose_first_non_heaven_node(engine)
         await engine.tick()
         assert engine.session.survival_seconds == old_survival + settings.tick_interval
 
@@ -271,6 +331,7 @@ class TestTickEventRouting:
         engine.session.sin_value = 0
         engine.session.prd_counter = 0
 
+        _choose_first_run_node(engine)
         with patch("server.application.game_engine.generate_local_event") as mock_gen, \
                 patch("server.application.game_engine.random.randint", side_effect=[5, 50, 5]):
             mock_gen.return_value = type("LocalResult", (), {
@@ -289,6 +350,7 @@ class TestTickEventRouting:
         engine.session.realm_code = 6
         engine.session.cultivation = settings.ascension_cultivation
 
+        _choose_first_non_heaven_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "ASCENSION"
@@ -301,6 +363,7 @@ class TestTickEventRouting:
         engine.new_game()
         engine.session.sin_value = 100
 
+        _choose_first_run_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "SIN_FULL"
@@ -312,6 +375,7 @@ class TestTickEventRouting:
         engine.new_game()
         engine.session.prd_counter = 999
 
+        _choose_first_run_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "HEAVEN"
@@ -324,6 +388,7 @@ class TestTickEventRouting:
         engine.session.cultivation = 2000
         engine.session.realm_code = 1
 
+        _choose_first_run_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "BREAKTHROUGH"
@@ -336,6 +401,7 @@ class TestTickEventRouting:
         engine.session.sin_value = 0
         old_prd = engine.session.prd_counter
 
+        _choose_first_run_node(engine)
         await engine.tick()
         assert engine.session.prd_counter > old_prd
 
@@ -358,6 +424,7 @@ class TestTickEventRouting:
             leaderboard_score_delta=8,
         )
 
+        _choose_first_run_node(engine)
         with patch("server.application.game_engine.random.randint", side_effect=[1, 50, 1]), \
                 patch("server.application.game_engine.generate_local_event", return_value=local):
             result = await engine.tick()
@@ -367,6 +434,27 @@ class TestTickEventRouting:
         assert result.taunt_count == 1
         assert result.ambition_progress == 1
         assert engine.session.ambition_progress == 1
+
+    @pytest.mark.asyncio
+    async def test_local_event_carries_run_node_metadata(self):
+        engine = GameEngine()
+        engine.new_game()
+        node = _choose_first_non_heaven_node(engine)
+        local = LocalEventResult(
+            event_id="node_local",
+            log_text="节点事件",
+            cultivation_delta=1,
+            event_pool=node.event_pool,
+            risk_level=node.risk_level,
+        )
+
+        with patch("server.application.game_engine.random.randint", side_effect=[1, 50, 1]), \
+                patch("server.application.game_engine.generate_local_event", return_value=local):
+            result = await engine.tick()
+
+        assert result.node_id == node.node_id
+        assert result.node_type == node.node_type
+        assert result.route_label == node.route_label
 
 
 # ══════════════════════════════════════════════════════════
@@ -391,6 +479,7 @@ class TestSubmitDecision:
         mock_orch = _make_mock_orchestrator()
         engine.orchestrator = mock_orch
 
+        _choose_first_run_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
 
@@ -415,6 +504,7 @@ class TestSubmitDecision:
         ))
         engine.orchestrator = mock_orch
 
+        _choose_first_run_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
 

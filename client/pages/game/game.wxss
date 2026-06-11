@@ -613,6 +613,116 @@
   margin-top: 14rpx;
 }
 
+.run-map-panel {
+  margin: 0 26rpx 16rpx;
+  padding: 18rpx 18rpx 20rpx;
+  border: 1rpx solid rgba(48, 58, 60, 0.22);
+  border-radius: 8rpx;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.9), rgba(240, 235, 224, 0.86)),
+    repeating-linear-gradient(0deg, rgba(34, 30, 24, 0.025), rgba(34, 30, 24, 0.025) 2rpx, transparent 2rpx, transparent 8rpx);
+  box-shadow: 0 10rpx 26rpx rgba(90, 78, 58, 0.08);
+}
+
+.run-map-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18rpx;
+  margin-bottom: 16rpx;
+}
+
+.run-map-eyebrow {
+  display: block;
+  font-size: 18rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 6rpx;
+}
+
+.run-map-title {
+  display: block;
+  margin-top: 4rpx;
+  font-size: 28rpx;
+  color: var(--ink-strong);
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.run-map-state {
+  flex-shrink: 0;
+  min-width: 116rpx;
+  padding: 8rpx 10rpx;
+  border-radius: 6rpx;
+  background: rgba(203, 162, 91, 0.12);
+  color: var(--gold-leaf);
+  font-size: 20rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+}
+
+.run-map-board {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+}
+
+.run-node {
+  width: 31%;
+  min-height: 112rpx;
+  padding: 12rpx 8rpx;
+  border: 1rpx solid rgba(156, 139, 111, 0.24);
+  border-radius: 8rpx;
+  background: rgba(255, 252, 247, 0.78);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4rpx;
+  text-align: center;
+  opacity: 0.58;
+}
+
+.run-node-route,
+.run-node-layer {
+  font-size: 18rpx;
+  color: var(--text-mist-dim);
+  letter-spacing: 1rpx;
+}
+
+.run-node-label {
+  font-size: 24rpx;
+  color: var(--text-mist);
+  font-weight: 700;
+  letter-spacing: 2rpx;
+}
+
+.run-node.node-available {
+  opacity: 1;
+  border-color: rgba(203, 162, 91, 0.5);
+  background: linear-gradient(180deg, rgba(255, 250, 238, 0.98), rgba(244, 232, 204, 0.92));
+  box-shadow: 0 8rpx 18rpx rgba(126, 96, 42, 0.12);
+}
+
+.run-node.node-current {
+  opacity: 1;
+  border-color: rgba(176, 51, 38, 0.45);
+  background: rgba(176, 51, 38, 0.08);
+}
+
+.run-node.node-visited {
+  opacity: 0.86;
+  border-color: rgba(76, 116, 96, 0.36);
+  background: rgba(76, 116, 96, 0.08);
+}
+
+.run-node.risk-high .run-node-label {
+  color: var(--cinnabar);
+}
+
+.run-node.risk-medium .run-node-label {
+  color: var(--gold-leaf);
+}
+
 .epitaph-board {
   display: flex;
   justify-content: center;
