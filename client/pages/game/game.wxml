@@ -125,7 +125,7 @@
   </view>
 
   <view wx:if="{{uiState === 'idle'}}" class="content-area idle-content">
-    <scroll-view class="idle-scroll" scroll-y scroll-into-view="log-end">
+    <view class="idle-fixed">
       <view wx:if="{{ambitionTitle}}" class="ambition-ribbon">
         <text class="ambition-ribbon-label">本局执念</text>
         <text class="ambition-ribbon-title">{{ambitionTitle}}</text>
@@ -158,6 +158,8 @@
           </view>
         </view>
       </view>
+    </view>
+    <scroll-view class="idle-scroll" scroll-y scroll-into-view="log-end">
       <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
         <view class="phase3k-meta">
           <text wx:if="{{routeLabel}}" class="phase3k-chip">路 {{routeLabel}}</text>
