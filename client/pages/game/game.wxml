@@ -133,7 +133,7 @@
           {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
         </text>
       </view>
-      <view wx:if="{{runMap}}" class="run-map-panel">
+      <view wx:if="{{hasRunMapNodes}}" class="run-map-panel">
         <view class="run-map-head">
           <view>
             <text class="run-map-eyebrow">M4 路 线</text>

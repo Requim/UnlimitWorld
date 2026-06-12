@@ -36,6 +36,7 @@ class Action:
     CS_SELECT_DESTINY_SIGN = "CS_SELECT_DESTINY_SIGN"
     CS_SELECT_AMBITION = "CS_SELECT_AMBITION"
     CS_CHOOSE_MAP_NODE = "CS_CHOOSE_MAP_NODE"
+    CS_GET_RUN_MAP = "CS_GET_RUN_MAP"
     CS_PING = "CS_PING"
     CS_PLAYER_DECISION = "CS_PLAYER_DECISION"
     SC_DESTINY_OFFER = "SC_DESTINY_OFFER"
@@ -559,12 +560,18 @@ async def _handle_runtime_message(
     action = data.get("action", "")
     if action == Action.CS_PING:
         await ws.send_json({"action": Action.SC_PONG})
+    elif action == Action.CS_GET_RUN_MAP:
+        await _handle_get_run_map(ws, engine)
     elif action == Action.CS_CHOOSE_MAP_NODE:
         await _handle_choose_map_node(ws, engine, mgr, player_id, data)
     elif action == Action.CS_PLAYER_DECISION:
         await _handle_player_decision(ws, engine, mgr, player_id, data)
     else:
         await ws.send_json({"action": Action.SC_ERROR, "message": f"未知 action: {action}"})
+
+
+async def _handle_get_run_map(ws: WebSocket, engine: GameEngine):
+    await ws.send_json(_build_run_map(engine))
 
 
 async def _handle_choose_map_node(

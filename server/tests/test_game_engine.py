@@ -363,7 +363,7 @@ class TestTickEventRouting:
         engine.new_game()
         engine.session.sin_value = 100
 
-        _choose_first_run_node(engine)
+        _choose_first_non_heaven_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "SIN_FULL"
@@ -375,7 +375,7 @@ class TestTickEventRouting:
         engine.new_game()
         engine.session.prd_counter = 999
 
-        _choose_first_run_node(engine)
+        _choose_first_non_heaven_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "HEAVEN"
@@ -388,7 +388,7 @@ class TestTickEventRouting:
         engine.session.cultivation = 2000
         engine.session.realm_code = 1
 
-        _choose_first_run_node(engine)
+        _choose_first_non_heaven_node(engine)
         result = await engine.tick()
         assert result.waiting_for_decision
         assert result.event_type == "BREAKTHROUGH"
@@ -401,7 +401,7 @@ class TestTickEventRouting:
         engine.session.sin_value = 0
         old_prd = engine.session.prd_counter
 
-        _choose_first_run_node(engine)
+        _choose_first_non_heaven_node(engine)
         await engine.tick()
         assert engine.session.prd_counter > old_prd
 

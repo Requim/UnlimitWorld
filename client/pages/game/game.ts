@@ -1,5 +1,6 @@
 import {
   CS_CHOOSE_MAP_NODE,
+  CS_GET_RUN_MAP,
   CS_PLAYER_DECISION,
   CS_SELECT_AMBITION,
   CS_SELECT_DESTINY_SIGN,
@@ -200,6 +201,7 @@ Page({
     showLightChoice: false,
     runMap: null as RunMapState | null,
     runMapNodes: [] as RunMapNode[],
+    hasRunMapNodes: false,
     currentRunNodeId: '' as string,
     hasRunMapChoice: false,
     routeNodeType: '' as string,
@@ -346,6 +348,11 @@ Page({
     getWs().send(CS_CHOOSE_MAP_NODE, { node_id: nodeId });
   },
 
+  _requestRunMap() {
+    if (getWs().getStatus() !== 'connected') return;
+    getWs().send(CS_GET_RUN_MAP, {});
+  },
+
   onChooseOption(e: WechatMiniprogram.TouchEvent) {
     const choiceId = e.currentTarget.dataset.id as string;
     if (!choiceId) return;
@@ -397,6 +404,7 @@ Page({
       showLightChoice: false,
       runMap: null,
       runMapNodes: [],
+      hasRunMapNodes: false,
       currentRunNodeId: '',
       hasRunMapChoice: false,
       routeNodeType: '',
@@ -576,6 +584,9 @@ Page({
   _onGameLog(frame: WsFrame) {
     if (frame.log_text) {
       appendLog.call(this, frame.log_text as string);
+      if (String(frame.event_type || '') === 'RUN_MAP_WAITING' || String(frame.log_text).includes('路线停驻')) {
+        this._requestRunMap();
+      }
     }
 
     const now = Date.now();
@@ -637,9 +648,11 @@ Page({
 
   _onRunMap(frame: WsFrame) {
     const runMap = normalizeRunMap(frame.run_map);
+    const nodes = currentChapterNodes(runMap);
     this.setData({
       runMap,
-      runMapNodes: currentChapterNodes(runMap),
+      runMapNodes: nodes,
+      hasRunMapNodes: nodes.length > 0,
       currentRunNodeId: runMap?.current_node_id || '',
       hasRunMapChoice: Boolean(runMap && runMap.available_next_nodes.length > 0),
     });

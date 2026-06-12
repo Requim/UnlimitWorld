@@ -433,6 +433,15 @@ class TestDownstreamFrameStructure:
             for key in ("node_id", "node_type", "route_label", "status", "risk_level"):
                 assert key in first_node, f"SC_RUN_MAP 节点缺少字段: {key}"
 
+    def test_cs_get_run_map_returns_snapshot(self, client, fast_tick):
+        """CS_GET_RUN_MAP 为前端路线图丢帧/晚到提供主动刷新兜底。"""
+        with client.websocket_connect("/ws/game?player_id=e2e_get_map") as ws:
+            _start_game_with_destiny(ws, "地图刷新")
+            ws.send_json({"action": "CS_GET_RUN_MAP"})
+            resp = ws.receive_json()
+            assert resp["action"] == "SC_RUN_MAP"
+            assert len(resp["run_map"]["available_next_nodes"]) == 3
+
     def test_sc_pong_format(self, client, fast_tick):
         """SC_PONG 格式校验（需先开局再 PING）"""
         with client.websocket_connect("/ws/game?player_id=e2e_struct_pong") as ws:
