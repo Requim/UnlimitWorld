@@ -50,6 +50,8 @@ type RunMapState = {
   current_node_id: string;
   available_next_nodes: string[];
   visited_nodes: string[];
+  route_notice: string;
+  route_notice_level: string;
   chapters: RunMapChapter[];
 };
 type RunStats = {
@@ -146,12 +148,57 @@ function hasPhase3kFrame(frame: WsFrame): boolean {
     || frame.node_id
     || frame.node_type
     || frame.route_label
+    || frame.route_notice
     || getNumber(frame, 'leaderboard_score_delta') > 0
     || getNumber(frame, 'taunt_count') > 0
     || getNumber(frame, 'gamble_survive_count') > 0
     || getNumber(frame, 'karma_pollution_score') > 0
     || getNumber(frame, 'death_drama_score') > 0,
   );
+}
+
+function buildRunStats(current: RunStats, frame: WsFrame): RunStats {
+  return {
+    leaderboardScoreDelta: current.leaderboardScoreDelta + getNumber(frame, 'leaderboard_score_delta'),
+    tauntCount: current.tauntCount + getNumber(frame, 'taunt_count'),
+    gambleSurviveCount: current.gambleSurviveCount + getNumber(frame, 'gamble_survive_count'),
+    karmaPollutionScore: current.karmaPollutionScore + getNumber(frame, 'karma_pollution_score'),
+    deathDramaScore: current.deathDramaScore + getNumber(frame, 'death_drama_score'),
+  };
+}
+
+function buildRouteNoticeState(frame: WsFrame, fallbackNotice: string, fallbackLevel: string) {
+  const routeNotice = (frame.route_notice as string) || fallbackNotice;
+  return {
+    routeNotice,
+    routeNoticeLevel: (frame.route_notice_level as string) || fallbackLevel,
+    hasRouteNotice: Boolean(routeNotice),
+  };
+}
+
+function buildPhase3kState(
+  frame: WsFrame,
+  nextStats: RunStats,
+  choiceSummary: string,
+  fallbackNotice: string,
+  fallbackLevel: string,
+) {
+  const statsState = {
+    runStats: nextStats,
+    hasRunStats: hasRunStats(nextStats),
+  };
+  if (!hasPhase3kFrame(frame)) return statsState;
+  return {
+    eventPool: (frame.event_pool as string) || '',
+    riskLevel: (frame.risk_level as string) || '',
+    karmaTraceHook: (frame.karma_trace_hook as string) || '',
+    routeNodeType: (frame.node_type as string) || '',
+    routeLabel: (frame.route_label as string) || '',
+    lightChoiceText: choiceSummary,
+    showLightChoice: Boolean(choiceSummary),
+    ...buildRouteNoticeState(frame, fallbackNotice, fallbackLevel),
+    ...statsState,
+  };
 }
 
 function normalizeRunMap(raw: unknown): RunMapState | null {
@@ -163,6 +210,8 @@ function normalizeRunMap(raw: unknown): RunMapState | null {
     current_node_id: String(data.current_node_id || ''),
     available_next_nodes: Array.isArray(data.available_next_nodes) ? data.available_next_nodes as string[] : [],
     visited_nodes: Array.isArray(data.visited_nodes) ? data.visited_nodes as string[] : [],
+    route_notice: String(data.route_notice || ''),
+    route_notice_level: String(data.route_notice_level || ''),
     chapters: Array.isArray(data.chapters) ? data.chapters as RunMapChapter[] : [],
   };
 }
@@ -204,6 +253,9 @@ Page({
     hasRunMapNodes: false,
     currentRunNodeId: '' as string,
     hasRunMapChoice: false,
+    routeNotice: '' as string,
+    routeNoticeLevel: '' as string,
+    hasRouteNotice: false,
     routeNodeType: '' as string,
     routeLabel: '' as string,
     runStats: {
@@ -407,6 +459,9 @@ Page({
       hasRunMapNodes: false,
       currentRunNodeId: '',
       hasRunMapChoice: false,
+      routeNotice: '',
+      routeNoticeLevel: '',
+      hasRouteNotice: false,
       routeNodeType: '',
       routeLabel: '',
       runStats: {
@@ -590,32 +645,16 @@ Page({
     }
 
     const now = Date.now();
-    const nextStats = {
-      leaderboardScoreDelta: this.data.runStats.leaderboardScoreDelta + getNumber(frame, 'leaderboard_score_delta'),
-      tauntCount: this.data.runStats.tauntCount + getNumber(frame, 'taunt_count'),
-      gambleSurviveCount: this.data.runStats.gambleSurviveCount + getNumber(frame, 'gamble_survive_count'),
-      karmaPollutionScore: this.data.runStats.karmaPollutionScore + getNumber(frame, 'karma_pollution_score'),
-      deathDramaScore: this.data.runStats.deathDramaScore + getNumber(frame, 'death_drama_score'),
-    };
+    const nextStats = buildRunStats(this.data.runStats, frame);
     const chosenChoice = normalizeChoice(frame.chosen_choice);
     const choiceSummary = buildChoiceSummary(chosenChoice);
-    const shouldUpdatePhase3k = hasPhase3kFrame(frame);
-    const phase3kState = shouldUpdatePhase3k
-      ? {
-          eventPool: (frame.event_pool as string) || '',
-          riskLevel: (frame.risk_level as string) || '',
-          karmaTraceHook: (frame.karma_trace_hook as string) || '',
-          routeNodeType: (frame.node_type as string) || '',
-          routeLabel: (frame.route_label as string) || '',
-          lightChoiceText: choiceSummary,
-          showLightChoice: Boolean(choiceSummary),
-          runStats: nextStats,
-          hasRunStats: hasRunStats(nextStats),
-        }
-      : {
-          runStats: nextStats,
-          hasRunStats: hasRunStats(nextStats),
-        };
+    const phase3kState = buildPhase3kState(
+      frame,
+      nextStats,
+      choiceSummary,
+      this.data.routeNotice,
+      this.data.routeNoticeLevel,
+    );
 
     if (now - lastStatusUpdate >= 1000) {
       lastStatusUpdate = now;
@@ -655,6 +694,9 @@ Page({
       hasRunMapNodes: nodes.length > 0,
       currentRunNodeId: runMap?.current_node_id || '',
       hasRunMapChoice: Boolean(runMap && runMap.available_next_nodes.length > 0),
+      routeNotice: runMap?.route_notice || '',
+      routeNoticeLevel: runMap?.route_notice_level || '',
+      hasRouteNotice: Boolean(runMap?.route_notice),
     });
   },
 

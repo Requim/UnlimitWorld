@@ -55,6 +55,19 @@ def test_choose_rejects_locked_node():
     assert "不可选" in message
 
 
+def test_choose_node_clears_route_notice():
+    run_map = generate_run_map(random.Random(6))
+    run_map.route_notice = "【终章回响】前路再开。"
+    run_map.route_notice_level = "finale"
+
+    ok, message = choose_run_node(run_map, run_map.available_next_nodes[0])
+
+    assert ok is True
+    assert message == ""
+    assert run_map.route_notice == ""
+    assert run_map.route_notice_level == ""
+
+
 def test_snapshot_marks_node_statuses():
     run_map = generate_run_map(random.Random(9))
     first_node_id = run_map.available_next_nodes[0]
@@ -69,3 +82,14 @@ def test_snapshot_marks_node_statuses():
 
     assert snapshot["current_node_id"] == first_node_id
     assert statuses[first_node_id] == "current"
+
+
+def test_snapshot_includes_route_notice():
+    run_map = generate_run_map(random.Random(11))
+    run_map.route_notice = "【路线续卷】前路重新显影。"
+    run_map.route_notice_level = "info"
+
+    snapshot = snapshot_run_map(run_map)
+
+    assert snapshot["route_notice"] == run_map.route_notice
+    assert snapshot["route_notice_level"] == "info"

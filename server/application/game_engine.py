@@ -198,6 +198,8 @@ class TickResult:
     node_id: str = ""
     node_type: str = ""
     route_label: str = ""
+    route_notice: str = ""
+    route_notice_level: str = ""
 
 
 @dataclass
@@ -572,9 +574,10 @@ class GameEngine:
     def _build_waiting_route_result(self) -> TickResult:
         """等待玩家选择路线节点时返回一帧轻提示。"""
         session = self.session
+        notice, notice_level = self._consume_route_notice()
         return TickResult(
             stage=Stage.IDLE,
-            log_text="【路线停驻】前路分作三脉，请先择一处节点继续修行。",
+            log_text=notice or "【路线停驻】前路分作三脉，请先择一处节点继续修行。",
             event_type="RUN_MAP_WAITING",
             cultivation=session.cultivation,
             sin_value=session.sin_value,
@@ -585,6 +588,8 @@ class GameEngine:
             ambition_progress=session.ambition_progress,
             ambition_target=session.ambition_target,
             ambition_progress_label=session.ambition_progress_label,
+            route_notice=notice,
+            route_notice_level=notice_level,
         )
 
     def _refresh_run_map_if_exhausted(self):
@@ -594,8 +599,31 @@ class GameEngine:
         run_map = self.session.run_map
         if run_map.current_node_id or run_map.available_next_nodes:
             return
+        is_final_chapter = run_map.current_chapter >= 6
+        visited_count = len(run_map.visited_nodes)
         self.session.run_map = generate_run_map(random.Random(uuid.uuid4().hex))
         open_chapter_choices(self.session.run_map, self.session.realm_code)
+        self._set_refreshed_route_notice(is_final_chapter, visited_count)
+
+    def _set_refreshed_route_notice(self, is_final_chapter: bool, visited_count: int):
+        """刷新路线图后写入一次性引导文案。"""
+        if not self.session:
+            return
+        if is_final_chapter:
+            notice = "【终章回响】此卷路线已尽，天道又铺开一卷新图。择一处节点，继续把命往前推。"
+            level = "finale"
+        else:
+            notice = f"【路线续卷】已踏过 {visited_count} 处节点，前路重新显影。请择一处节点继续修行。"
+            level = "info"
+        self.session.run_map.route_notice = notice
+        self.session.run_map.route_notice_level = level
+
+    def _consume_route_notice(self) -> tuple[str, str]:
+        """读取当前路线提示；提示保留在地图快照中直到玩家选择新节点。"""
+        if not self.session:
+            return "", ""
+        run_map = self.session.run_map
+        return run_map.route_notice, run_map.route_notice_level
 
     def _advance_run_node_progress(self):
         """扣减当前路线节点预算，耗尽后完成节点并统计路线特征。"""

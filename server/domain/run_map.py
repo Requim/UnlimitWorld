@@ -86,6 +86,8 @@ class RunMap(BaseModel):
         current_node_id: 当前正在执行的节点 ID，空表示等待选路。
         available_next_nodes: 当前可选择的下一批节点 ID。
         visited_nodes: 已完成节点 ID。
+        route_notice: 路线耗尽、刷新等一次性提示文案。
+        route_notice_level: 提示等级，供前端决定展示样式。
 
     Returns:
         RunMap: 可挂载到 PlayerState 的地图快照。
@@ -99,6 +101,8 @@ class RunMap(BaseModel):
     current_node_id: str = ""
     available_next_nodes: list[str] = Field(default_factory=list)
     visited_nodes: list[str] = Field(default_factory=list)
+    route_notice: str = ""
+    route_notice_level: str = ""
 
     def node_by_id(self, node_id: str) -> RunMapNode | None:
         """按 ID 查找节点；找不到时返回 None。"""
@@ -180,6 +184,8 @@ def choose_run_node(run_map: RunMap, node_id: str) -> tuple[bool, str]:
     run_map.current_node_id = node_id
     run_map.current_chapter = node.chapter
     run_map.available_next_nodes = []
+    run_map.route_notice = ""
+    run_map.route_notice_level = ""
     return True, ""
 
 
@@ -226,6 +232,8 @@ def snapshot_run_map(run_map: RunMap) -> dict:
         "current_node_id": current,
         "available_next_nodes": list(run_map.available_next_nodes),
         "visited_nodes": list(run_map.visited_nodes),
+        "route_notice": run_map.route_notice,
+        "route_notice_level": run_map.route_notice_level,
         "chapters": _snapshot_chapters(run_map, available, visited, current),
     }
 

@@ -4,7 +4,7 @@
 
 ## 0. 当前进度快照
 
-- **当前阶段：** M4-1 已完成。
+- **当前阶段：** M4-1 已完成；M4 路线体验补强已补入终章续图提示。
 - **阶段目标：** 把每局游戏扩展为三路节点地图，让玩家在关键节点选择修炼路线。
 - **验收状态：** 后端模型、WebSocket 协议、前端三路地图和定向测试已完成。
 
@@ -31,6 +31,7 @@
 - `SC_GAME_LOG` 增加 `node_id / node_type / route_label`，与 3K 字段一起作为局内展示元数据。
 - 前端采用紧凑三列路线盘，放在挂机页内，不遮挡属性栏、执念和日志。
 - 路线耗尽时为玩家当前境界刷新一张新地图，继续要求玩家选路，避免终章或异常状态卡死。
+- 终章路线耗尽不改变自动续图策略，只通过一次性 `route_notice / route_notice_level` 强化“此卷已尽、再开一卷”的引导。
 
 ## 2. 实施记录
 
@@ -55,8 +56,26 @@
 - `python -m compileall server -q`：通过
 - `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
 
+### 2.2 M4 路线终章续图提示补强
+
+> 实施日期：2026-06-13 | 实施人：Codex | 范围：路线耗尽提示、WebSocket 字段、小程序展示、定向测试
+
+已完成：
+
+- `RunMap` 快照新增 `route_notice / route_notice_level`，用于携带路线续卷或终章回响提示；玩家选择新节点后自动清空。
+- `GameEngine` 在路线耗尽并自动刷新地图时写入一次性提示：普通章节为“路线续卷”，第 6 章耗尽为“终章回响”。
+- `SC_GAME_LOG` 同步下发路线提示字段，`SC_RUN_MAP` 快照保留提示，前端主动刷新地图时不会丢失提示。
+- 小程序 `game` 页面在路线盘下方渲染紧凑提示条，并按 `finale` 等级使用更醒目的终章样式。
+- 前端日志状态拼装拆分为 `buildRunStats / buildRouteNoticeState / buildPhase3kState`，避免 `_onGameLog` 继续膨胀。
+
+验证结果：
+
+- `python -m pytest server\tests\test_run_map.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`：67 passed, 34 skipped；当前环境未安装 `pytest-asyncio`，既有 async 单测仍跳过，本次新增的终章续图断言已改为同步执行。
+- `python -m compileall server -q`：通过
+- `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
+
 ## 3. 遗留风险
 
 - 微信开发者工具真机需要验证三路节点图在小屏上不挤压日志。
 - 目前黑市节点只做轻补给，后续若要接入局内商品，需要单独设计局内经济边界。
-- 终章路线耗尽目前采用刷新当前境界地图的保守降级；后续可增加终章提示或固定天道节点来强化仪式感。
+- 终章路线耗尽已补固定提示，但仍采用刷新当前境界地图的保守降级；后续若要更强仪式感，可设计固定天道节点或终局引导。

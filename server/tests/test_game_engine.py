@@ -2,6 +2,7 @@
 game_engine.py 单元测试：状态机、事件路由、暴毙结算
 目标：100% 分支覆盖（mock LLM 控制所有路径）
 """
+import asyncio
 import sys
 from pathlib import Path
 
@@ -262,8 +263,7 @@ class TestTickEventRouting:
         assert engine.session.prd_counter == old_prd
         assert "路线" in result.log_text
 
-    @pytest.mark.asyncio
-    async def test_tick_refreshes_exhausted_run_map(self):
+    def test_tick_refreshes_exhausted_run_map(self):
         engine = GameEngine()
         engine.new_game()
         old_map_id = engine.session.run_map.run_map_id
@@ -271,12 +271,32 @@ class TestTickEventRouting:
         engine.session.run_map.available_next_nodes = []
         engine.session.run_map.current_node_id = ""
 
-        result = await engine.tick()
+        result = asyncio.run(engine.tick())
 
         assert result.event_type == "RUN_MAP_WAITING"
         assert engine.session.run_map.run_map_id != old_map_id
         assert engine.session.run_map.current_chapter == 3
         assert len(engine.session.run_map.available_next_nodes) == 3
+        assert result.route_notice_level == "info"
+        assert "路线续卷" in result.log_text
+
+    def test_tick_marks_finale_when_last_chapter_route_exhausted(self):
+        engine = GameEngine()
+        engine.new_game()
+        old_map_id = engine.session.run_map.run_map_id
+        engine.session.realm_code = 6
+        engine.session.run_map.current_chapter = 6
+        engine.session.run_map.visited_nodes = ["a", "b", "c"]
+        engine.session.run_map.available_next_nodes = []
+        engine.session.run_map.current_node_id = ""
+
+        result = asyncio.run(engine.tick())
+
+        assert result.event_type == "RUN_MAP_WAITING"
+        assert result.route_notice_level == "finale"
+        assert "终章回响" in result.route_notice
+        assert engine.session.run_map.run_map_id != old_map_id
+        assert engine.session.run_map.route_notice == result.route_notice
 
     @pytest.mark.asyncio
     async def test_process_local_event(self):

@@ -660,6 +660,24 @@
   letter-spacing: 2rpx;
 }
 
+.run-map-notice {
+  margin-bottom: 12rpx;
+  padding: 12rpx 14rpx;
+  border-radius: 6rpx;
+  border: 1rpx solid rgba(203, 162, 91, 0.26);
+  background: rgba(203, 162, 91, 0.1);
+  color: var(--text-mist);
+  font-size: 22rpx;
+  line-height: 1.55;
+  letter-spacing: 1rpx;
+}
+
+.run-map-notice.notice-finale {
+  border-color: rgba(176, 51, 38, 0.28);
+  background: rgba(176, 51, 38, 0.08);
+  color: var(--ink-strong);
+}
+
 .run-map-board {
   display: flex;
   flex-wrap: wrap;

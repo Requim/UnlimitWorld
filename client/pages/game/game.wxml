@@ -143,6 +143,9 @@
           <text wx:elif="{{currentRunNodeId}}" class="run-map-state">行进中</text>
           <text wx:else class="run-map-state">待刷新</text>
         </view>
+        <view wx:if="{{hasRouteNotice}}" class="run-map-notice notice-{{routeNoticeLevel}}">
+          <text>{{routeNotice}}</text>
+        </view>
         <view class="run-map-board">
           <view
             wx:for="{{runMapNodes}}"

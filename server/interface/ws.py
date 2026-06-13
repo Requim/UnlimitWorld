@@ -202,6 +202,8 @@ def _build_game_log(result: TickResult) -> dict:
         "node_id": result.node_id,
         "node_type": result.node_type,
         "route_label": result.route_label,
+        "route_notice": result.route_notice,
+        "route_notice_level": result.route_notice_level,
     }
 
 
@@ -220,6 +222,8 @@ def _empty_phase3k_log_fields() -> dict:
         "node_id": "",
         "node_type": "",
         "route_label": "",
+        "route_notice": "",
+        "route_notice_level": "",
     }
 
 
