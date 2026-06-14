@@ -54,6 +54,15 @@ type RunMapState = {
   route_notice_level: string;
   chapters: RunMapChapter[];
 };
+type RunMapStageView = {
+  chapter: number;
+  realm_name: string;
+  status: string;
+  summary: string;
+  is_current: boolean;
+  is_expanded: boolean;
+  nodes: RunMapNode[];
+};
 type RunStats = {
   leaderboardScoreDelta: number;
   tauntCount: number;
@@ -222,6 +231,38 @@ function currentChapterNodes(runMap: RunMapState | null): RunMapNode[] {
   return chapter ? chapter.nodes : [];
 }
 
+function buildRunMapStages(runMap: RunMapState | null): RunMapStageView[] {
+  if (!runMap) return [];
+  return runMap.chapters.map((chapter) => {
+    const isCurrent = chapter.chapter === runMap.current_chapter;
+    return {
+      chapter: chapter.chapter,
+      realm_name: chapter.realm_name,
+      status: resolveStageStatus(chapter.chapter, runMap.current_chapter),
+      summary: buildStageSummary(chapter.nodes),
+      is_current: isCurrent,
+      is_expanded: isCurrent,
+      nodes: isCurrent ? chapter.nodes : chapter.nodes.slice(0, 3),
+    };
+  });
+}
+
+function resolveStageStatus(chapter: number, currentChapter: number): string {
+  if (chapter < currentChapter) return 'passed';
+  if (chapter === currentChapter) return 'current';
+  return 'future';
+}
+
+function buildStageSummary(nodes: RunMapNode[]): string {
+  const available = nodes.filter((node) => node.status === 'available').length;
+  const visited = nodes.filter((node) => node.status === 'visited').length;
+  const current = nodes.filter((node) => node.status === 'current').length;
+  if (available > 0) return `${available}处可选`;
+  if (current > 0) return '行进中';
+  if (visited > 0) return `已踏${visited}处`;
+  return `${nodes.length}处未显`;
+}
+
 Page({
   data: {
     uiState: UIState.CONNECTING as string,
@@ -250,6 +291,8 @@ Page({
     showLightChoice: false,
     runMap: null as RunMapState | null,
     runMapNodes: [] as RunMapNode[],
+    runMapStages: [] as RunMapStageView[],
+    hasRouteStages: false,
     hasRunMapNodes: false,
     currentRunNodeId: '' as string,
     hasRunMapChoice: false,
@@ -456,6 +499,8 @@ Page({
       showLightChoice: false,
       runMap: null,
       runMapNodes: [],
+      runMapStages: [],
+      hasRouteStages: false,
       hasRunMapNodes: false,
       currentRunNodeId: '',
       hasRunMapChoice: false,
@@ -688,9 +733,12 @@ Page({
   _onRunMap(frame: WsFrame) {
     const runMap = normalizeRunMap(frame.run_map);
     const nodes = currentChapterNodes(runMap);
+    const stages = buildRunMapStages(runMap);
     this.setData({
       runMap,
       runMapNodes: nodes,
+      runMapStages: stages,
+      hasRouteStages: stages.length > 0,
       hasRunMapNodes: nodes.length > 0,
       currentRunNodeId: runMap?.current_node_id || '',
       hasRunMapChoice: Boolean(runMap && runMap.available_next_nodes.length > 0),

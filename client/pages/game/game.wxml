@@ -133,11 +133,11 @@
           {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
         </text>
       </view>
-      <view wx:if="{{hasRunMapNodes}}" class="run-map-panel">
+      <view wx:if="{{hasRouteStages}}" class="run-map-panel">
         <view class="run-map-head">
           <view>
-            <text class="run-map-eyebrow">M4 路 线</text>
-            <text class="run-map-title">{{realm}} · 三路择命</text>
+            <text class="run-map-eyebrow">本局命途</text>
+            <text class="run-map-title">六境三路 · {{realm}}</text>
           </view>
           <text wx:if="{{hasRunMapChoice}}" class="run-map-state">择一节点</text>
           <text wx:elif="{{currentRunNodeId}}" class="run-map-state">行进中</text>
@@ -146,24 +146,50 @@
         <view wx:if="{{hasRouteNotice}}" class="run-map-notice notice-{{routeNoticeLevel}}">
           <text>{{routeNotice}}</text>
         </view>
-        <view class="run-map-board">
+
+        <view class="realm-strip">
           <view
-            wx:for="{{runMapNodes}}"
-            wx:key="node_id"
-            class="run-node node-{{item.status}} risk-{{item.risk_level}}"
-            data-id="{{item.node_id}}"
-            data-status="{{item.status}}"
-            bindtap="onChooseMapNode"
+            wx:for="{{runMapStages}}"
+            wx:key="chapter"
+            class="realm-step realm-{{item.status}}"
           >
-            <text class="run-node-route">{{item.route_label}}</text>
-            <text class="run-node-label">{{item.node_label}}</text>
-            <text class="run-node-layer">第{{item.layer + 1}}步</text>
+            <text class="realm-step-name">{{item.realm_name}}</text>
+            <text class="realm-step-summary">{{item.summary}}</text>
+          </view>
+        </view>
+
+        <view class="run-stage-list">
+          <view
+            wx:for="{{runMapStages}}"
+            wx:key="chapter"
+            class="run-stage stage-{{item.status}} {{item.is_expanded ? 'stage-expanded' : 'stage-collapsed'}}"
+          >
+            <view class="run-stage-head">
+              <text class="run-stage-name">{{item.realm_name}}</text>
+              <text class="run-stage-state">{{item.summary}}</text>
+            </view>
+            <view class="run-map-board {{item.is_expanded ? 'board-expanded' : 'board-collapsed'}}">
+              <view
+                wx:for="{{item.nodes}}"
+                wx:for-item="node"
+                wx:key="node_id"
+                class="run-node node-{{node.status}} risk-{{node.risk_level}}"
+                data-id="{{node.node_id}}"
+                data-status="{{node.status}}"
+                bindtap="onChooseMapNode"
+              >
+                <text class="run-node-route">{{node.route_label}}</text>
+                <text class="run-node-label">{{node.node_label}}</text>
+                <text class="run-node-layer">第{{node.layer + 1}}步</text>
+              </view>
+            </view>
           </view>
         </view>
       </view>
     </view>
     <scroll-view class="idle-scroll" scroll-y scroll-into-view="log-end">
       <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
+        <text class="phase3k-title">最近遭遇</text>
         <view class="phase3k-meta">
           <text wx:if="{{routeLabel}}" class="phase3k-chip">路 {{routeLabel}}</text>
           <text wx:if="{{routeNodeType}}" class="phase3k-chip">点 {{routeNodeType}}</text>
@@ -183,22 +209,9 @@
           <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
         </view>
       </view>
-      <view class="idle-hero">
-        <view class="meditation-loader idle-loader">
-          <view class="meditation-aura aura-outer"></view>
-          <view class="meditation-aura aura-inner"></view>
-          <view class="cultivator cultivator-idle">
-            <view class="cultivator-head"></view>
-            <view class="cultivator-body"></view>
-            <view class="cultivator-arm arm-left"></view>
-            <view class="cultivator-arm arm-right"></view>
-            <view class="cultivator-leg leg-left"></view>
-            <view class="cultivator-leg leg-right"></view>
-            <view class="cultivator-cushion"></view>
-          </view>
-        </view>
-        <text class="idle-title">静坐吐纳中</text>
-        <text class="idle-subtitle">事件刷新会落在修士下方，像一卷缓慢展开的手札</text>
+      <view class="log-title-row">
+        <text class="log-title">修行手札</text>
+        <text class="log-subtitle">挂机事件与天道回响</text>
       </view>
       <view class="log-container">
         <view wx:for="{{logs}}" wx:key="idx" class="log-entry">{{item}}</view>
