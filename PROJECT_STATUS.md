@@ -6,7 +6,7 @@
 ## 当前阶段
 
 - **当前里程碑：** M4 Roguelike 路线地图
-- **当前进度：** 已完成到 Phase M4-1，并补入路线终章续图提示与全局路线图 UI 体验
+- **当前进度：** 已完成到 Phase M4-1，并补入路线终章续图提示、全局路线图与挂机页事件优先 UI 体验
 - **下一阶段：** Phase 3L（国内云部署、ICP 备案、微信审核提交）或 M4 后续路线地图体验打磨
 - **当前主文档：** [M4-roguelike-run-map.md](M4-roguelike-run-map.md)
 - **历史里程碑：**
@@ -28,7 +28,7 @@
 | 3K-1 | ✅ 完成 | 普通事件分池、轻选择自动结算、人格权重、执念推进 |
 | 3K-2 | ✅ 完成 | 轻选择前端展示、局内统计累计、差异化 KarmaTrace hook |
 | M4-1 | ✅ 完成 | Roguelike 三路路线地图、节点推进、SC_RUN_MAP/CS_CHOOSE_MAP_NODE、小程序路线图 |
-| M4 体验补强 | ✅ 完成 | 路线耗尽续图提示、终章回响引导、全局路线图、挂机页国风暗卷 UI |
+| M4 体验补强 | ✅ 完成 | 路线耗尽续图提示、终章回响引导、全局路线图、挂机页事件优先国风动漫 UI |
 
 ## 下一步
 
@@ -68,6 +68,9 @@
   - `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
 - M4 全局路线图与国风暗卷 UI 验证记录见 `M4-roguelike-run-map.md`：
   - `git diff --check -- client\pages\game\game.ts client\pages\game\game.wxml client\pages\game\game.wxss`：通过
+  - `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
+- M4 挂机页事件优先国风动漫 UI 验证记录见 `M4-roguelike-run-map.md`：
+  - `git diff --check -- client\pages\game\game.ts client\pages\game\game.wxml client\pages\game\game.wxss PROJECT_STATUS.md M4-roguelike-run-map.md`：通过
   - `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
 - 当前全量测试有已知风险：旧并发/重连测试仍假设 `CS_START_GAME` 后第一帧是 `SC_GAME_LOG`，但 3I 后协议会先返回 `SC_DESTINY_OFFER`。修复测试前，不应把这类失败直接判定为业务回退。
 

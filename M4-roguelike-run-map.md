@@ -91,8 +91,24 @@
 - `git diff --check -- client\pages\game\game.ts client\pages\game\game.wxml client\pages\game\game.wxss`：通过
 - `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
 
+### 2.4 M4 挂机页事件优先与国风动漫 UI 补强
+
+> 实施日期：2026-06-14 | 实施人：Codex | 范围：挂机页事件展示恢复、路线图收起交互、国风动漫视觉微调
+
+已完成：
+
+- 挂机页 idle 首屏改为“执念薄条 / 当前事件 / 路线摘要 / 修行手札”，把最新日志、路线节点元数据、轻选择结果和局内统计合并到首屏事件面板，解决事件区被路线图挤出的问题。
+- 路线图新增 UI 展开态：有可选节点时自动展开当前境界供玩家选择；没有可选节点时默认收起，只保留六境阶段条和当前路线摘要，用户可手动展开查看全局预览。
+- 小程序 `game` 页新增路线摘要与事件摘要视图状态，后端 `SC_RUN_MAP / CS_CHOOSE_MAP_NODE` 协议保持不变，锁定与未来节点仍只展示不可选预览。
+- 视觉从暗金属改为原创国风动漫方向：暖纸底、淡墨山云、青玉/朱砂/柔金点缀、符牌式节点，降低黑底和硬金属边框占比。
+
+验证结果：
+
+- `git diff --check -- client\pages\game\game.ts client\pages\game\game.wxml client\pages\game\game.wxss PROJECT_STATUS.md M4-roguelike-run-map.md`：通过
+- `npx -p typescript tsc -p client\tsconfig.json --noEmit`：未通过，仍受既有工具链阻塞影响（缺 `wechat-miniprogram` 类型，TypeScript 6 提示 `moduleResolution/baseUrl` 与 `baseUrl` 弃用）
+
 ## 3. 遗留风险
 
-- 微信开发者工具真机需要验证全局路线图在小屏上不挤压日志，且六境阶段条文字不溢出。
+- 微信开发者工具真机需要验证事件优先布局在小屏上不挤压日志，路线展开态不遮挡底部导航，且六境阶段条文字不溢出。
 - 目前黑市节点只做轻补给，后续若要接入局内商品，需要单独设计局内经济边界。
 - 终章路线耗尽已补固定提示，但仍采用刷新当前境界地图的保守降级；后续若要更强仪式感，可设计固定天道节点或终局引导。

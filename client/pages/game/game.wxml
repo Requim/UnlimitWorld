@@ -133,20 +133,47 @@
           {{ambitionProgressLabel}} {{ambitionProgress}} / {{ambitionTarget}}
         </text>
       </view>
-      <view wx:if="{{hasRouteStages}}" class="run-map-panel">
+
+      <view class="event-feed-panel {{hasEventFeed ? '' : 'event-empty'}}">
+        <view class="event-feed-head">
+          <text class="event-feed-eyebrow">当前事件</text>
+          <text class="event-feed-state">{{hasEventFeed ? '最近遭遇' : '风平浪静'}}</text>
+        </view>
+        <text wx:if="{{lastEventLog}}" class="event-feed-text">{{lastEventLog}}</text>
+        <text wx:else class="event-feed-text muted">山风掠过经卷，暂无新的遭遇。</text>
+        <view wx:if="{{routeLabel || routeNodeType || eventPool || riskLevel || karmaTraceHook}}" class="event-feed-meta">
+          <text wx:if="{{routeLabel}}" class="phase3k-chip">路 {{routeLabel}}</text>
+          <text wx:if="{{routeNodeType}}" class="phase3k-chip">点 {{routeNodeType}}</text>
+          <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
+          <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
+          <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>
+        </view>
+        <view wx:if="{{showLightChoice}}" class="light-choice-card">
+          <text class="light-choice-label">轻选择自动结算</text>
+          <text class="light-choice-text">{{lightChoiceText}}</text>
+        </view>
+        <view wx:if="{{hasRunStats}}" class="run-stats compact-stats">
+          <text wx:if="{{runStats.leaderboardScoreDelta > 0}}" class="run-stat">榜 +{{runStats.leaderboardScoreDelta}}</text>
+          <text wx:if="{{runStats.tauntCount > 0}}" class="run-stat">嘴硬 {{runStats.tauntCount}}</text>
+          <text wx:if="{{runStats.gambleSurviveCount > 0}}" class="run-stat">赌命 {{runStats.gambleSurviveCount}}</text>
+          <text wx:if="{{runStats.karmaPollutionScore > 0}}" class="run-stat">污染 {{runStats.karmaPollutionScore}}</text>
+          <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
+        </view>
+      </view>
+
+      <view wx:if="{{hasRouteStages}}" class="run-map-panel {{isRouteMapExpanded ? 'route-expanded' : 'route-collapsed'}}">
         <view class="run-map-head">
-          <view>
+          <view class="run-map-copy">
             <text class="run-map-eyebrow">本局命途</text>
-            <text class="run-map-title">六境三路 · {{realm}}</text>
+            <text class="run-map-title">{{routeStageTitle}} · {{routeSummaryText}}</text>
+            <text class="run-map-hint">{{routeHintText}}</text>
           </view>
-          <text wx:if="{{hasRunMapChoice}}" class="run-map-state">择一节点</text>
-          <text wx:elif="{{currentRunNodeId}}" class="run-map-state">行进中</text>
-          <text wx:else class="run-map-state">待刷新</text>
+          <text wx:if="{{hasRunMapChoice}}" class="run-map-choice-state">择一节点</text>
+          <button wx:else class="run-map-toggle" bindtap="onToggleRouteMap">{{routeToggleText}}</button>
         </view>
         <view wx:if="{{hasRouteNotice}}" class="run-map-notice notice-{{routeNoticeLevel}}">
           <text>{{routeNotice}}</text>
         </view>
-
         <view class="realm-strip">
           <view
             wx:for="{{runMapStages}}"
@@ -158,57 +185,38 @@
           </view>
         </view>
 
-        <view class="run-stage-list">
-          <view
-            wx:for="{{runMapStages}}"
-            wx:key="chapter"
-            class="run-stage stage-{{item.status}} {{item.is_expanded ? 'stage-expanded' : 'stage-collapsed'}}"
-          >
-            <view class="run-stage-head">
-              <text class="run-stage-name">{{item.realm_name}}</text>
-              <text class="run-stage-state">{{item.summary}}</text>
-            </view>
-            <view class="run-map-board {{item.is_expanded ? 'board-expanded' : 'board-collapsed'}}">
-              <view
-                wx:for="{{item.nodes}}"
-                wx:for-item="node"
-                wx:key="node_id"
-                class="run-node node-{{node.status}} risk-{{node.risk_level}}"
-                data-id="{{node.node_id}}"
-                data-status="{{node.status}}"
-                bindtap="onChooseMapNode"
-              >
-                <text class="run-node-route">{{node.route_label}}</text>
-                <text class="run-node-label">{{node.node_label}}</text>
-                <text class="run-node-layer">第{{node.layer + 1}}步</text>
+        <scroll-view wx:if="{{isRouteMapExpanded}}" class="route-stage-scroll" scroll-y>
+          <view class="run-stage-list">
+            <view
+              wx:for="{{runMapStages}}"
+              wx:key="chapter"
+              class="run-stage stage-{{item.status}} {{item.is_expanded ? 'stage-expanded' : 'stage-collapsed'}}"
+            >
+              <view class="run-stage-head">
+                <text class="run-stage-name">{{item.realm_name}}</text>
+                <text class="run-stage-state">{{item.summary}}</text>
+              </view>
+              <view class="run-map-board {{item.is_expanded ? 'board-expanded' : 'board-collapsed'}}">
+                <view
+                  wx:for="{{item.nodes}}"
+                  wx:for-item="node"
+                  wx:key="node_id"
+                  class="run-node node-{{node.status}} risk-{{node.risk_level}}"
+                  data-id="{{node.node_id}}"
+                  data-status="{{node.status}}"
+                  bindtap="onChooseMapNode"
+                >
+                  <text class="run-node-route">{{node.route_label}}</text>
+                  <text class="run-node-label">{{node.node_label}}</text>
+                  <text class="run-node-layer">第{{node.layer + 1}}步</text>
+                </view>
               </view>
             </view>
           </view>
-        </view>
+        </scroll-view>
       </view>
     </view>
     <scroll-view class="idle-scroll" scroll-y scroll-into-view="log-end">
-      <view wx:if="{{eventPool || showLightChoice || hasRunStats}}" class="phase3k-panel">
-        <text class="phase3k-title">最近遭遇</text>
-        <view class="phase3k-meta">
-          <text wx:if="{{routeLabel}}" class="phase3k-chip">路 {{routeLabel}}</text>
-          <text wx:if="{{routeNodeType}}" class="phase3k-chip">点 {{routeNodeType}}</text>
-          <text wx:if="{{eventPool}}" class="phase3k-chip">池 {{eventPool}}</text>
-          <text wx:if="{{riskLevel}}" class="phase3k-chip {{riskLevel === 'medium' ? 'risk-medium' : ''}} {{riskLevel === 'high' ? 'risk-high' : ''}}">险 {{riskLevel}}</text>
-          <text wx:if="{{karmaTraceHook}}" class="phase3k-chip">因 {{karmaTraceHook}}</text>
-        </view>
-        <view wx:if="{{showLightChoice}}" class="light-choice-card">
-          <text class="light-choice-label">轻选择自动结算</text>
-          <text class="light-choice-text">{{lightChoiceText}}</text>
-        </view>
-        <view wx:if="{{hasRunStats}}" class="run-stats">
-          <text wx:if="{{runStats.leaderboardScoreDelta > 0}}" class="run-stat">榜 +{{runStats.leaderboardScoreDelta}}</text>
-          <text wx:if="{{runStats.tauntCount > 0}}" class="run-stat">嘴硬 {{runStats.tauntCount}}</text>
-          <text wx:if="{{runStats.gambleSurviveCount > 0}}" class="run-stat">赌命 {{runStats.gambleSurviveCount}}</text>
-          <text wx:if="{{runStats.karmaPollutionScore > 0}}" class="run-stat">污染 {{runStats.karmaPollutionScore}}</text>
-          <text wx:if="{{runStats.deathDramaScore > 0}}" class="run-stat">死相 {{runStats.deathDramaScore}}</text>
-        </view>
-      </view>
       <view class="log-title-row">
         <text class="log-title">修行手札</text>
         <text class="log-subtitle">挂机事件与天道回响</text>

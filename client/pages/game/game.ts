@@ -63,6 +63,12 @@ type RunMapStageView = {
   is_expanded: boolean;
   nodes: RunMapNode[];
 };
+type RouteSummaryState = {
+  routeStageTitle: string;
+  routeSummaryText: string;
+  routeHintText: string;
+  routeToggleText: string;
+};
 type RunStats = {
   leaderboardScoreDelta: number;
   tauntCount: number;
@@ -225,24 +231,29 @@ function normalizeRunMap(raw: unknown): RunMapState | null {
   };
 }
 
+function currentChapter(runMap: RunMapState | null): RunMapChapter | null {
+  if (!runMap) return null;
+  return runMap.chapters.find((item) => item.chapter === runMap.current_chapter) || null;
+}
+
 function currentChapterNodes(runMap: RunMapState | null): RunMapNode[] {
-  if (!runMap) return [];
-  const chapter = runMap.chapters.find((item) => item.chapter === runMap.current_chapter);
+  const chapter = currentChapter(runMap);
   return chapter ? chapter.nodes : [];
 }
 
-function buildRunMapStages(runMap: RunMapState | null): RunMapStageView[] {
+function buildRunMapStages(runMap: RunMapState | null, expandCurrent: boolean): RunMapStageView[] {
   if (!runMap) return [];
   return runMap.chapters.map((chapter) => {
     const isCurrent = chapter.chapter === runMap.current_chapter;
+    const isExpanded = isCurrent && expandCurrent;
     return {
       chapter: chapter.chapter,
       realm_name: chapter.realm_name,
       status: resolveStageStatus(chapter.chapter, runMap.current_chapter),
       summary: buildStageSummary(chapter.nodes),
       is_current: isCurrent,
-      is_expanded: isCurrent,
-      nodes: isCurrent ? chapter.nodes : chapter.nodes.slice(0, 3),
+      is_expanded: isExpanded,
+      nodes: isExpanded ? chapter.nodes : chapter.nodes.slice(0, 3),
     };
   });
 }
@@ -261,6 +272,76 @@ function buildStageSummary(nodes: RunMapNode[]): string {
   if (current > 0) return '行进中';
   if (visited > 0) return `已踏${visited}处`;
   return `${nodes.length}处未显`;
+}
+
+function buildRouteSummary(runMap: RunMapState | null): Omit<RouteSummaryState, 'routeToggleText'> {
+  const chapter = currentChapter(runMap);
+  const nodes = chapter ? chapter.nodes : [];
+  const available = runMap ? runMap.available_next_nodes.length : 0;
+  const currentNode = nodes.find((node) => node.status === 'current');
+  const visited = nodes.filter((node) => node.status === 'visited').length;
+  if (available > 0) {
+    return buildRouteSummaryText(chapter, `${available}处机缘待选`, '择一处符牌，命途才会继续转动');
+  }
+  if (currentNode) {
+    return buildRouteSummaryText(chapter, `${currentNode.route_label} · ${currentNode.node_label}`, '行进中的节点会由挂机事件继续结算');
+  }
+  if (visited > 0) {
+    return buildRouteSummaryText(chapter, `已踏过${visited}处节点`, '当前无可选节点，可展开查看全局命途');
+  }
+  return buildRouteSummaryText(chapter, '静待命盘显形', '路线图同步后会显示六境预览');
+}
+
+function buildRouteSummaryText(
+  chapter: RunMapChapter | null,
+  routeSummaryText: string,
+  routeHintText: string,
+): Omit<RouteSummaryState, 'routeToggleText'> {
+  return {
+    routeStageTitle: chapter ? chapter.realm_name : '六境三路',
+    routeSummaryText,
+    routeHintText,
+  };
+}
+
+function buildRouteToggleText(expanded: boolean, hasChoice: boolean): string {
+  if (hasChoice) return '择一节点';
+  return expanded ? '收起路线' : '展开路线';
+}
+
+function buildRunMapViewState(runMap: RunMapState | null, expanded: boolean) {
+  const nodes = currentChapterNodes(runMap);
+  const stages = buildRunMapStages(runMap, expanded);
+  const hasChoice = Boolean(runMap && runMap.available_next_nodes.length > 0);
+  return {
+    runMap,
+    runMapNodes: nodes,
+    runMapStages: stages,
+    hasRouteStages: stages.length > 0,
+    hasRunMapNodes: nodes.length > 0,
+    currentRunNodeId: runMap?.current_node_id || '',
+    hasRunMapChoice: hasChoice,
+    routeNotice: runMap?.route_notice || '',
+    routeNoticeLevel: runMap?.route_notice_level || '',
+    hasRouteNotice: Boolean(runMap?.route_notice),
+    isRouteMapExpanded: expanded,
+    routeToggleText: buildRouteToggleText(expanded, hasChoice),
+    ...buildRouteSummary(runMap),
+  };
+}
+
+function formatEventLog(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+  return trimmed.length > 96 ? `${trimmed.slice(0, 96)}...` : trimmed;
+}
+
+function buildEventFeedState(frame: WsFrame, choiceSummary: string, previousLog: string) {
+  const lastEventLog = frame.log_text ? formatEventLog(frame.log_text as string) : previousLog;
+  return {
+    lastEventLog,
+    hasEventFeed: Boolean(lastEventLog || hasPhase3kFrame(frame) || choiceSummary),
+  };
 }
 
 Page({
@@ -296,11 +377,18 @@ Page({
     hasRunMapNodes: false,
     currentRunNodeId: '' as string,
     hasRunMapChoice: false,
+    isRouteMapExpanded: false,
+    routeStageTitle: '六境三路' as string,
+    routeSummaryText: '静待命盘显形' as string,
+    routeHintText: '路线图同步后会显示六境预览' as string,
+    routeToggleText: '展开路线' as string,
     routeNotice: '' as string,
     routeNoticeLevel: '' as string,
     hasRouteNotice: false,
     routeNodeType: '' as string,
     routeLabel: '' as string,
+    lastEventLog: '' as string,
+    hasEventFeed: false,
     runStats: {
       leaderboardScoreDelta: 0,
       tauntCount: 0,
@@ -443,6 +531,12 @@ Page({
     getWs().send(CS_CHOOSE_MAP_NODE, { node_id: nodeId });
   },
 
+  onToggleRouteMap() {
+    const runMap = this.data.runMap as RunMapState | null;
+    const expanded = this.data.hasRunMapChoice ? true : !this.data.isRouteMapExpanded;
+    this.setData(buildRunMapViewState(runMap, expanded));
+  },
+
   _requestRunMap() {
     if (getWs().getStatus() !== 'connected') return;
     getWs().send(CS_GET_RUN_MAP, {});
@@ -504,11 +598,18 @@ Page({
       hasRunMapNodes: false,
       currentRunNodeId: '',
       hasRunMapChoice: false,
+      isRouteMapExpanded: false,
+      routeStageTitle: '六境三路',
+      routeSummaryText: '静待命盘显形',
+      routeHintText: '路线图同步后会显示六境预览',
+      routeToggleText: '展开路线',
       routeNotice: '',
       routeNoticeLevel: '',
       hasRouteNotice: false,
       routeNodeType: '',
       routeLabel: '',
+      lastEventLog: '',
+      hasEventFeed: false,
       runStats: {
         leaderboardScoreDelta: 0,
         tauntCount: 0,
@@ -700,6 +801,7 @@ Page({
       this.data.routeNotice,
       this.data.routeNoticeLevel,
     );
+    const eventFeedState = buildEventFeedState(frame, choiceSummary, this.data.lastEventLog as string);
 
     if (now - lastStatusUpdate >= 1000) {
       lastStatusUpdate = now;
@@ -708,6 +810,7 @@ Page({
       const sinMax = resolveSinMax(frame, realm);
       this.setData({
         ...phase3kState,
+        ...eventFeedState,
         cultivation: (frame.cultivation as number) ?? this.data.cultivation,
         sinValue,
         luck: (frame.luck as number) ?? this.data.luck,
@@ -722,7 +825,10 @@ Page({
         ambitionProgressLabel: (frame.ambition_progress_label as string) || this.data.ambitionProgressLabel,
       });
     } else {
-      this.setData(phase3kState);
+      this.setData({
+        ...phase3kState,
+        ...eventFeedState,
+      });
     }
 
     if (this.data.uiState !== UIState.IDLE) {
@@ -732,20 +838,10 @@ Page({
 
   _onRunMap(frame: WsFrame) {
     const runMap = normalizeRunMap(frame.run_map);
-    const nodes = currentChapterNodes(runMap);
-    const stages = buildRunMapStages(runMap);
-    this.setData({
-      runMap,
-      runMapNodes: nodes,
-      runMapStages: stages,
-      hasRouteStages: stages.length > 0,
-      hasRunMapNodes: nodes.length > 0,
-      currentRunNodeId: runMap?.current_node_id || '',
-      hasRunMapChoice: Boolean(runMap && runMap.available_next_nodes.length > 0),
-      routeNotice: runMap?.route_notice || '',
-      routeNoticeLevel: runMap?.route_notice_level || '',
-      hasRouteNotice: Boolean(runMap?.route_notice),
-    });
+    const hasChoice = Boolean(runMap && runMap.available_next_nodes.length > 0);
+    const keepsManualExpand = this.data.isRouteMapExpanded && !this.data.hasRunMapChoice;
+    const expanded = hasChoice || keepsManualExpand;
+    this.setData(buildRunMapViewState(runMap, expanded));
   },
 
   _onEventTrigger(frame: WsFrame) {
