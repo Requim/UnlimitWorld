@@ -93,7 +93,65 @@ describe("PresentationQueue lifecycle", () => {
   });
 });
 
-describe("PresentationQueue callbacks", () => {
+describe("PresentationQueue abort reentry", () => {
+  it("abort listener 同步换局后保留新 controller、锁与回调", async () => {
+    const oldGate = deferred<void>();
+    const newGate = deferred<void>();
+    const states: number[] = [];
+    let queue!: PresentationQueue;
+    let newPlaying!: Promise<void>;
+    const adapter = vi.fn()
+      .mockImplementationOnce((_: GameEvent, signal: AbortSignal) => {
+        signal.addEventListener("abort", () => { newPlaying = queue.enqueue(batch("new-run", 1, [event(7)])); });
+        return oldGate.promise;
+      })
+      .mockReturnValueOnce(newGate.promise);
+    queue = new PresentationQueue(adapter, { onStateAfter: (state) => states.push(state.enemy.hp) });
+    const oldPlaying = queue.enqueue(batch("old-run", 1, [event(15)]));
+
+    queue.cancel();
+    expect(queue.busy).toBe(true);
+    oldGate.resolve();
+    await oldPlaying;
+    newGate.resolve();
+    await newPlaying;
+    expect(states).toEqual([7]);
+    expect(queue.busy).toBe(false);
+  });
+
+  it("abort listener 同步入队更高 revision 时外层 revision 不得回退", async () => {
+    const oldGate = deferred<void>();
+    const latestGate = deferred<void>();
+    const played: number[] = [];
+    let queue!: PresentationQueue;
+    let latestPlaying!: Promise<void>;
+    const adapter = vi.fn()
+      .mockImplementationOnce((playedEvent: GameEvent, signal: AbortSignal) => {
+        played.push(playedEvent.state_after!.enemy.hp);
+        signal.addEventListener("abort", () => { latestPlaying = queue.enqueue(batch("run-1", 3, [event(3)])); });
+        return oldGate.promise;
+      })
+      .mockImplementationOnce((playedEvent: GameEvent) => {
+        played.push(playedEvent.state_after!.enemy.hp);
+        return latestGate.promise;
+      });
+    queue = new PresentationQueue(adapter);
+    const oldPlaying = queue.enqueue(batch("run-1", 1, [event(10)]));
+
+    await queue.enqueue(batch("run-1", 2, [event(6)]));
+    await queue.enqueue(batch("run-1", 2, [event(5)]));
+    expect(queue.busy).toBe(true);
+    expect(played).toEqual([10, 3]);
+    oldGate.resolve();
+    await oldPlaying;
+    latestGate.resolve();
+    await latestPlaying;
+    await queue.enqueue(batch("run-1", 2, [event(4)]));
+    expect(adapter).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("PresentationQueue error callbacks", () => {
   it("adapter 失败释放锁、通知同步入口并向调用方抛错", async () => {
     const cause = new Error("动画资源损坏");
     const onError = vi.fn();
@@ -105,6 +163,32 @@ describe("PresentationQueue callbacks", () => {
     expect(onError).toHaveBeenCalledWith(cause);
   });
 
+  it.each(["cancel", "dispose", "replaceAdapter"] as const)(
+    "busy(false) 同步 %s 时旧错误回调失效",
+    async (method) => {
+      const gate = deferred<void>();
+      const cause = new Error("旧动画失败");
+      const onError = vi.fn();
+      let queue!: PresentationQueue;
+      queue = new PresentationQueue(vi.fn().mockReturnValue(gate.promise), {
+        onBusyChange: (busy) => {
+          if (busy) return;
+          if (method === "replaceAdapter") queue.replaceAdapter(vi.fn().mockResolvedValue(undefined));
+          else queue[method]();
+        },
+        onError,
+      });
+      const playing = queue.enqueue(batch("run-1", 1, [event(10)]));
+
+      gate.reject(cause);
+      await expect(playing).rejects.toBe(cause);
+      expect(queue.busy).toBe(false);
+      expect(onError).not.toHaveBeenCalled();
+    },
+  );
+});
+
+describe("PresentationQueue callback reentry", () => {
   it("错误解锁回调同步换局时旧错误无权触发新世代同步", async () => {
     const next = deferred<void>();
     const cause = new Error("旧动画失败");

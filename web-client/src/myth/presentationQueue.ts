@@ -2,6 +2,11 @@ import type { GameEvent } from "../api/types";
 
 type PresentationState = NonNullable<GameEvent["state_after"]>;
 
+interface PlaybackToken {
+  controller: AbortController;
+  generation: number;
+}
+
 /** 一次权威响应的纯表现输入；事件索引由数组顺序确定，不包含网络命令。 */
 export interface PresentationBatch {
   runId: string;
@@ -27,7 +32,8 @@ export class PresentationQueue {
   private readonly retiredRuns = new Set<string>();
   private activeRunId: string | null = null;
   private highestRevision = -1;
-  private controller: AbortController | null = null;
+  private token: PlaybackToken | null = null;
+  private generation = 0;
   private disposed = false;
   private presenting = false;
 
@@ -64,21 +70,31 @@ export class PresentationQueue {
   }
 
   private activateBatch(batch: PresentationBatch): boolean {
-    if (this.activeRunId !== batch.runId) this.switchRun(batch.runId);
+    if (this.activeRunId !== batch.runId) return this.activateRun(batch);
     if (batch.revision < this.highestRevision) return false;
     if (this.presenting && batch.revision === this.highestRevision) return false;
-    if (batch.revision > this.highestRevision) {
-      if (this.presenting) this.invalidatePlayback();
-      this.highestRevision = batch.revision;
-    }
-    return true;
+    if (batch.revision === this.highestRevision) return true;
+    return this.activateRevision(batch);
   }
 
-  private switchRun(runId: string): void {
+  private activateRun(batch: PresentationBatch): boolean {
     if (this.activeRunId) this.retiredRuns.add(this.activeRunId);
-    this.invalidatePlayback();
-    this.activeRunId = runId;
-    this.highestRevision = -1;
+    this.activeRunId = batch.runId;
+    this.highestRevision = batch.revision;
+    return this.ownsActivation(batch, this.invalidatePlayback());
+  }
+
+  private activateRevision(batch: PresentationBatch): boolean {
+    this.highestRevision = batch.revision;
+    if (!this.presenting) return true;
+    return this.ownsActivation(batch, this.invalidatePlayback());
+  }
+
+  private ownsActivation(batch: PresentationBatch, generation: number): boolean {
+    return this.generation === generation
+      && this.activeRunId === batch.runId
+      && this.highestRevision === batch.revision
+      && !this.presenting;
   }
 
   private unseenEvents(batch: PresentationBatch): Array<[number, GameEvent]> {
@@ -91,7 +107,7 @@ export class PresentationQueue {
       for (const [index, event] of events) {
         if (!this.isCurrent(token)) return;
         this.seen.add(this.eventKey(batch, index));
-        await this.adapter(event, token.signal);
+        await this.adapter(event, token.controller.signal);
         if (!this.isCurrent(token)) return;
         if (event.state_after) this.callbacks.onStateAfter?.(event.state_after, event);
       }
@@ -106,28 +122,36 @@ export class PresentationQueue {
     }
   }
 
-  private beginPlayback(): AbortController {
+  private beginPlayback(): PlaybackToken {
     const controller = new AbortController();
-    this.controller = controller;
+    const token = { controller, generation: ++this.generation };
+    this.token = token;
     this.setBusy(true);
-    return controller;
+    return token;
   }
 
-  private releasePlayback(controller: AbortController): boolean {
-    if (!this.isCurrent(controller)) return false;
-    this.controller = null;
+  private releasePlayback(token: PlaybackToken): boolean {
+    if (!this.isCurrent(token)) return false;
+    this.token = null;
+    const releaseGeneration = ++this.generation;
     this.setBusy(false);
-    return this.controller === null;
+    return this.generation === releaseGeneration;
   }
 
-  private invalidatePlayback(): void {
-    this.controller?.abort();
-    this.controller = null;
+  private invalidatePlayback(): number {
+    const token = this.token;
+    const invalidationGeneration = ++this.generation;
+    token?.controller.abort();
+    if (this.generation !== invalidationGeneration || this.token !== token) return invalidationGeneration;
+    this.token = null;
     this.setBusy(false);
+    return invalidationGeneration;
   }
 
-  private isCurrent(controller: AbortController): boolean {
-    return this.controller === controller && !controller.signal.aborted;
+  private isCurrent(token: PlaybackToken): boolean {
+    return this.token === token
+      && this.generation === token.generation
+      && !token.controller.signal.aborted;
   }
 
   private setBusy(value: boolean): void {
