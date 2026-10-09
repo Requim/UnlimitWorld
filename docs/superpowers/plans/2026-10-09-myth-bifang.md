@@ -129,7 +129,7 @@ def test_myth_start_has_story_and_sample_deck(client):
 - [x] 通过 deferred promises 验证重复 revision、旧 revision、run 切换、cancel、dispose、失败、重附着与旧异步完成；测试不得靠固定睡眠。
 - [x] 验证 resync 只 GET，未知动作锁不被清除，失败保留凭据/同步重试，迟到同步不覆盖新局。
 - [x] 跑 npm test、typecheck、build、check:functions；经典真实 Chrome smoke/恢复路径不回退。自审、独立审查。
-- [ ] 控制器补文档、中文归档与 push；完成后在本计划 ledger 记录确切远端 SHA。
+- [x] 控制器补文档、中文归档与 push；完成后在本计划 ledger 记录确切远端 SHA。
 
 ### 3B 可见入口与场景（保留待实施）
 
