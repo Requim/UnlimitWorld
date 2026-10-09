@@ -1,9 +1,10 @@
 import { ImageOff, RefreshCw } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import type { GameEvent, RunView } from "../api/types";
 import type { AssetState } from "../game/useAssets";
 import { BattleSceneRuntime, type BattleSnapshot } from "./battleRuntime";
+import { useBattleViewport } from "./useBattleViewport";
 
 interface BattleStageProps {
   combat: NonNullable<RunView["combat"]>;
@@ -12,11 +13,14 @@ interface BattleStageProps {
   assets: AssetState;
   reducedMotion: boolean;
   onRetry: () => void;
+  info?: ReactNode;
+  children?: ReactNode;
 }
 
-/** 承载 Phaser 技术战场；规则与胜负始终来自服务端 RunView。 */
+/** 输入只读局面及 DOM 信息/命中层，返回同坐标战场；卸载销毁 Phaser，资源失败提供 onRetry。 */
 export function BattleStage(props: BattleStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const { surfaceRef, viewport } = useBattleViewport();
   const latestRef = useRef<BattleSnapshot>(toSnapshot(props));
   const runtimeRef = useRef<BattleSceneRuntime | null>(null);
   if (!runtimeRef.current) runtimeRef.current = new BattleSceneRuntime(latestRef.current);
@@ -37,8 +41,16 @@ export function BattleStage(props: BattleStageProps) {
   const retry = () => { setRuntimeError(null); props.onRetry(); };
   return (
     <div className="battle-stage">
-      <div className="phaser-host" ref={hostRef} aria-label="技术战场画面" />
-      <AssetNotice assets={props.assets} runtimeError={runtimeError} onRetry={retry} />
+      <div className="battle-hud">
+        <AssetNotice assets={props.assets} runtimeError={runtimeError} onRetry={retry} />
+        {props.info}
+      </div>
+      <div className="battle-surface" ref={surfaceRef}>
+        <div className="battle-viewport" data-testid="battle-viewport" style={viewport}>
+          <div className="phaser-host" ref={hostRef} aria-label="技术战场画面" />
+          {props.children}
+        </div>
+      </div>
     </div>
   );
 }

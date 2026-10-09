@@ -2,6 +2,7 @@ import * as Phaser from "phaser";
 
 import type { AssetState } from "../game/useAssets";
 import { battleBackgroundPath } from "./battleAssets";
+import { BATTLE_LAYOUT } from "./battleLayout";
 import type { BattleSceneAdapter, BattleSnapshot } from "./battleRuntime";
 
 interface BattleData {
@@ -12,7 +13,7 @@ interface BattleData {
   dynamicLayer: Phaser.GameObjects.Container | null;
 }
 
-/** 创建可增量更新的 Phaser 适配器；规则状态只读，destroy 释放画布。 */
+/** 将只读快照与资源绘入 parent，返回更新/销毁适配器；加载错误调用 onError，destroy 释放画布。 */
 export function createBattleGame(
   parent: HTMLElement,
   initial: BattleSnapshot,
@@ -21,9 +22,9 @@ export function createBattleGame(
 ): BattleSceneAdapter {
   const data: BattleData = { snapshot: initial, assets, onError, scene: null, dynamicLayer: null };
   const game = new Phaser.Game({
-    type: Phaser.AUTO, parent, width: 900, height: 360, transparent: true,
+    type: Phaser.AUTO, parent, width: BATTLE_LAYOUT.width, height: BATTLE_LAYOUT.height, transparent: true,
     render: { antialias: true },
-    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scale: { mode: Phaser.Scale.NONE, autoCenter: Phaser.Scale.NO_CENTER },
     scene: createBattleScene(data),
   });
   return {
@@ -63,19 +64,21 @@ function drawStage(scene: Phaser.Scene, data: BattleData): void {
 }
 
 function drawArt(scene: Phaser.Scene): void {
-  scene.add.image(450, 180, "stage-bg").setDisplaySize(900, 360);
-  scene.add.image(190, 210, "cultivator").setDisplaySize(190, 280);
-  scene.add.image(710, 190, "enemy").setDisplaySize(210, 300);
+  const { width, height, cultivator, enemy } = BATTLE_LAYOUT;
+  scene.add.image(width / 2, height / 2, "stage-bg").setDisplaySize(width, height);
+  scene.add.image(cultivator.x, cultivator.y, "cultivator").setDisplaySize(cultivator.width, cultivator.height);
+  scene.add.image(enemy.x, enemy.y, "enemy").setDisplaySize(enemy.width, enemy.height);
 }
 
 function drawTechnicalStage(scene: Phaser.Scene): void {
+  const { width, height, cultivator, enemy } = BATTLE_LAYOUT;
   const graphics = scene.add.graphics();
-  graphics.fillStyle(0xf7f7f4, 1).fillRect(0, 0, 900, 360);
+  graphics.fillStyle(0xf7f7f4, 1).fillRect(0, 0, width, height);
   graphics.lineStyle(2, 0x202424, 0.18).lineBetween(70, 290, 830, 290);
   graphics.lineStyle(1, 0x202424, 0.12);
   for (let x = 100; x < 900; x += 100) graphics.lineBetween(x, 292, x + 80, 340);
-  graphics.fillStyle(0x18796f, 0.15).fillCircle(190, 210, 76);
-  graphics.fillStyle(0xbf2c24, 0.15).fillCircle(710, 190, 86);
+  graphics.fillStyle(0x18796f, 0.15).fillCircle(cultivator.x, cultivator.y, cultivator.radius);
+  graphics.fillStyle(0xbf2c24, 0.15).fillCircle(enemy.x, enemy.y, enemy.radius);
   graphics.lineStyle(3, 0xf0bc30, 0.65).lineBetween(285, 215, 610, 195);
 }
 

@@ -5,6 +5,7 @@ import type { ActionInput, Catalog, GameEvent, RunView } from "../api/types";
 import { cardCost, cardDescription, findCard } from "../game/catalog";
 import type { AssetState } from "../game/useAssets";
 import { BattleStage } from "../scene/BattleStage";
+import { ENEMY_TARGET_STYLE } from "../scene/battleLayout";
 import { CardTile } from "./CardTile";
 
 interface CombatViewProps {
@@ -18,7 +19,7 @@ interface CombatViewProps {
   onAction: (action: ActionInput) => void;
 }
 
-/** 渲染战场、权威意图与 DOM 手牌；出牌只提交实例 UID 和必要目标。 */
+/** 输入权威局面与交互状态，返回战场/手牌；出牌通过 onAction 提交实例 UID/目标，不计算规则。 */
 export function CombatView(props: CombatViewProps) {
   const combat = props.run.combat;
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
@@ -32,14 +33,11 @@ export function CombatView(props: CombatViewProps) {
       <CombatStatus run={props.run} />
       <div className="battle-frame">
         <BattleStage assets={props.assets} combat={combat} events={props.events} revision={props.run.revision}
-          reducedMotion={props.reducedMotion} onRetry={props.onRetryAssets} />
-        <button className="enemy-target" data-testid="enemy-target" disabled={props.busy || definition?.target !== "enemy"}
-          onClick={attack} title="对敌方打出所选卡牌">
-          <EnemyIntent intent={combat.enemy.intent} />
-          <strong>{combat.enemy.name}</strong>
-          <span>生命 {combat.enemy.hp}/{combat.enemy.max_hp} · 护盾 {combat.enemy.block}</span>
-          {(combat.enemy.burn > 0 || combat.enemy.weak > 0) && <small>燃烧 {combat.enemy.burn} · 虚弱 {combat.enemy.weak}</small>}
-        </button>
+          reducedMotion={props.reducedMotion} onRetry={props.onRetryAssets} info={<EnemyInfo enemy={combat.enemy} />}>
+          <button className="enemy-target" data-testid="enemy-target" style={ENEMY_TARGET_STYLE}
+            disabled={props.busy || definition?.target !== "enemy"} onClick={attack}
+            aria-label={`对${combat.enemy.name}打出所选卡牌`} title="对敌方打出所选卡牌" />
+        </BattleStage>
       </div>
       <CommandBar run={props.run} busy={props.busy} onAction={props.onAction} />
       <SelectedCardDetail card={selected} definition={definition} />
@@ -51,6 +49,17 @@ export function CombatView(props: CombatViewProps) {
       <button className="cast-selected" data-testid="cast-selected" disabled={props.busy || !selected || definition?.target === "enemy"}
         onClick={cast}>{selected ? definition?.target === "enemy" ? "点敌人出牌" : `打出 ${definition?.name ?? "所选卡牌"}` : "先选择一张牌"}</button>
     </section>
+  );
+}
+
+function EnemyInfo({ enemy }: { enemy: NonNullable<RunView["combat"]>["enemy"] }) {
+  return (
+    <div className="enemy-info">
+      <EnemyIntent intent={enemy.intent} />
+      <strong>{enemy.name}</strong>
+      <span>生命 {enemy.hp}/{enemy.max_hp} · 护盾 {enemy.block}</span>
+      {(enemy.burn > 0 || enemy.weak > 0) && <small>燃烧 {enemy.burn} · 虚弱 {enemy.weak}</small>}
+    </div>
   );
 }
 

@@ -1,10 +1,13 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { makeCards, makeCatalog, makeCombat, makeRun } from "../test/fixtures";
 import { CombatView } from "./CombatView";
 
-vi.mock("../scene/BattleStage", () => ({ BattleStage: () => <div data-testid="battle-stage" /> }));
+vi.mock("../scene/BattleStage", () => ({
+  BattleStage: ({ children, info }: { children?: ReactNode; info?: ReactNode }) => <div>{info}{children}</div>,
+}));
 
 describe("CombatView card details", () => {
   it("选中手牌后展示完整规则文本", () => {

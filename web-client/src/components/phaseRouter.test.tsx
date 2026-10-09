@@ -1,10 +1,13 @@
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { PhaseRouter } from "./phaseRouter";
 import { makeCards, makeCatalog, makeCombat, makeRun } from "../test/fixtures";
 
-vi.mock("../scene/BattleStage", () => ({ BattleStage: () => <div data-testid="battle-stage" /> }));
+vi.mock("../scene/BattleStage", () => ({
+  BattleStage: ({ children, info }: { children?: ReactNode; info?: ReactNode }) => <div>{info}{children}</div>,
+}));
 
 describe("PhaseRouter", () => {
   const catalog = makeCatalog();
