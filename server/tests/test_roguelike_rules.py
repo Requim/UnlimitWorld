@@ -250,6 +250,20 @@ def test_player_block_absorbs_thunder_then_clears_next_turn() -> None:
     assert run.player.block == 0
 
 
+def test_remaining_block_is_cleared_when_next_player_turn_starts() -> None:
+    run = make_combat()
+    passive_enemy(run)
+    run.player.block = 20
+    run.player.wrath = 30
+
+    events = end_turn(run)
+
+    thunder = next(event for event in events if event.kind == "thunder")
+    assert thunder.amount == 0
+    assert run.player.hp == 60
+    assert run.player.block == 0
+
+
 def test_lethal_enemy_attack_does_not_trigger_reflect() -> None:
     run = make_combat("talisman")
     assert run.combat is not None
