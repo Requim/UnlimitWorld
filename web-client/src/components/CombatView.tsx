@@ -96,14 +96,24 @@ function CommandBar({ run, busy, onAction }: { run: RunView; busy: boolean; onAc
   const preview = run.combat!.taunt_preview;
   return (
     <div className="command-bar">
-      <button data-testid="taunt" disabled={busy || !preview.available} onClick={() => onAction({ kind: "taunt" })}>
-        <Zap /> 挑衅 <span>{preview.text}</span>
+      <button className="taunt" data-testid="taunt" disabled={busy || !preview.available}
+        onClick={() => onAction({ kind: "taunt" })} title={preview.text}>
+        <Zap /><span className="command-label">挑衅</span>
+        <span className="taunt-summary" data-testid="taunt-summary">{tauntSummary(preview)}</span>
       </button>
       <button className="end-turn" data-testid="end-turn" disabled={busy} onClick={() => onAction({ kind: "end_turn" })}>
         结束回合
       </button>
     </div>
   );
+}
+
+function tauntSummary(preview: NonNullable<RunView["combat"]>["taunt_preview"]): string {
+  return `灵力${signed(preview.energy_gain)} · 天谴${signed(preview.wrath_change)} · 敌攻${signed(preview.next_attack_bonus)}/段`;
+}
+
+function signed(value: number): string {
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function MissingPhase({ phase }: { phase: string }) {

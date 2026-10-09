@@ -24,4 +24,14 @@ describe("CombatView card details", () => {
       `${description} 升级：伤害提高并额外获得一层剑意。`,
     );
   });
+
+  it("挑衅用结构字段展示完整摘要并保留权威全文", () => {
+    const run = makeRun({ phase: "combat", combat: makeCombat(makeCards(1)) });
+    render(<CombatView run={run} catalog={makeCatalog()} events={[]}
+      assets={{ status: "pending", manifest: null, message: "待生成" }} busy={false}
+      reducedMotion={false} onRetryAssets={vi.fn()} onAction={vi.fn()} />);
+
+    expect(screen.getByTestId("taunt")).toHaveAttribute("title", run.combat?.taunt_preview.text);
+    expect(screen.getByTestId("taunt-summary")).toHaveTextContent("灵力+1 · 天谴+8 · 敌攻+2/段");
+  });
 });
