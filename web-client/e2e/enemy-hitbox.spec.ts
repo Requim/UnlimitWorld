@@ -2,6 +2,7 @@ import { expect, test, type Page, type TestInfo } from "@playwright/test";
 
 import type { AssetManifest } from "../src/game/useAssets";
 import { REQUIRED_CARD_ASSETS, REQUIRED_ENEMY_ASSETS } from "../src/game/useAssets";
+import { installPendingAssets } from "./assetFixtures";
 
 test.use({ hasTouch: true });
 
@@ -17,6 +18,7 @@ for (const viewport of viewports) {
     test(`${viewport.width}x${viewport.height} ${assets} 点击敌人图像中心提交出牌`, async ({ page }, info) => {
       await page.setViewportSize(viewport);
       if (assets === "ready") await installReadyFixture(page);
+      else await installPendingAssets(page);
       await enterBattle(page);
       await selectFlyingSword(page);
       const game = page.getByTestId("game-root");
@@ -42,6 +44,7 @@ for (const viewport of viewports) {
 
 test("减少动态、manifest 重试和连续 resize 保持图像命中", async ({ page }, info) => {
   await page.setViewportSize({ width: 360, height: 740 });
+  await installPendingAssets(page);
   await enterBattle(page);
   await selectFlyingSword(page);
   const game = page.getByTestId("game-root");

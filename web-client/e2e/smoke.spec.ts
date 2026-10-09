@@ -12,7 +12,8 @@ test("真实 API 开局、出牌与刷新恢复", async ({ page }) => {
   await expect(game).toHaveAttribute("data-phase", "map");
   await page.locator('[data-testid^="map-node-"]:not([disabled])').first().click();
   await expect(game).toHaveAttribute("data-phase", "combat");
-  await expect(page.getByTestId("retry-assets")).toBeVisible();
+  await expect(page.getByTestId("retry-assets")).toBeHidden();
+  await expect(page.locator(".hand-zone .card-art")).toHaveCount(5);
   await page.setViewportSize({ width: 390, height: 844 });
   const canvasBox = await page.locator(".phaser-host canvas").boundingBox();
   expect(canvasBox && canvasBox.width / canvasBox.height).toBeGreaterThan(2.3);

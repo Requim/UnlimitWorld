@@ -42,12 +42,14 @@ svg { flex: 0 0 auto; }
 .seal { width: 70px; height: 70px; border: 3px double white; box-shadow: 0 0 0 2px var(--cinnabar); font-size: 25px; }
 .archetype-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ink); background: var(--ink); gap: 1px; }
 .archetype {
-  min-height: 300px; padding: 28px; border: 0; text-align: left; background: var(--paper); cursor: pointer;
+  min-height: 360px; padding: 22px; border: 0; text-align: left; background: var(--paper); cursor: pointer;
   display: flex; flex-direction: column; align-items: flex-start; transition: transform 160ms ease, box-shadow 160ms ease;
 }
 .archetype:hover { position: relative; z-index: 1; transform: translateY(-5px); box-shadow: 0 10px 0 var(--ink); }
 .archetype-number { color: var(--muted); font: 700 14px monospace; }
-.archetype strong { margin-top: 48px; font: 800 34px "STKaiti", "KaiTi", serif; }
+.archetype-art { display: block; width: 100%; height: 144px; margin: 10px 0; flex: 0 0 auto; }
+.archetype-art img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.archetype strong { margin-top: 6px; font: 800 30px "STKaiti", "KaiTi", serif; }
 .archetype p { line-height: 1.7; color: var(--muted); }
 .choose-label { margin-top: auto; padding-top: 24px; border-top: 3px solid var(--teal); width: 100%; font-weight: 800; }
 .archetype-fire .choose-label { border-color: var(--cinnabar); }
@@ -143,12 +145,13 @@ svg { flex: 0 0 auto; }
 .card-cost { position: absolute; left: 6px; top: 6px; display: grid; place-items: center; width: 25px; height: 25px; background: var(--yellow); border: 1px solid var(--ink); border-radius: 50%; font-weight: 900; }
 .card-school { position: absolute; right: 7px; top: 8px; font-size: 10px; color: var(--muted); }
 .card-tile strong { margin: 9px 0; text-align: center; font-family: "STKaiti", "KaiTi", serif; font-size: 18px; }
-.card-art { width: 100%; height: 58px; margin-top: 7px; border: 1px solid var(--line); object-fit: cover; }
+.card-art { width: 100%; aspect-ratio: 4 / 3; height: auto; margin-top: 7px; border: 1px solid var(--line); object-fit: contain; flex: 0 0 auto; }
 .card-art-error { display: grid; place-items: center; height: 58px; margin-top: 7px; border: 1px dashed var(--cinnabar); color: var(--cinnabar); font-size: 11px; }
 .card-rule { line-height: 1.45; font-size: 12px; }
 .card-tile small { margin-top: auto; padding-top: 7px; color: var(--muted); border-top: 1px solid var(--line); }
 .hand-zone .card-tile { height: 156px; min-height: 156px; padding: 25px 8px 6px; overflow: hidden; }
-.hand-zone .card-art, .hand-zone .card-art-error { height: 34px; min-height: 34px; margin-top: 2px; }
+.hand-zone .card-art { height: auto; min-height: 0; margin-top: 2px; }
+.hand-zone .card-art-error { height: 64px; min-height: 64px; margin-top: 2px; }
 .hand-zone .card-tile strong { margin: 3px 0; font-size: 15px; line-height: 1; }
 .hand-zone .card-rule { display: none; }
 .hand-zone .card-tile small { padding-top: 3px; font-size: 10px; line-height: 1; }
@@ -214,9 +217,15 @@ svg { flex: 0 0 auto; }
   .start-title h1 { font-size: 31px; }
   .seal { width: 54px; height: 54px; font-size: 20px; }
   .archetype-grid { grid-template-columns: 1fr; }
-  .archetype { min-height: 150px; padding: 16px; }
-  .archetype strong { margin-top: 12px; font-size: 27px; }
-  .choose-label { padding-top: 8px; }
+  .archetype {
+    min-height: 150px; padding: 14px; display: grid; grid-template-columns: 92px minmax(0, 1fr);
+    grid-template-areas: "art number" "art title" "art description" "art choose"; column-gap: 12px;
+  }
+  .archetype-art { grid-area: art; width: 92px; height: 100px; margin: 0; align-self: center; }
+  .archetype-number { grid-area: number; font-size: 12px; }
+  .archetype strong { grid-area: title; margin-top: 2px; font-size: 27px; }
+  .archetype p { grid-area: description; margin: 4px 0; font-size: 12px; line-height: 1.5; }
+  .choose-label { grid-area: choose; padding-top: 6px; font-size: 12px; }
   .game-shell { padding-top: 52px; }
   .game-hud { height: 52px; grid-template-columns: 34px 1fr 78px; padding: 0 7px; gap: 5px; }
   .brand-lockup b { display: none; }
@@ -271,6 +280,6 @@ svg { flex: 0 0 auto; }
   .hand-zone { min-height: 152px; }
   .card-tile { min-height: 138px; }
   .hand-zone .card-tile { height: 138px; min-height: 138px; padding-bottom: 4px; }
-  .hand-zone .card-art, .hand-zone .card-art-error { height: 27px; min-height: 27px; }
+  .hand-zone .card-art, .hand-zone .card-art-error { height: 64px; min-height: 64px; }
   .command-bar { min-height: 52px; }
 }

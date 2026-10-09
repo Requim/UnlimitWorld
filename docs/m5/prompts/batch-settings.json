@@ -1,0 +1,11 @@
+{
+  "model": "gpt-image-2",
+  "quality": "medium",
+  "output_format": "png",
+  "concurrency": 3,
+  "max_attempts": 1,
+  "use_case": "stylized-concept",
+  "style": "Expressive hand-inked 2D Chinese comic illustration; bold black brush outlines; restrained woodblock print texture inside the subject; clean hand-painted details; polished production asset for an original Chinese cultivation deckbuilding roguelike, not a poster.",
+  "palette": "Neutral black, cool gray and clean white with cinnabar red, jade teal and small bright yellow accents. Balanced colors, clear daylight, no brown or beige color wash.",
+  "constraints": "Original design and composition only; coherent anatomy and props; crisp silhouette readable at small game scale; no existing franchises or famous characters, no letters, no text, no pseudo-writing, no logos, no watermark, no embedded UI, no card frame, no photorealism, no 3D CGI, no heavy blur."
+}

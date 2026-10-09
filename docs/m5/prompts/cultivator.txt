@@ -1,0 +1,9 @@
+Use case: stylized-concept
+Asset type: original full-body character sprite for a Chinese cultivation deckbuilding roguelike, not a poster
+Primary request: a lean rebellious young cultivator holding a battered wooden sword, wearing layered white and charcoal robes with a flowing cinnabar-red sash, a slightly crooked hair bun, expressive eyebrows and a mischievous defiant smile
+Scene/backdrop: completely flat solid saturated magenta RGB #ff00ff chroma-key background, no gradient, no background texture, no ground, no shadow
+Style/medium: expressive hand-inked 2D Chinese comic illustration; bold black brush outlines, restrained woodblock print texture inside the subject, clean hand-painted details, polished production game sprite
+Composition/framing: one character only, full body including head, sword, fingers and both feet; three-quarter view facing right, eyes looking right; readable ready-to-fight pose; centered vertically with generous empty margins; feet on the same horizontal baseline near the lower edge
+Color palette: neutral black, cool gray and clean white, cinnabar red and small jade-teal accents; do not use magenta on the character
+Lighting/mood: clear soft daylight, charismatic and irreverent, crisp high-contrast silhouette readable at a small game scale
+Constraints: original design; preserve solid white clothing; coherent hands and sword grip; sword and sash entirely in frame; no extra characters, no scene, no floating unrelated objects, no text, no symbols resembling lettering, no card border, no logos, no watermark, no embedded UI, no photorealism, no 3D CGI, no glow or cast shadow spilling into the magenta background

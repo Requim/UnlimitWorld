@@ -1,7 +1,6 @@
 {
   "version": 1,
-  "status": "pending-generation",
-  "reason": "原创位图尚未生成：等待 ImageGen CLI 授权及本机 API Key。",
+  "status": "ready",
   "characters": {
     "cultivator": "/assets/characters/cultivator.png"
   },

@@ -1,0 +1,461 @@
+[
+  {
+    "group": "characters",
+    "key": "cultivator",
+    "url": "/assets/characters/cultivator.png",
+    "source_sha256": "ba89463e1317a8c40bf787889c3b048329bac7dd630bb72727f46690b1268670",
+    "prepared_input_sha256": "6578a8c6c6b17ddcd574a98ba754902fc52a8fd605ac884b9f6c1ae8a12b8d3a",
+    "output_sha256": "3ca0e92330f8726135fbd85ab980ce03a22bca7b7b1dd6ba1259a31043e5b2ad",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      570,
+      840
+    ],
+    "bytes": 409812
+  },
+  {
+    "group": "enemies",
+    "key": "paper_soldier",
+    "url": "/assets/characters/paper_soldier.png",
+    "source_sha256": "2c35eab4c990d057bede2cf000699ed6979efc2eb3db14455147eed81e149238",
+    "prepared_input_sha256": "e3d6992fc2e3580e1d56d1d2155632d514948cfe97519fd2de10d61afb6ab9a0",
+    "output_sha256": "75dca33fc9d93e0e619deb8ff6dcca18332504b96eda9d54422b5d833213b594",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 438982
+  },
+  {
+    "group": "enemies",
+    "key": "incense_guest",
+    "url": "/assets/characters/incense_guest.png",
+    "source_sha256": "b3face10fe71bf0c3c25941441a4703d59e2cd2820b10238e166e46c13e83504",
+    "prepared_input_sha256": "81d3876cb87e289ccf485d505329df7403247ad0ef49e87c1f45c369fddf03a4",
+    "output_sha256": "ccee552ba10ccadb0db430239b57688cd835d27998b947ede8cb02ae68fa4e76",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 718785
+  },
+  {
+    "group": "enemies",
+    "key": "fallen_monk",
+    "url": "/assets/characters/fallen_monk.png",
+    "source_sha256": "693f24a5ab0060be3b47c2fee68a7b9ddcf3a77af4773703d1e7cfd13443b685",
+    "prepared_input_sha256": "9afbba7c1d29ac019b13c4f3739fbb6ceb91aedc6d3d8b81023dac607c25e6e1",
+    "output_sha256": "eeac37318b36e50785057eef550f597dc2f52ca60f26fb553a84971a818c9aeb",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 468312
+  },
+  {
+    "group": "enemies",
+    "key": "debt_immortal",
+    "url": "/assets/characters/debt_immortal.png",
+    "source_sha256": "0a3c64c64151a76b59f65f69af3e1b5c51ad1c740b018e3fccd194b8bc899cee",
+    "prepared_input_sha256": "71e5086eb97d9e7d8376ceea8f758ff86c0a064cddb7a148d6adac7733db7ebe",
+    "output_sha256": "45283dd960b5e60691f1046c57db8fbf26f00065ea730a3f8f906b0cef8e3fa5",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 512254
+  },
+  {
+    "group": "enemies",
+    "key": "heaven_tax_collector",
+    "url": "/assets/characters/heaven_tax_collector.png",
+    "source_sha256": "32192b67ceee41c39cca23b014c699b844a5f35d06c50c5617a747d360223898",
+    "prepared_input_sha256": "adf1d6c698f8e354c9a7f707b303509c4c22e29becc40478e0c2cf8497d0e558",
+    "output_sha256": "7da5342e269e3a4e2ad681b959b4c5de84f17b6c71c1c632ca364ca6b1f79f3a",
+    "source_size": [
+      1024,
+      1536
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 587183
+  },
+  {
+    "group": "enemies",
+    "key": "heaven_judge",
+    "url": "/assets/characters/heaven_judge.png",
+    "source_sha256": "37bddc4293a9bf2ff564bde97cc25ef4b3a0fd4544ea3ddc5e91acd96b70463a",
+    "prepared_input_sha256": "265cb6aa939124fbe7523ebe075afd8035fb0a080ee80ea27e829f965dd7e683",
+    "output_sha256": "900d4d1f00ab8eb8e954b3a0156e65e05a8773a0c46ac332377e5d55444c3d95",
+    "source_size": [
+      1365,
+      2048
+    ],
+    "output_size": [
+      630,
+      900
+    ],
+    "bytes": 627535
+  },
+  {
+    "group": "cards",
+    "key": "flying_sword",
+    "url": "/assets/cards/flying_sword.webp",
+    "source_sha256": "79974b04f3ad17a6e878db4b23926c2a41ec10902e6844a8a030ec04d3602274",
+    "prepared_input_sha256": "79974b04f3ad17a6e878db4b23926c2a41ec10902e6844a8a030ec04d3602274",
+    "output_sha256": "99b6f4ae6b1081db325e4088baf7957fbd9c225c0c979c6038ed80c9fdd293d6",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 69174
+  },
+  {
+    "group": "cards",
+    "key": "guard",
+    "url": "/assets/cards/guard.webp",
+    "source_sha256": "158a1efe43bec27853e6a401ea6aeebd941e86b6233da5facafdc7562f1a062b",
+    "prepared_input_sha256": "158a1efe43bec27853e6a401ea6aeebd941e86b6233da5facafdc7562f1a062b",
+    "output_sha256": "368823ec143597765041de3040fb3db5d56fc0302b95fb5389e4a82d693c94fc",
+    "source_size": [
+      2048,
+      1536
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 70870
+  },
+  {
+    "group": "cards",
+    "key": "focus",
+    "url": "/assets/cards/focus.webp",
+    "source_sha256": "9d2d6d2a806f7516e1a01bd65ebad879c786d2c11fc35c424c7119c1fcba1cc4",
+    "prepared_input_sha256": "9d2d6d2a806f7516e1a01bd65ebad879c786d2c11fc35c424c7119c1fcba1cc4",
+    "output_sha256": "4ecb9b301bcd48085e6e4412fb209cc2a8bf54f62264f8a1e81b016fad583069",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 92072
+  },
+  {
+    "group": "cards",
+    "key": "charge_sword",
+    "url": "/assets/cards/charge_sword.webp",
+    "source_sha256": "e92f16e6322ab15212ce130c55ec57d96a45876d0727e9c5d29a40a99d6a6a9f",
+    "prepared_input_sha256": "e92f16e6322ab15212ce130c55ec57d96a45876d0727e9c5d29a40a99d6a6a9f",
+    "output_sha256": "001df08e4cc5962e8c9077168bcb8f87379b2043ebe740e3e118b066867c2421",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 90758
+  },
+  {
+    "group": "cards",
+    "key": "flurry",
+    "url": "/assets/cards/flurry.webp",
+    "source_sha256": "33a5fb2e16826661cb9c90bebd780d257fc50bd6cae6607035819e10164af549",
+    "prepared_input_sha256": "33a5fb2e16826661cb9c90bebd780d257fc50bd6cae6607035819e10164af549",
+    "output_sha256": "bedd15b78c451e57d28f4ae9cd9df3035aebba741df9ed06db5c80ea03e99d52",
+    "source_size": [
+      1448,
+      1086
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 80424
+  },
+  {
+    "group": "cards",
+    "key": "sword_draw",
+    "url": "/assets/cards/sword_draw.webp",
+    "source_sha256": "8ec0a7a49473750739e5ce18256178ea0e1030b61cd29acbe89e912bc2c28ab3",
+    "prepared_input_sha256": "8ec0a7a49473750739e5ce18256178ea0e1030b61cd29acbe89e912bc2c28ab3",
+    "output_sha256": "7b6d73a61b0cd9b6186e0087a8e28578f7990cd297a26908aef1a16e4a9f792f",
+    "source_size": [
+      2048,
+      1536
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 55028
+  },
+  {
+    "group": "cards",
+    "key": "myriad_swords",
+    "url": "/assets/cards/myriad_swords.webp",
+    "source_sha256": "dfda1689b5eaa38e20e9953f123e4dc87f6b7e0bf97735df3b58da2a40acaa18",
+    "prepared_input_sha256": "dfda1689b5eaa38e20e9953f123e4dc87f6b7e0bf97735df3b58da2a40acaa18",
+    "output_sha256": "2ada3ed6218358f84cbb20ec94746159da2e7b545fd55011756f1adfd9d3dbb2",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 91574
+  },
+  {
+    "group": "cards",
+    "key": "hidden_edge",
+    "url": "/assets/cards/hidden_edge.webp",
+    "source_sha256": "fc5caf342f539752a06fd6f230f09fc26a0cf717d48b06ac883ca0a73cfbd2ea",
+    "prepared_input_sha256": "fc5caf342f539752a06fd6f230f09fc26a0cf717d48b06ac883ca0a73cfbd2ea",
+    "output_sha256": "0d5341288354941c6656b18435e09419dd9ddf6aaa5ad6edead41107e898b173",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 78702
+  },
+  {
+    "group": "cards",
+    "key": "fire_seed",
+    "url": "/assets/cards/fire_seed.webp",
+    "source_sha256": "85f15af256fef4b2af1ddff3aef8bc78326dacffdb76e28711387199d1b02ba4",
+    "prepared_input_sha256": "85f15af256fef4b2af1ddff3aef8bc78326dacffdb76e28711387199d1b02ba4",
+    "output_sha256": "64703e7a674f3feb651d99656defdda4fa8005ce242bfb789eb764be6fccfb5b",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 54948
+  },
+  {
+    "group": "cards",
+    "key": "fan_flames",
+    "url": "/assets/cards/fan_flames.webp",
+    "source_sha256": "f098f21ded7e4e68b4df0543bead2f483364444a887c2b88537e9702a40233d1",
+    "prepared_input_sha256": "f098f21ded7e4e68b4df0543bead2f483364444a887c2b88537e9702a40233d1",
+    "output_sha256": "d89c90ac0f551df0d5f67aed427c8741f37a25e8d6fef57ddac7f2780ea91e36",
+    "source_size": [
+      1448,
+      1086
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 115376
+  },
+  {
+    "group": "cards",
+    "key": "burn_heaven",
+    "url": "/assets/cards/burn_heaven.webp",
+    "source_sha256": "23e9287599cf2d0386715e16a75c5770dceaa8a6efbff07169084e8ab50db933",
+    "prepared_input_sha256": "23e9287599cf2d0386715e16a75c5770dceaa8a6efbff07169084e8ab50db933",
+    "output_sha256": "05d56f0b99598083c5bee86ac5200c66b03136fe7a67715eca51bacdb1515db4",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 138194
+  },
+  {
+    "group": "cards",
+    "key": "borrow_fire",
+    "url": "/assets/cards/borrow_fire.webp",
+    "source_sha256": "27eb7fce133676fcc30601c261de38072f9230b2c63d4f8c9ad2b0562da55891",
+    "prepared_input_sha256": "27eb7fce133676fcc30601c261de38072f9230b2c63d4f8c9ad2b0562da55891",
+    "output_sha256": "f0da41e08d42ba671d32f295ec7328b3c3253c337548a90c08074ac9291307c4",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 71212
+  },
+  {
+    "group": "cards",
+    "key": "embers",
+    "url": "/assets/cards/embers.webp",
+    "source_sha256": "20bad06d19e7abe63764c17fcaec7d644025c09ba91039d73218d5d58b586069",
+    "prepared_input_sha256": "20bad06d19e7abe63764c17fcaec7d644025c09ba91039d73218d5d58b586069",
+    "output_sha256": "ffba781fa26dfe3d316161ea65bb18458a3fc3d4b973e605eb2cb0b046c0616f",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 72048
+  },
+  {
+    "group": "cards",
+    "key": "golden_bell",
+    "url": "/assets/cards/golden_bell.webp",
+    "source_sha256": "60e8f3a4c4dd8cf259961d5170b9a7b419edbf2e1f71e9392cadc32c234722a1",
+    "prepared_input_sha256": "60e8f3a4c4dd8cf259961d5170b9a7b419edbf2e1f71e9392cadc32c234722a1",
+    "output_sha256": "d2f9b95cc4584aa6cb2dbff6d2b9cf95bc6d24cd59aa94f55d432bd9af40e262",
+    "source_size": [
+      1448,
+      1086
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 65788
+  },
+  {
+    "group": "cards",
+    "key": "demon_mirror",
+    "url": "/assets/cards/demon_mirror.webp",
+    "source_sha256": "4abb6e2cb44744a3e96b477b77d5a42ea1b53d387b6aaa2128904c8412ea7894",
+    "prepared_input_sha256": "4abb6e2cb44744a3e96b477b77d5a42ea1b53d387b6aaa2128904c8412ea7894",
+    "output_sha256": "1da56674f89e06682c514dd98740f1a801c9a6216c1b6f84d8fcbdf5ede9f8e2",
+    "source_size": [
+      2048,
+      1536
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 69134
+  },
+  {
+    "group": "cards",
+    "key": "silence_talisman",
+    "url": "/assets/cards/silence_talisman.webp",
+    "source_sha256": "b640d7608cb1e97161f891e9d29338f133737f4f92b2ccdd31eef6fc3b18f86e",
+    "prepared_input_sha256": "b640d7608cb1e97161f891e9d29338f133737f4f92b2ccdd31eef6fc3b18f86e",
+    "output_sha256": "2454c43de8402f5860fc67418f5666a06edceb2ab410ac25fc56147a57c1a63f",
+    "source_size": [
+      2048,
+      1536
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 72064
+  },
+  {
+    "group": "cards",
+    "key": "swift_script",
+    "url": "/assets/cards/swift_script.webp",
+    "source_sha256": "ce174c21ebc6e54642191b0e4a599607dfc61d7dc916685cdedf0d570ef9a32f",
+    "prepared_input_sha256": "ce174c21ebc6e54642191b0e4a599607dfc61d7dc916685cdedf0d570ef9a32f",
+    "output_sha256": "54d9477211c8a5eba34540929d10c047385a9a8a18ebaa769a10dbdb2991d175",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 73728
+  },
+  {
+    "group": "cards",
+    "key": "lightning_talisman",
+    "url": "/assets/cards/lightning_talisman.webp",
+    "source_sha256": "54e6fa30919bcd3b9d31bcb7652157aaf11f30bd251b65aa533ae983bb687fa1",
+    "prepared_input_sha256": "54e6fa30919bcd3b9d31bcb7652157aaf11f30bd251b65aa533ae983bb687fa1",
+    "output_sha256": "82730f10ea5f63eaae980627277e7a3dfd878e8f4584ce07ff4caf0e33e4d29e",
+    "source_size": [
+      1024,
+      768
+    ],
+    "output_size": [
+      768,
+      576
+    ],
+    "bytes": 74602
+  },
+  {
+    "group": "backgrounds",
+    "key": "battle",
+    "url": "/assets/backgrounds/battle.webp",
+    "source_sha256": "3e5004416085967a813868fafe2507c5c37e7bf740ab57562f01d4182d761d40",
+    "prepared_input_sha256": "3e5004416085967a813868fafe2507c5c37e7bf740ab57562f01d4182d761d40",
+    "output_sha256": "92cb6b0dad356d1402c91db6873997829e2f7fea0acafbb149dcd35a50c6542a",
+    "source_size": [
+      2048,
+      819
+    ],
+    "output_size": [
+      1600,
+      640
+    ],
+    "bytes": 296442
+  },
+  {
+    "group": "backgrounds",
+    "key": "boss",
+    "url": "/assets/backgrounds/boss.webp",
+    "source_sha256": "77b63e6f3819ff3b3a3b4ce3dad7d08b749bbf1a40018fb4e568f321e1ffaf20",
+    "prepared_input_sha256": "77b63e6f3819ff3b3a3b4ce3dad7d08b749bbf1a40018fb4e568f321e1ffaf20",
+    "output_sha256": "88339a01454e1c03d4ba0b54c5e222b1bce61cafb4165e5361eb34a82dcb38fc",
+    "source_size": [
+      2048,
+      819
+    ],
+    "output_size": [
+      1600,
+      640
+    ],
+    "bytes": 232132
+  }
+]

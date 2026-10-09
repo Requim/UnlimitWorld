@@ -47,7 +47,7 @@ npm run dev
 ## 验证
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests/test_function_lengths.py tests/test_art_assets.py tests/test_canvas_pixels.py -q
+.\.venv\Scripts\python.exe -m pytest server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests/ -q
 node --test tests/playtest-policy.test.mjs tests/playtest-canvas.test.mjs tests/playtest-selection.test.mjs
 node tools/playtest-m5.mjs --url http://127.0.0.1:5173 --out .data/playtest
 cd web-client
@@ -81,6 +81,17 @@ Playwright 通道可用 `M5_BROWSER_CHANNEL` 覆盖。
 ## 美术状态
 
 `public/assets/manifest.json` 明确声明资源状态与正式路径。
-当前是 `pending-generation`，并没有将不存在的图片标记为已交付。
-等待图片生成能力授权及本机 API Key 后，按 `art-direction.md` 生成并验证
-7 个角色、2 个场景和 18 个法术插图，再切换状态并验收真实加载结果。
+当前为 `ready`：7 个透明角色、2 个场景和 18 个法术插图已在项目中，
+真实浏览器全部解码通过；生成与整理记录见 `art-direction.md`，
+最终文件摘要见 `art-provenance.json`。运行样板不需要图片 API Key。
+自动技术检查不替代用户对美术和好玩程度的认可，M5 整体仍未完成。
+
+原图还在当前工作区 `.data/imagegen/output/` 时，可以不调用 API 重新整理：
+
+```powershell
+.\.venv\Scripts\python.exe tools/prepare_art_assets.py --source-dir .data/imagegen/output --force --report docs/m5/art-provenance.json
+.\.venv\Scripts\python.exe tools/check_art_assets.py
+```
+
+整理器缺少原图/去底图、图片比例不符、路径越界或未允许覆盖时会失败，
+不会自动把 manifest 标记为 `ready`。供应商生成请求不属于游戏启动流程。

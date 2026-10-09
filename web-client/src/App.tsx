@@ -24,8 +24,8 @@ export default function App() {
   if (session.status === "loading" || !session.catalog) return <LoadingScreen />;
   if (session.status === "unauthorized") return <UnauthorizedScreen message={session.error} onReset={session.resetSession} />;
   if (!session.run || choosingNewRun) {
-    return <StartScreen catalog={session.catalog} busy={session.busy}
-      onStart={(archetype) => { setChoosingNewRun(false); void session.startRun(archetype); }} />;
+    return <AssetProvider state={assets} retry={retryAssets}><StartScreen catalog={session.catalog} busy={session.busy}
+      onStart={(archetype) => { setChoosingNewRun(false); void session.startRun(archetype); }} /></AssetProvider>;
   }
   return (
     <AssetProvider state={assets} retry={retryAssets}><main className={settings.reducedMotion ? "game-shell reduced-motion" : "game-shell"}

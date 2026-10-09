@@ -1,8 +1,10 @@
 import { expect, test } from "@playwright/test";
+import { installPendingAssets } from "./assetFixtures";
 
 for (const width of [360, 390, 430]) {
   test(`${width}px 资源重试按钮包含原尺寸图标且无原生内溢出`, async ({ page }) => {
     await page.setViewportSize({ width, height: 740 });
+    await installPendingAssets(page);
     await page.goto("/");
     await page.getByTestId("create-sword").click();
     await page.locator('[data-testid^="map-node-"]:not([disabled])').first().click();
