@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   DEFAULT_SETTINGS,
+  clearSession,
   loadSession,
   loadSettings,
   saveSession,
@@ -17,6 +18,20 @@ describe("storage", () => {
 
     localStorage.setItem("tiandao.cardRogue.session.v1", "{bad json");
     expect(loadSession()).toBeNull();
+  });
+
+  it("经典默认键与毕方样板键完全隔离", () => {
+    const classic = { accessToken: "classic-token", runId: "classic-run" };
+    const myth = { accessToken: "myth-token", runId: "myth-run" };
+
+    saveSession(classic);
+    saveSession(myth, "myth_bifang");
+
+    expect(loadSession()).toEqual(classic);
+    expect(loadSession("myth_bifang")).toEqual(myth);
+    clearSession("myth_bifang");
+    expect(loadSession()).toEqual(classic);
+    expect(loadSession("myth_bifang")).toBeNull();
   });
 
   it("校验并合并设置默认值", () => {

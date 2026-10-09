@@ -3,8 +3,8 @@ import { beforeEach, expect, it, vi } from "vitest";
 
 import * as client from "../api/client";
 import { ApiError } from "../api/client";
-import type { CreateRunResponse, RunResponse } from "../api/types";
-import { saveSession } from "../state/storage";
+import type { CreateRunResponse, RunMode, RunResponse } from "../api/types";
+import { loadSession, saveSession } from "../state/storage";
 import { deferred } from "../test/deferred";
 import { makeCatalog, makeRun } from "../test/fixtures";
 import { useGameSession } from "./useGameSession";
@@ -125,4 +125,127 @@ it("旧 409 恢复 GET 不能把新局改回终局", async () => {
   expect(hook.result.current.run?.run_id).toBe(newRun.run_id);
   expect(hook.result.current.run?.phase).toBe("map");
   expect(hook.result.current.busy).toBe(false);
+});
+
+it("毕方模式显式建局并写入独立档案", async () => {
+  const mythRun = makeRun({ run_id: "myth-run", mode: "myth_bifang" });
+  vi.mocked(client.createRun).mockResolvedValue({ run: mythRun, events: [], access_token: "myth-token" });
+  const hook = renderHook(() => useGameSession("myth_bifang"));
+  await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+
+  await act(() => hook.result.current.startRun("fire"));
+
+  expect(client.createRun).toHaveBeenCalledWith("fire", undefined, "myth_bifang");
+  expect(loadSession()).toBeNull();
+  expect(loadSession("myth_bifang")).toEqual({ accessToken: "myth-token", runId: "myth-run" });
+});
+
+it("毕方恢复拒绝缺 mode 的经典响应并保留凭据", async () => {
+  const session = { accessToken: "myth-token", runId: "myth-run" };
+  saveSession(session, "myth_bifang");
+  vi.mocked(client.getRun).mockResolvedValue({ run: oldRun, events: [] });
+
+  const hook = renderHook(() => useGameSession("myth_bifang"));
+
+  await waitFor(() => expect(hook.result.current.retryMode).toBe("sync"));
+  expect(hook.result.current.run).toBeNull();
+  expect(hook.result.current.error).toMatch(/模式/);
+  expect(loadSession("myth_bifang")).toEqual(session);
+});
+
+it("切换模式后旧响应及 finally 不能覆盖或解锁新模式", async () => {
+  saveSession({ accessToken: "classic-token", runId: "classic-run" });
+  saveSession({ accessToken: "myth-token", runId: "myth-run" }, "myth_bifang");
+  const classicRestore = deferred<RunResponse>();
+  const mythRestore = deferred<RunResponse>();
+  vi.mocked(client.getRun).mockReturnValueOnce(classicRestore.promise).mockReturnValueOnce(mythRestore.promise);
+  const hook = renderHook(({ mode }: { mode: RunMode }) => useGameSession(mode), {
+    initialProps: { mode: "classic" as RunMode },
+  });
+  await waitFor(() => expect(client.getRun).toHaveBeenCalledTimes(1));
+
+  hook.rerender({ mode: "myth_bifang" });
+  await waitFor(() => expect(client.getRun).toHaveBeenCalledTimes(2));
+  await act(async () => classicRestore.resolve({ run: oldRun, events: [] }));
+  expect(hook.result.current.busy).toBe(true);
+  expect(hook.result.current.run).toBeNull();
+
+  const mythRun = makeRun({ run_id: "myth-run", mode: "myth_bifang" });
+  await act(async () => mythRestore.resolve({ run: mythRun, events: [] }));
+  expect(hook.result.current.run?.run_id).toBe("myth-run");
+  expect(hook.result.current.busy).toBe(false);
+});
+
+it("切换模式时立即移除另一档已恢复局面", async () => {
+  saveSession({ accessToken: "classic-token", runId: "classic-run" });
+  saveSession({ accessToken: "myth-token", runId: "myth-run" }, "myth_bifang");
+  const mythRestore = deferred<RunResponse>();
+  vi.mocked(client.getRun).mockResolvedValueOnce({ run: oldRun, events: [] }).mockReturnValueOnce(mythRestore.promise);
+  const hook = renderHook(({ mode }: { mode: RunMode }) => useGameSession(mode), {
+    initialProps: { mode: "classic" as RunMode },
+  });
+  await waitFor(() => expect(hook.result.current.run?.run_id).toBe("old-run"));
+
+  hook.rerender({ mode: "myth_bifang" });
+
+  await waitFor(() => expect(client.getRun).toHaveBeenCalledTimes(2));
+  expect(hook.result.current.run).toBeNull();
+  expect(hook.result.current.busy).toBe(true);
+  mythRestore.resolve({ run: makeRun({ run_id: "myth-run", mode: "myth_bifang" }), events: [] });
+});
+
+it("unknown 动作期间 resync 只 GET 且保留原编号重放", async () => {
+  const actionFailure = new TypeError("提交后断网");
+  vi.mocked(client.sendAction).mockRejectedValueOnce(actionFailure)
+    .mockResolvedValueOnce({ run: makeRun({ revision: 2 }), events: [] });
+  vi.mocked(client.createRun).mockResolvedValue(created);
+  vi.mocked(client.getRun).mockResolvedValue({ run: makeRun({ revision: 2 }), events: [] });
+  const hook = renderHook(useGameSession);
+  await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+  await act(() => hook.result.current.startRun("sword"));
+  await act(() => hook.result.current.perform({ kind: "end_turn" }));
+  const original = vi.mocked(client.sendAction).mock.calls[0][2];
+
+  await act(() => hook.result.current.resync());
+
+  expect(client.getRun).toHaveBeenLastCalledWith("new-run", "token");
+  expect(client.sendAction).toHaveBeenCalledTimes(1);
+  expect(hook.result.current.retryMode).toBe("action");
+  await act(() => hook.result.current.retryAction());
+  expect(vi.mocked(client.sendAction).mock.calls[1][2]).toEqual(original);
+});
+
+it("resync 失败保留凭据并可只读重试后继续原动作", async () => {
+  vi.mocked(client.sendAction).mockRejectedValueOnce(new TypeError("提交后断网"))
+    .mockResolvedValueOnce({ run: makeRun({ revision: 2 }), events: [] });
+  vi.mocked(client.getRun).mockRejectedValueOnce(new TypeError("同步断网"))
+    .mockResolvedValueOnce({ run: makeRun({ revision: 2 }), events: [] });
+  const hook = renderHook(useGameSession);
+  await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+  await act(() => hook.result.current.startRun("sword"));
+  await act(() => hook.result.current.perform({ kind: "end_turn" }));
+  const session = loadSession();
+  await act(() => hook.result.current.resync());
+
+  expect(hook.result.current.retryMode).toBe("sync");
+  expect(loadSession()).toEqual(session);
+  await act(() => hook.result.current.retryAction());
+  expect(hook.result.current.retryMode).toBe("action");
+  await act(() => hook.result.current.retryAction());
+  expect(client.sendAction).toHaveBeenCalledTimes(2);
+});
+
+it("迟到 resync 不能覆盖新局", async () => {
+  const synchronization = deferred<RunResponse>();
+  vi.mocked(client.getRun).mockReturnValueOnce(synchronization.promise);
+  const hook = renderHook(useGameSession);
+  await waitFor(() => expect(hook.result.current.status).toBe("ready"));
+  await act(() => hook.result.current.startRun("sword"));
+  let syncing!: Promise<void>;
+  act(() => { syncing = hook.result.current.resync(); });
+  await act(() => hook.result.current.startRun("fire"));
+  await act(async () => { synchronization.resolve({ run: oldRun, events: [] }); await syncing; });
+
+  expect(hook.result.current.run?.run_id).toBe(newRun.run_id);
+  expect(hook.result.current.error).toBeNull();
 });

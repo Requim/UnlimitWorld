@@ -8,6 +8,8 @@ export type CreateRunInput = Omit<GeneratedCreateRunRequest, "mode"> & {
   mode?: GeneratedCreateRunRequest["mode"];
 };
 
+/** 服务端正式支持的局面模式；直接派生自创建请求，避免客户端枚举漂移。 */
+export type RunMode = Exclude<CreateRunInput["mode"], undefined>;
 export type ArchetypeId = CreateRunInput["archetype"];
 export type Catalog = components["schemas"]["CatalogResponse"];
 export type GameEvent = components["schemas"]["GameEvent"];

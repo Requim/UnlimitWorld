@@ -4,6 +4,7 @@ import type {
   Catalog,
   CreateRunInput,
   CreateRunResponse,
+  RunMode,
   RunResponse,
 } from "./types";
 
@@ -31,7 +32,7 @@ export function getCatalog(): Promise<Catalog> {
 export function createRun(
   archetype: ArchetypeId,
   token?: string,
-  mode?: CreateRunInput["mode"],
+  mode?: RunMode,
 ): Promise<CreateRunResponse> {
   const body: CreateRunInput = mode ? { archetype, mode } : { archetype };
   return request<CreateRunResponse>("/api/v2/runs", {
