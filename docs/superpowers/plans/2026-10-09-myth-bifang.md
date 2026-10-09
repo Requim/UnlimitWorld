@@ -51,8 +51,8 @@
 - Centralize event snapshots/metadata in a small domain helper without framework imports or repeated literal snapshot blocks. Annotate all actual battle mutations and preserve old event meanings.
 
 **Steps**
-- [ ] Read relevant existing rule/API/tests and spec sections 4 and 6 before editing.
-- [ ] Add actual tests, observe RED, then implement. A minimal first test:
+- [x] Read relevant existing rule/API/tests and spec sections 4 and 6 before editing.
+- [x] Add actual tests, observe RED, then implement. A minimal first test:
 
 ```python
 def test_myth_start_has_story_and_sample_deck(client):
@@ -67,13 +67,13 @@ def test_myth_start_has_story_and_sample_deck(client):
     assert len(run["deck"]) == 10
 ```
 
-- [ ] Domain tests cover each archetype deck; all three starting modifiers after initialization; defense preserves destroy_scroll bonus; burn attack wrath even when shielded; multi two hits; weak/taunt intent; victory choice-specific epitaph; defeat.
-- [ ] API tests cover all choices, exact retry, changed-payload 409, stale revision 409, invalid selection/phase unchanged, restart persistence and legacy JSON absent mode/story defaults.
-- [ ] Structured events test intermediate snapshots (not all final), shield absorption including zero HP damage, multi ordering, lightning redirect, and lethal no postmortem damage.
-- [ ] Classic API/rule tests stay green and catalog remains compatible (18 cards/6 relics; independent boss may make enemies 7).
-- [ ] Export OpenAPI with existing tool and regenerate types; TypeScript generated compatibility must pass.
-- [ ] Run `.venv/Scripts/python.exe -m pytest server/tests/test_myth_bifang.py server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests -q`, function checker, compileall and git diff check.
-- [ ] Self-review, document actual tests/risks, stage only Task 1 files and Chinese commit. Do not push; controller performs review and phase archival push.
+- [x] Domain tests cover each archetype deck; all three starting modifiers after initialization; defense preserves destroy_scroll bonus; burn attack wrath even when shielded; multi two hits; weak/taunt intent; victory choice-specific epitaph; defeat.
+- [x] API tests cover all choices, exact retry, changed-payload 409, stale revision 409, invalid selection/phase unchanged, restart persistence and legacy JSON absent mode/story defaults.
+- [x] Structured events test intermediate snapshots (not all final), shield absorption including zero HP damage, multi ordering, lightning redirect, and lethal no postmortem damage.
+- [x] Classic API/rule tests stay green and catalog remains compatible (18 cards/6 relics; independent boss may make enemies 7).
+- [x] Export OpenAPI with existing tool and regenerate types; TypeScript generated compatibility must pass.
+- [x] Run `.venv/Scripts/python.exe -m pytest server/tests/test_myth_bifang.py server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests -q`, function checker, compileall and git diff check.
+- [x] Self-review, document actual tests/risks, stage only Task 1 files and Chinese commit. Do not push; controller performs review and phase archival push.
 
 ## Task 2: 三张高清种子与来源核验
 
@@ -124,11 +124,12 @@ def test_myth_start_has_story_and_sample_deck(client):
 - cancel/dispose 及时释放表现锁并使在途回调失效；新局旧事件不能回写。错误释放锁并回调同步入口，不吞错、重发 POST 或伪造结算。
 
 **Steps**
-- [ ] TDD 验证两键隔离/默认兼容/模式错配/旧模式迟到响应与 finally。
-- [ ] TDD 验证三事件依次完成，中途事件快照不被末尾结果替代，最后事件前不发完成回调。
-- [ ] 通过 deferred promises 验证重复 revision、旧 revision、run 切换、cancel、dispose、失败、重附着与旧异步完成；测试不得靠固定睡眠。
-- [ ] 验证 resync 只 GET，未知动作锁不被清除，失败保留凭据/同步重试，迟到同步不覆盖新局。
-- [ ] 跑 npm test、typecheck、build、check:functions；经典真实 Chrome smoke/恢复路径不回退。自审、独立审查、中文归档与 push。
+- [x] TDD 验证两键隔离/默认兼容/模式错配/旧模式迟到响应与 finally。
+- [x] TDD 验证三事件依次完成，中途事件快照不被末尾结果替代，最后事件前不发完成回调。
+- [x] 通过 deferred promises 验证重复 revision、旧 revision、run 切换、cancel、dispose、失败、重附着与旧异步完成；测试不得靠固定睡眠。
+- [x] 验证 resync 只 GET，未知动作锁不被清除，失败保留凭据/同步重试，迟到同步不覆盖新局。
+- [x] 跑 npm test、typecheck、build、check:functions；经典真实 Chrome smoke/恢复路径不回退。自审、独立审查。
+- [ ] 控制器补文档、中文归档与 push；完成后在本计划 ledger 记录确切远端 SHA。
 
 ### 3B 可见入口与场景（保留待实施）
 
