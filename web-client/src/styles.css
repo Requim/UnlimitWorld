@@ -1,0 +1,244 @@
+:root {
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  color: #202424;
+  background: #f3f4f0;
+  font-synthesis: none;
+  --paper: #ffffff;
+  --field: #f3f4f0;
+  --ink: #202424;
+  --muted: #6d716d;
+  --line: #c8ccc7;
+  --cinnabar: #bf2c24;
+  --teal: #18796f;
+  --yellow: #f0bc30;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; margin: 0; }
+body { min-width: 320px; overflow-x: hidden; }
+button, input { font: inherit; }
+button { color: inherit; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+button:disabled { cursor: not-allowed; opacity: .48; }
+svg { flex: 0 0 auto; }
+
+.start-screen {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  max-width: 1120px;
+  margin: auto;
+  padding: 34px;
+  background: var(--field);
+}
+.start-title { display: flex; align-items: center; gap: 18px; }
+.start-title h1 { margin: 0; font-family: "STKaiti", "KaiTi", serif; font-size: 42px; letter-spacing: 0; }
+.start-title p, .start-note { margin: 4px 0 0; color: var(--muted); }
+.seal, .mini-seal {
+  display: grid; place-items: center; color: white; background: var(--cinnabar);
+  font-family: "STKaiti", "KaiTi", serif; font-weight: 800;
+}
+.seal { width: 70px; height: 70px; border: 3px double white; box-shadow: 0 0 0 2px var(--cinnabar); font-size: 25px; }
+.archetype-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--ink); background: var(--ink); gap: 1px; }
+.archetype {
+  min-height: 300px; padding: 28px; border: 0; text-align: left; background: var(--paper); cursor: pointer;
+  display: flex; flex-direction: column; align-items: flex-start; transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.archetype:hover { position: relative; z-index: 1; transform: translateY(-5px); box-shadow: 0 10px 0 var(--ink); }
+.archetype-number { color: var(--muted); font: 700 14px monospace; }
+.archetype strong { margin-top: 48px; font: 800 34px "STKaiti", "KaiTi", serif; }
+.archetype p { line-height: 1.7; color: var(--muted); }
+.choose-label { margin-top: auto; padding-top: 24px; border-top: 3px solid var(--teal); width: 100%; font-weight: 800; }
+.archetype-fire .choose-label { border-color: var(--cinnabar); }
+.archetype-talisman .choose-label { border-color: var(--yellow); }
+.start-note { text-align: center; font-size: 13px; }
+
+.game-shell { min-height: 100vh; background: var(--field); padding-top: 58px; }
+.game-hud {
+  position: fixed; inset: 0 0 auto; z-index: 40; height: 58px; display: grid; grid-template-columns: 180px 1fr 90px;
+  align-items: center; gap: 16px; padding: 0 18px; background: rgba(255,255,255,.96); border-bottom: 1px solid var(--ink);
+}
+.brand-lockup, .hud-stats, .hud-tools, .hud-stat, .hp-stat { display: flex; align-items: center; }
+.brand-lockup { gap: 8px; font-family: "STKaiti", "KaiTi", serif; }
+.mini-seal { width: 28px; height: 28px; }
+.hud-stats { justify-content: center; gap: 18px; white-space: nowrap; }
+.hud-stat, .hp-stat { gap: 5px; }
+.hud-stat.danger { color: var(--cinnabar); }
+.hp-track { width: 86px; height: 7px; background: #dfe2dd; }
+.hp-track i { display: block; height: 100%; background: var(--cinnabar); }
+.layer-mark { padding-left: 16px; border-left: 1px solid var(--line); font-weight: 800; }
+.hud-tools { justify-content: flex-end; gap: 5px; }
+.hud-tools button, .drawer-header button, .asset-notice button {
+  width: 36px; height: 36px; border: 1px solid transparent; background: transparent; display: grid; place-items: center; cursor: pointer;
+}
+.hud-tools button:hover, .drawer-header button:hover { border-color: var(--ink); }
+
+.phase-heading { width: min(100% - 36px, 980px); margin: 0 auto 18px; display: flex; align-items: baseline; gap: 20px; }
+.phase-heading span { font: 800 27px "STKaiti", "KaiTi", serif; }
+.phase-heading p { margin: 0; color: var(--muted); }
+.map-view, .choice-view, .shop-view { min-height: calc(100vh - 58px); padding: 26px 0; }
+.route-map { width: min(100% - 32px, 760px); margin: auto; display: flex; flex-direction: column; gap: 5px; }
+.route-layer { min-height: 57px; display: grid; grid-template-columns: 28px 1fr; align-items: center; border-bottom: 1px solid var(--line); }
+.layer-index { font: 700 12px monospace; color: var(--muted); }
+.route-nodes { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.route-node {
+  min-height: 48px; border: 1px solid var(--line); background: #e9ebe7; display: flex; align-items: center; justify-content: center;
+  gap: 8px; color: #8a8d88; cursor: default;
+}
+.route-node.available { background: var(--paper); border: 2px solid var(--ink); color: var(--ink); cursor: pointer; box-shadow: 4px 4px 0 var(--yellow); }
+.route-node.completed { background: var(--teal); border-color: var(--teal); color: white; }
+.route-node.kind-boss.available { background: var(--cinnabar); color: white; box-shadow: 4px 4px 0 var(--ink); }
+
+.combat-view { min-height: calc(100vh - 58px); display: grid; grid-template-rows: auto minmax(190px, 1fr) auto auto auto; overflow: hidden; }
+.combat-status { min-height: 40px; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 6px 12px; background: var(--ink); color: white; font-size: 13px; }
+.combat-status span { display: flex; align-items: center; gap: 5px; }
+.combat-status .thunder-live { color: var(--yellow); }
+.battle-frame { position: relative; min-height: 190px; overflow: hidden; border-bottom: 1px solid var(--ink); }
+.battle-stage, .phaser-host { position: absolute; inset: 0; }
+.phaser-host canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+.asset-notice {
+  position: absolute; left: 12px; top: 12px; z-index: 4; max-width: 340px; display: flex; align-items: center; gap: 8px;
+  padding: 7px 8px; background: rgba(255,255,255,.94); border: 1px solid var(--ink); font-size: 11px;
+}
+.asset-notice span { display: flex; flex-direction: column; }
+.asset-notice button { margin-left: auto; }
+.enemy-target {
+  position: absolute; z-index: 5; right: 5%; top: 12%; width: 240px; min-height: 145px; padding: 10px;
+  border: 2px solid transparent; background: transparent; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: crosshair;
+}
+.enemy-target:not(:disabled):hover { border-color: var(--cinnabar); background: rgba(255,255,255,.45); }
+.enemy-target > strong { font-size: 20px; }
+.enemy-target > span, .enemy-target > small { padding: 2px 7px; background: white; }
+.intent { position: absolute; top: 0; right: 0; width: 220px; display: grid; grid-template-columns: 30px 1fr; align-items: center; text-align: left; padding: 8px; background: white; border: 2px solid var(--cinnabar); box-shadow: 4px 4px 0 var(--ink); }
+.intent svg { grid-row: 1 / 3; }
+.intent small, .intent em { font-size: 11px; color: var(--muted); font-style: normal; }
+.intent em { grid-column: 2; display: flex; gap: 4px; color: var(--cinnabar); }
+.intent-defend { border-color: var(--teal); }
+.command-bar { min-height: 52px; display: flex; justify-content: center; gap: 10px; padding: 6px 12px; background: white; border-bottom: 1px solid var(--line); }
+.command-bar button { min-width: 150px; border: 1px solid var(--ink); background: white; padding: 6px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.command-bar button span { color: var(--muted); font-size: 11px; }
+.command-bar .end-turn { background: var(--ink); color: white; min-width: 122px; }
+.hand-zone { min-height: 176px; display: flex; justify-content: center; align-items: stretch; gap: 8px; overflow-x: auto; padding: 10px 14px; scroll-snap-type: x proximity; }
+.card-tile {
+  position: relative; flex: 0 0 132px; width: 132px; min-height: 156px; padding: 25px 10px 9px; border: 2px solid var(--ink); border-radius: 6px;
+  background: white; text-align: left; display: flex; flex-direction: column; cursor: pointer; scroll-snap-align: center; transition: transform 120ms ease;
+}
+.card-tile:hover { transform: translateY(-5px); }
+.card-tile.selected { transform: translateY(-8px); box-shadow: 0 6px 0 var(--yellow); }
+.card-cost { position: absolute; left: 6px; top: 6px; display: grid; place-items: center; width: 25px; height: 25px; background: var(--yellow); border: 1px solid var(--ink); border-radius: 50%; font-weight: 900; }
+.card-school { position: absolute; right: 7px; top: 8px; font-size: 10px; color: var(--muted); }
+.card-tile strong { margin: 9px 0; text-align: center; font-family: "STKaiti", "KaiTi", serif; font-size: 18px; }
+.card-rule { line-height: 1.45; font-size: 12px; }
+.card-tile small { margin-top: auto; padding-top: 7px; color: var(--muted); border-top: 1px solid var(--line); }
+.school-sword { border-bottom: 5px solid var(--teal); }
+.school-fire { border-bottom: 5px solid var(--cinnabar); }
+.school-talisman { border-bottom: 5px solid var(--yellow); }
+.cast-selected { min-height: 42px; border: 0; border-top: 1px solid var(--ink); background: var(--yellow); font-weight: 900; cursor: pointer; }
+
+.choice-view, .shop-view { display: flex; flex-direction: column; justify-content: center; }
+.choice-cards, .shop-items { display: flex; justify-content: center; align-items: stretch; gap: 16px; padding: 18px; overflow-x: auto; }
+.choice-cards .card-tile { flex-basis: 190px; width: 190px; min-height: 240px; }
+.event-choices { width: min(100% - 32px, 760px); margin: 20px auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+.event-choices button, .shop-items > button {
+  min-height: 150px; border: 2px solid var(--ink); background: white; padding: 22px; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; text-align: left; cursor: pointer;
+}
+.event-choices button:hover, .shop-items > button:hover { box-shadow: 6px 6px 0 var(--yellow); }
+.event-choices strong, .shop-items strong { font: 800 23px "STKaiti", "KaiTi", serif; }
+.event-choices span, .shop-items span { color: var(--muted); }
+.text-command, .leave-command { align-self: center; border: 0; background: transparent; padding: 10px; display: flex; align-items: center; gap: 7px; cursor: pointer; font-weight: 800; }
+.shop-items { width: min(100%, 980px); margin: 0 auto; }
+.shop-items > button { flex: 0 0 200px; min-height: 190px; }
+.shop-items > button b { margin-top: auto; color: var(--cinnabar); }
+.remove-service { width: min(100% - 32px, 930px); margin: 12px auto; border-top: 1px solid var(--ink); padding-top: 10px; }
+.remove-service h3 { margin: 0 0 8px; }
+.remove-service > div { display: flex; gap: 6px; overflow-x: auto; }
+.remove-service button { flex: 0 0 auto; border: 1px solid var(--line); background: white; padding: 7px 10px; cursor: pointer; }
+
+.drawer { position: fixed; z-index: 81; top: 0; right: 0; width: min(460px, 92vw); height: 100vh; overflow: auto; background: white; border-left: 2px solid var(--ink); box-shadow: -12px 0 0 rgba(32,36,36,.15); padding: 16px; }
+.drawer-header { position: sticky; top: -16px; z-index: 1; background: white; min-height: 58px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--ink); }
+.drawer-header h2 { margin: 0; font-family: "STKaiti", "KaiTi", serif; }
+.drawer-backdrop { position: fixed; z-index: 80; inset: 0; border: 0; background: rgba(32,36,36,.3); }
+.deck-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding-top: 14px; }
+.deck-grid .card-tile { width: 100%; }
+.setting-row { min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; border-bottom: 1px solid var(--line); }
+.setting-row span { display: flex; align-items: center; gap: 8px; }
+.setting-row input { width: 50%; accent-color: var(--teal); }
+.setting-toggle { width: 100%; border: 0; background: transparent; cursor: pointer; }
+.toggle { width: 42px; height: 23px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: flex-start; padding: 3px; }
+.toggle.on { justify-content: flex-end; color: white; background: var(--teal); }
+
+.end-view, .system-screen { min-height: calc(100vh - 58px); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 30px; }
+.system-screen { min-height: 100vh; }
+.end-view > svg, .system-screen > svg { width: 66px; height: 66px; color: var(--cinnabar); }
+.end-view > span { margin-top: 20px; color: var(--muted); }
+.end-view h2 { max-width: 720px; font: 800 34px/1.4 "STKaiti", "KaiTi", serif; }
+.end-view dl { display: flex; gap: 42px; }
+.end-view dl div { display: flex; flex-direction: column; }
+.end-view dd { margin: 7px 0; font-size: 24px; font-weight: 900; }
+.end-view button, .system-screen button { border: 2px solid var(--ink); background: var(--yellow); padding: 12px 18px; display: flex; align-items: center; gap: 8px; font-weight: 900; cursor: pointer; }
+.request-toast { position: fixed; z-index: 70; right: 16px; bottom: 16px; max-width: min(440px, calc(100% - 32px)); background: var(--ink); color: white; padding: 10px 13px; display: flex; align-items: center; gap: 8px; box-shadow: 5px 5px 0 var(--yellow); }
+.request-toast.error { background: var(--cinnabar); }
+.request-toast button { border: 1px solid white; background: transparent; color: white; padding: 5px; display: flex; gap: 5px; }
+.phase-error { padding: 40px; text-align: center; color: var(--cinnabar); }
+.spin { animation: spin 1.2s linear infinite; }
+.reduced-motion * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .001ms !important; transition-duration: .001ms !important; }
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+@media (max-width: 720px) {
+  .start-screen { padding: 20px 14px; align-content: start; }
+  .start-title h1 { font-size: 31px; }
+  .seal { width: 54px; height: 54px; font-size: 20px; }
+  .archetype-grid { grid-template-columns: 1fr; }
+  .archetype { min-height: 150px; padding: 16px; }
+  .archetype strong { margin-top: 12px; font-size: 27px; }
+  .choose-label { padding-top: 8px; }
+  .game-shell { padding-top: 52px; }
+  .game-hud { height: 52px; grid-template-columns: 34px 1fr 78px; padding: 0 7px; gap: 5px; }
+  .brand-lockup b { display: none; }
+  .hud-stats { gap: 8px; justify-content: flex-start; overflow: hidden; font-size: 12px; }
+  .hp-track, .hud-stat[title="护盾"], .layer-mark { display: none; }
+  .hud-tools button { width: 34px; }
+  .phase-heading { width: calc(100% - 24px); margin-bottom: 8px; gap: 8px; }
+  .phase-heading span { font-size: 22px; white-space: nowrap; }
+  .phase-heading p { font-size: 11px; }
+  .map-view { padding: 12px 0; }
+  .route-map { width: calc(100% - 20px); gap: 2px; }
+  .route-layer { min-height: 51px; grid-template-columns: 20px 1fr; }
+  .route-nodes { gap: 5px; }
+  .route-node { min-height: 42px; gap: 3px; font-size: 11px; }
+  .route-node svg { width: 15px; }
+  .combat-view { min-height: calc(100vh - 52px); grid-template-rows: auto minmax(170px, 1fr) auto 166px 39px; }
+  .combat-status { justify-content: flex-start; overflow-x: auto; gap: 12px; font-size: 11px; }
+  .battle-frame { min-height: 170px; }
+  .enemy-target { right: 0; top: 5%; width: 190px; min-height: 135px; }
+  .intent { width: 180px; }
+  .asset-notice { max-width: 180px; left: 5px; top: 5px; }
+  .asset-notice span { max-width: 112px; }
+  .command-bar { justify-content: stretch; padding: 5px; }
+  .command-bar button { min-width: 0; flex: 1; padding: 5px; font-size: 12px; }
+  .command-bar button span { display: block; max-width: 145px; }
+  .hand-zone { justify-content: flex-start; min-height: 166px; padding: 7px; }
+  .card-tile { flex-basis: 122px; width: 122px; min-height: 150px; }
+  .choice-cards { justify-content: flex-start; }
+  .choice-cards .card-tile { flex-basis: 160px; width: 160px; min-height: 220px; }
+  .event-choices { grid-template-columns: 1fr; margin: 8px auto; gap: 8px; }
+  .event-choices button { min-height: 112px; padding: 14px; }
+  .shop-view { justify-content: flex-start; padding-top: 12px; }
+  .shop-items { justify-content: flex-start; padding: 8px 12px; }
+  .shop-items > button { flex-basis: 165px; min-height: 165px; padding: 14px; }
+  .end-view h2 { font-size: 27px; }
+  .end-view dl { gap: 20px; }
+}
+
+@media (max-height: 760px) {
+  .combat-view { grid-template-rows: 34px minmax(150px, 1fr) 46px 152px 37px; }
+  .combat-status { min-height: 34px; }
+  .hand-zone { min-height: 152px; }
+  .card-tile { min-height: 138px; }
+  .command-bar { min-height: 46px; }
+  .asset-notice { transform: scale(.9); transform-origin: top left; }
+}

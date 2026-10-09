@@ -1,0 +1,1664 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "天道不正经 M5 卡牌肉鸽 API",
+    "version": "2.0.0"
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health",
+        "description": "返回进程健康状态；无入参、无存储副作用。",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/catalog": {
+      "get": {
+        "summary": "Catalog",
+        "description": "返回完整卡牌、法宝、敌人与流派目录；无存储副作用。",
+        "operationId": "catalog_api_v2_catalog_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CatalogResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/runs": {
+      "post": {
+        "summary": "Create Run",
+        "description": "创建匿名局面；可用既有 Bearer 归属同档案，错误凭证返回 401。",
+        "operationId": "create_run_api_v2_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateRunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v2/runs/{run_id}": {
+      "get": {
+        "summary": "Get Run",
+        "description": "读取 Bearer 所属权威局面；无写副作用，缺失或错误凭证返回 401。",
+        "operationId": "get_run_api_v2_runs__run_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v2/runs/{run_id}/actions": {
+      "post": {
+        "summary": "Perform Action",
+        "description": "原子提交类型化动作；成功推进 revision，非法动作不落盘。",
+        "operationId": "perform_action_api_v2_runs__run_id__actions_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActionRequest": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/ChooseNodeAction"
+          },
+          {
+            "$ref": "#/components/schemas/PlayCardAction"
+          },
+          {
+            "$ref": "#/components/schemas/EndTurnAction"
+          },
+          {
+            "$ref": "#/components/schemas/TauntAction"
+          },
+          {
+            "$ref": "#/components/schemas/ChooseRewardAction"
+          },
+          {
+            "$ref": "#/components/schemas/SkipRewardAction"
+          },
+          {
+            "$ref": "#/components/schemas/ChooseEventAction"
+          },
+          {
+            "$ref": "#/components/schemas/BuyAction"
+          },
+          {
+            "$ref": "#/components/schemas/RemoveCardAction"
+          },
+          {
+            "$ref": "#/components/schemas/RestAction"
+          },
+          {
+            "$ref": "#/components/schemas/UpgradeCardAction"
+          },
+          {
+            "$ref": "#/components/schemas/LeaveShopAction"
+          }
+        ],
+        "title": "ActionRequest",
+        "description": "扁平动作 JSON 的判别联合根模型。",
+        "discriminator": {
+          "propertyName": "kind",
+          "mapping": {
+            "buy": "#/components/schemas/BuyAction",
+            "choose_event": "#/components/schemas/ChooseEventAction",
+            "choose_node": "#/components/schemas/ChooseNodeAction",
+            "choose_reward": "#/components/schemas/ChooseRewardAction",
+            "end_turn": "#/components/schemas/EndTurnAction",
+            "leave_shop": "#/components/schemas/LeaveShopAction",
+            "play_card": "#/components/schemas/PlayCardAction",
+            "remove_card": "#/components/schemas/RemoveCardAction",
+            "rest": "#/components/schemas/RestAction",
+            "skip_reward": "#/components/schemas/SkipRewardAction",
+            "taunt": "#/components/schemas/TauntAction",
+            "upgrade_card": "#/components/schemas/UpgradeCardAction"
+          }
+        }
+      },
+      "ArchetypeDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": [
+              "sword",
+              "fire",
+              "talisman"
+            ],
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "starter_card_id": {
+            "type": "string",
+            "title": "Starter Card Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "starter_card_id"
+        ],
+        "title": "ArchetypeDefinition"
+      },
+      "BuyAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "buy",
+            "title": "Kind"
+          },
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "item_id"
+        ],
+        "title": "BuyAction"
+      },
+      "CardDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "archetype": {
+            "type": "string",
+            "enum": [
+              "common",
+              "sword",
+              "fire",
+              "talisman"
+            ],
+            "title": "Archetype"
+          },
+          "cost": {
+            "type": "integer",
+            "title": "Cost"
+          },
+          "upgraded_cost": {
+            "type": "integer",
+            "title": "Upgraded Cost"
+          },
+          "target": {
+            "type": "string",
+            "enum": [
+              "enemy",
+              "self",
+              "none"
+            ],
+            "title": "Target"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "upgrade_text": {
+            "type": "string",
+            "title": "Upgrade Text"
+          },
+          "exhaust": {
+            "type": "boolean",
+            "title": "Exhaust",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "archetype",
+          "cost",
+          "upgraded_cost",
+          "target",
+          "description",
+          "upgrade_text"
+        ],
+        "title": "CardDefinition"
+      },
+      "CardInstance": {
+        "properties": {
+          "uid": {
+            "type": "string",
+            "title": "Uid"
+          },
+          "card_id": {
+            "type": "string",
+            "title": "Card Id"
+          },
+          "upgraded": {
+            "type": "boolean",
+            "title": "Upgraded",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "uid",
+          "card_id"
+        ],
+        "title": "CardInstance"
+      },
+      "CatalogResponse": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/CardDefinition"
+            },
+            "type": "array",
+            "title": "Cards"
+          },
+          "relics": {
+            "items": {
+              "$ref": "#/components/schemas/RelicDefinition"
+            },
+            "type": "array",
+            "title": "Relics"
+          },
+          "enemies": {
+            "items": {
+              "$ref": "#/components/schemas/EnemyDefinition"
+            },
+            "type": "array",
+            "title": "Enemies"
+          },
+          "archetypes": {
+            "items": {
+              "$ref": "#/components/schemas/ArchetypeDefinition"
+            },
+            "type": "array",
+            "title": "Archetypes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cards",
+          "relics",
+          "enemies",
+          "archetypes"
+        ],
+        "title": "CatalogResponse"
+      },
+      "ChooseEventAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "choose_event",
+            "title": "Kind"
+          },
+          "choice_id": {
+            "type": "string",
+            "title": "Choice Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "choice_id"
+        ],
+        "title": "ChooseEventAction"
+      },
+      "ChooseNodeAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "choose_node",
+            "title": "Kind"
+          },
+          "node_id": {
+            "type": "string",
+            "title": "Node Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "node_id"
+        ],
+        "title": "ChooseNodeAction"
+      },
+      "ChooseRewardAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "choose_reward",
+            "title": "Kind"
+          },
+          "option_index": {
+            "type": "integer",
+            "maximum": 2.0,
+            "minimum": 0.0,
+            "title": "Option Index"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "option_index"
+        ],
+        "title": "ChooseRewardAction"
+      },
+      "CombatView": {
+        "properties": {
+          "turn": {
+            "type": "integer",
+            "title": "Turn"
+          },
+          "energy": {
+            "type": "integer",
+            "title": "Energy"
+          },
+          "max_energy": {
+            "type": "integer",
+            "title": "Max Energy"
+          },
+          "hand": {
+            "items": {
+              "$ref": "#/components/schemas/CardInstance"
+            },
+            "type": "array",
+            "title": "Hand"
+          },
+          "draw_count": {
+            "type": "integer",
+            "title": "Draw Count"
+          },
+          "discard_count": {
+            "type": "integer",
+            "title": "Discard Count"
+          },
+          "exhaust_count": {
+            "type": "integer",
+            "title": "Exhaust Count"
+          },
+          "enemy": {
+            "$ref": "#/components/schemas/EnemyState"
+          },
+          "taunt_used": {
+            "type": "boolean",
+            "title": "Taunt Used"
+          },
+          "taunt_preview": {
+            "$ref": "#/components/schemas/TauntPreview"
+          },
+          "sword_intent": {
+            "type": "integer",
+            "title": "Sword Intent"
+          },
+          "lightning_redirect": {
+            "type": "boolean",
+            "title": "Lightning Redirect"
+          },
+          "thunder_count": {
+            "type": "integer",
+            "title": "Thunder Count"
+          },
+          "thunder_damage": {
+            "type": "integer",
+            "title": "Thunder Damage",
+            "default": 8
+          }
+        },
+        "type": "object",
+        "required": [
+          "turn",
+          "energy",
+          "max_energy",
+          "hand",
+          "draw_count",
+          "discard_count",
+          "exhaust_count",
+          "enemy",
+          "taunt_used",
+          "taunt_preview",
+          "sword_intent",
+          "lightning_redirect",
+          "thunder_count"
+        ],
+        "title": "CombatView"
+      },
+      "CreateRunRequest": {
+        "properties": {
+          "archetype": {
+            "type": "string",
+            "enum": [
+              "sword",
+              "fire",
+              "talisman"
+            ],
+            "title": "Archetype"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "archetype"
+        ],
+        "title": "CreateRunRequest"
+      },
+      "CreateRunResponse": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunView"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/GameEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          },
+          "access_token": {
+            "type": "string",
+            "title": "Access Token"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run",
+          "events",
+          "access_token"
+        ],
+        "title": "CreateRunResponse"
+      },
+      "EndTurnAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "end_turn",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind"
+        ],
+        "title": "EndTurnAction"
+      },
+      "EnemyDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "rank": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "elite",
+              "boss"
+            ],
+            "title": "Rank"
+          },
+          "max_hp": {
+            "type": "integer",
+            "title": "Max Hp"
+          },
+          "intent_pattern": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Intent Pattern"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "rank",
+          "max_hp",
+          "intent_pattern",
+          "description"
+        ],
+        "title": "EnemyDefinition"
+      },
+      "EnemyIntent": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "attack",
+              "defend",
+              "burn",
+              "multi"
+            ],
+            "title": "Kind"
+          },
+          "value": {
+            "type": "integer",
+            "title": "Value",
+            "description": "已计入虚弱和挑衅的每段最终伤害，防御时为护盾值"
+          },
+          "hits": {
+            "type": "integer",
+            "title": "Hits",
+            "description": "该意图的攻击段数",
+            "default": 1
+          },
+          "wrath_change": {
+            "type": "integer",
+            "title": "Wrath Change",
+            "description": "意图命中且双方存活时造成的天谴变化",
+            "default": 0
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "value",
+          "text"
+        ],
+        "title": "EnemyIntent"
+      },
+      "EnemyState": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "hp": {
+            "type": "integer",
+            "title": "Hp"
+          },
+          "max_hp": {
+            "type": "integer",
+            "title": "Max Hp"
+          },
+          "block": {
+            "type": "integer",
+            "title": "Block",
+            "default": 0
+          },
+          "burn": {
+            "type": "integer",
+            "title": "Burn",
+            "default": 0
+          },
+          "weak": {
+            "type": "integer",
+            "title": "Weak",
+            "default": 0
+          },
+          "intent_index": {
+            "type": "integer",
+            "title": "Intent Index",
+            "default": 0
+          },
+          "intent": {
+            "$ref": "#/components/schemas/EnemyIntent"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "hp",
+          "max_hp",
+          "intent"
+        ],
+        "title": "EnemyState"
+      },
+      "EventChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description"
+        ],
+        "title": "EventChoice"
+      },
+      "GameEvent": {
+        "properties": {
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "target": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "GameEvent"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HistoryEntry": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "kind",
+          "text"
+        ],
+        "title": "HistoryEntry"
+      },
+      "LeaveShopAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "leave_shop",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind"
+        ],
+        "title": "LeaveShopAction"
+      },
+      "MapNode": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "layer": {
+            "type": "integer",
+            "title": "Layer"
+          },
+          "lane": {
+            "type": "integer",
+            "title": "Lane"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "combat",
+              "elite",
+              "event",
+              "shop",
+              "rest",
+              "boss"
+            ],
+            "title": "Kind"
+          },
+          "links_from": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Links From"
+          },
+          "available": {
+            "type": "boolean",
+            "title": "Available",
+            "default": false
+          },
+          "completed": {
+            "type": "boolean",
+            "title": "Completed",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "layer",
+          "lane",
+          "kind"
+        ],
+        "title": "MapNode"
+      },
+      "PlayCardAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "play_card",
+            "title": "Kind"
+          },
+          "card_uid": {
+            "type": "string",
+            "title": "Card Uid"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "card_uid"
+        ],
+        "title": "PlayCardAction"
+      },
+      "PlayerState": {
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "title": "Hp",
+            "default": 60
+          },
+          "max_hp": {
+            "type": "integer",
+            "title": "Max Hp",
+            "default": 60
+          },
+          "block": {
+            "type": "integer",
+            "title": "Block",
+            "default": 0
+          },
+          "wrath": {
+            "type": "integer",
+            "title": "Wrath",
+            "default": 0
+          },
+          "stones": {
+            "type": "integer",
+            "title": "Stones",
+            "default": 60
+          },
+          "reflect": {
+            "type": "integer",
+            "title": "Reflect",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "PlayerState"
+      },
+      "RelicDefinition": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description"
+        ],
+        "title": "RelicDefinition"
+      },
+      "RemoveCardAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "remove_card",
+            "title": "Kind"
+          },
+          "card_uid": {
+            "type": "string",
+            "title": "Card Uid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "card_uid"
+        ],
+        "title": "RemoveCardAction"
+      },
+      "RestAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "rest",
+            "title": "Kind"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "heal",
+              "upgrade"
+            ],
+            "title": "Mode"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "mode"
+        ],
+        "title": "RestAction"
+      },
+      "RewardCard": {
+        "properties": {
+          "card_id": {
+            "type": "string",
+            "title": "Card Id"
+          },
+          "upgraded": {
+            "type": "boolean",
+            "title": "Upgraded",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "card_id"
+        ],
+        "title": "RewardCard"
+      },
+      "RewardState": {
+        "properties": {
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/RewardCard"
+            },
+            "type": "array",
+            "title": "Cards"
+          },
+          "stones": {
+            "type": "integer",
+            "title": "Stones"
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "normal",
+              "elite"
+            ],
+            "title": "Source"
+          }
+        },
+        "type": "object",
+        "required": [
+          "cards",
+          "stones",
+          "source"
+        ],
+        "title": "RewardState"
+      },
+      "RunMap": {
+        "properties": {
+          "nodes": {
+            "items": {
+              "$ref": "#/components/schemas/MapNode"
+            },
+            "type": "array",
+            "title": "Nodes"
+          },
+          "current_node_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Node Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nodes"
+        ],
+        "title": "RunMap"
+      },
+      "RunResponse": {
+        "properties": {
+          "run": {
+            "$ref": "#/components/schemas/RunView"
+          },
+          "events": {
+            "items": {
+              "$ref": "#/components/schemas/GameEvent"
+            },
+            "type": "array",
+            "title": "Events"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run",
+          "events"
+        ],
+        "title": "RunResponse"
+      },
+      "RunView": {
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "title": "Run Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "archetype": {
+            "type": "string",
+            "enum": [
+              "sword",
+              "fire",
+              "talisman"
+            ],
+            "title": "Archetype"
+          },
+          "phase": {
+            "type": "string",
+            "enum": [
+              "map",
+              "combat",
+              "battle_won",
+              "reward",
+              "event",
+              "shop",
+              "rest",
+              "rest_upgrade",
+              "completed",
+              "game_over"
+            ],
+            "title": "Phase"
+          },
+          "layer": {
+            "type": "integer",
+            "title": "Layer"
+          },
+          "player": {
+            "$ref": "#/components/schemas/PlayerState"
+          },
+          "deck": {
+            "items": {
+              "$ref": "#/components/schemas/CardInstance"
+            },
+            "type": "array",
+            "title": "Deck"
+          },
+          "relics": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Relics"
+          },
+          "map": {
+            "$ref": "#/components/schemas/RunMap"
+          },
+          "combat": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatView"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reward": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RewardState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/EventChoice"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "shop": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ShopState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryEntry"
+            },
+            "type": "array",
+            "title": "History"
+          },
+          "epitaph": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Epitaph"
+          }
+        },
+        "type": "object",
+        "required": [
+          "run_id",
+          "revision",
+          "archetype",
+          "phase",
+          "layer",
+          "player",
+          "deck",
+          "relics",
+          "map",
+          "combat",
+          "reward",
+          "choices",
+          "shop",
+          "history",
+          "epitaph"
+        ],
+        "title": "RunView"
+      },
+      "ShopItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "card",
+              "relic"
+            ],
+            "title": "Kind"
+          },
+          "ref_id": {
+            "type": "string",
+            "title": "Ref Id"
+          },
+          "price": {
+            "type": "integer",
+            "title": "Price"
+          },
+          "purchased": {
+            "type": "boolean",
+            "title": "Purchased",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "ref_id",
+          "price"
+        ],
+        "title": "ShopItem"
+      },
+      "ShopState": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ShopItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "removal_price": {
+            "type": "integer",
+            "title": "Removal Price",
+            "default": 45
+          },
+          "removal_used": {
+            "type": "boolean",
+            "title": "Removal Used",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "items"
+        ],
+        "title": "ShopState"
+      },
+      "SkipRewardAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "skip_reward",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind"
+        ],
+        "title": "SkipRewardAction"
+      },
+      "TauntAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "taunt",
+            "title": "Kind"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind"
+        ],
+        "title": "TauntAction"
+      },
+      "TauntPreview": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          },
+          "energy_gain": {
+            "type": "integer",
+            "title": "Energy Gain",
+            "description": "提交挑衅后立即获得的灵力"
+          },
+          "wrath_change": {
+            "type": "integer",
+            "title": "Wrath Change",
+            "description": "计入法宝后的实际天谴变化"
+          },
+          "next_attack_bonus": {
+            "type": "integer",
+            "title": "Next Attack Bonus",
+            "description": "敌人下一次真实攻击的每段伤害加成"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text",
+            "description": "前端可直接展示的完整效果说明"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available",
+          "energy_gain",
+          "wrath_change",
+          "next_attack_bonus",
+          "text"
+        ],
+        "title": "TauntPreview"
+      },
+      "UpgradeCardAction": {
+        "properties": {
+          "action_id": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Action Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "kind": {
+            "type": "string",
+            "const": "upgrade_card",
+            "title": "Kind"
+          },
+          "card_uid": {
+            "type": "string",
+            "title": "Card Uid"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "action_id",
+          "expected_revision",
+          "kind",
+          "card_uid"
+        ],
+        "title": "UpgradeCardAction"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}
