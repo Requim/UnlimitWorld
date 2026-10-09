@@ -100,6 +100,37 @@ def test_myth_start_has_story_and_sample_deck(client):
 ## Task 3: 独立入口与生命周期安全的表现队列
 
 依赖 Task 1 协议；可以在种子待审核阶段落地技术入口，不伪称正式动作完成。
+本轮图像返回格式阻塞时，先独立交付 3A（会话与纯队列基础）。
+3B（可见入口、场景、实际视觉试玩）保留全部要求，待真实种子可用后接入；
+不发布空战场冒充画面重做，也不将 3A 完成标记为整个 Task 3 完成。
+
+### 3A 可独立验收的基础
+
+**Scope**
+- Modify: `web-client/src/api/client.ts`, `api/types.ts`, `state/storage.ts`, `hooks/useGameSession.ts`
+- Create: `web-client/src/myth/presentationQueue.ts`, `presentationQueue.test.ts`
+- Add mode tests: storage/client/session lifecycle test files；现有经典测试必须保持通过。
+
+**Exact Contracts**
+- `RunMode` 从正式 `CreateRunInput["mode"]` 派生，排除 undefined；不得另写不同模式枚举。
+- 存档旧键 `tiandao.cardRogue.session.v1` 不变；样板键为 `tiandao.cardRogue.mythBifang.session.v1`。设置键共享，凭据与局号完全隔离。
+- `loadSession(mode = "classic")`、`saveSession(session, mode = "classic")`、`clearSession(mode = "classic")`；旧无模式调用行为不变。
+- `useGameSession(mode = "classic")`；建局经典调用继续省略模式，样板显式 myth_bifang。还原与响应需校验模式，缺 mode 只视为 classic；模式不匹配保留凭据、给出可恢复错误，不悄悄覆盖另一档。
+- 模式变化/重开/卸载使旧世代的成功、错误及 finally 均失效。所有 GET 同步与 POST 仍走既有操作边界。
+- 新公开 `resync()` 只读 GET 用于未来演出错误恢复；未知动作仍待原编号重放时不能借同步清空未决锁，409 的同步重试仍只 GET。
+- `PresentationBatch = {runId, revision, events}`；events 使用生成的 GameEvent，不解析文字、不计算 HP。
+- `PresentationAdapter` 接收事件和 AbortSignal，返回 Promise；状态与完成回调只由当前世代触发，支持结构化 state_after，网络命令不进入纯队列。
+- 纯队列按 run_id/revision/event_index 去重，顺序消费全部事件；普通精确重放、过期 revision、取消后资源重附着不重复攻击。
+- cancel/dispose 及时释放表现锁并使在途回调失效；新局旧事件不能回写。错误释放锁并回调同步入口，不吞错、重发 POST 或伪造结算。
+
+**Steps**
+- [ ] TDD 验证两键隔离/默认兼容/模式错配/旧模式迟到响应与 finally。
+- [ ] TDD 验证三事件依次完成，中途事件快照不被末尾结果替代，最后事件前不发完成回调。
+- [ ] 通过 deferred promises 验证重复 revision、旧 revision、run 切换、cancel、dispose、失败、重附着与旧异步完成；测试不得靠固定睡眠。
+- [ ] 验证 resync 只 GET，未知动作锁不被清除，失败保留凭据/同步重试，迟到同步不覆盖新局。
+- [ ] 跑 npm test、typecheck、build、check:functions；经典真实 Chrome smoke/恢复路径不回退。自审、独立审查、中文归档与 push。
+
+### 3B 可见入口与场景（保留待实施）
 
 **Files**
 - Modify: `web-client/src/main.tsx`, `api/client.ts`, `state/storage.ts`, `hooks/useGameSession.ts`
