@@ -75,6 +75,7 @@ ENEMIES = [
     EnemyDefinition(id="debt_immortal", name="讨债仙", rank="normal", max_hp=32, intent_pattern=[("multi", 3), ("attack", 7)], description="连利息都修成了仙。"),
     EnemyDefinition(id="heaven_tax_collector", name="天税总管", rank="elite", max_hp=40, intent_pattern=[("attack", 7), ("defend", 7), ("multi", 4)], description="专收逆天改命附加税。"),
     EnemyDefinition(id="heaven_judge", name="监天判官", rank="boss", max_hp=55, intent_pattern=[("attack", 8), ("multi", 4), ("defend", 8)], description="九层尽头的朱笔执法者。"),
+    EnemyDefinition(id="bifang", name="毕方", rank="boss", max_hp=48, intent_pattern=[("defend", 8), ("burn", 5), ("multi", 5)], description="章莪山衔火旧案的独足神鸟。"),
 ]
 
 ARCHETYPES = [

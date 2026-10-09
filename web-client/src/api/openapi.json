@@ -547,6 +547,44 @@
         ],
         "title": "ChooseRewardAction"
       },
+      "CombatPresentationSnapshot": {
+        "properties": {
+          "player": {
+            "$ref": "#/components/schemas/PlayerPresentationState"
+          },
+          "enemy": {
+            "$ref": "#/components/schemas/EnemyPresentationState"
+          },
+          "turn": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turn"
+          },
+          "energy": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Energy"
+          }
+        },
+        "type": "object",
+        "required": [
+          "player",
+          "enemy"
+        ],
+        "title": "CombatPresentationSnapshot"
+      },
       "CombatView": {
         "properties": {
           "turn": {
@@ -636,6 +674,15 @@
               "talisman"
             ],
             "title": "Archetype"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "classic",
+              "myth_bifang"
+            ],
+            "title": "Mode",
+            "default": "classic"
           }
         },
         "additionalProperties": false,
@@ -796,6 +843,34 @@
         ],
         "title": "EnemyIntent"
       },
+      "EnemyPresentationState": {
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "title": "Hp"
+          },
+          "block": {
+            "type": "integer",
+            "title": "Block"
+          },
+          "burn": {
+            "type": "integer",
+            "title": "Burn"
+          },
+          "weak": {
+            "type": "integer",
+            "title": "Weak"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hp",
+          "block",
+          "burn",
+          "weak"
+        ],
+        "title": "EnemyPresentationState"
+      },
       "EnemyState": {
         "properties": {
           "id": {
@@ -902,6 +977,75 @@
               }
             ],
             "title": "Target"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "player",
+                  "enemy",
+                  "heaven",
+                  "system"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Source"
+          },
+          "card_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Card Id"
+          },
+          "visual": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sword",
+                  "fire",
+                  "shield",
+                  "thunder",
+                  "hit",
+                  "defeat",
+                  "idle"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Visual"
+          },
+          "absorbed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Absorbed"
+          },
+          "state_after": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CombatPresentationSnapshot"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1071,6 +1215,34 @@
           "card_uid"
         ],
         "title": "PlayCardAction"
+      },
+      "PlayerPresentationState": {
+        "properties": {
+          "hp": {
+            "type": "integer",
+            "title": "Hp"
+          },
+          "block": {
+            "type": "integer",
+            "title": "Block"
+          },
+          "wrath": {
+            "type": "integer",
+            "title": "Wrath"
+          },
+          "reflect": {
+            "type": "integer",
+            "title": "Reflect"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hp",
+          "block",
+          "wrath",
+          "reflect"
+        ],
+        "title": "PlayerPresentationState"
       },
       "PlayerState": {
         "properties": {
@@ -1315,6 +1487,15 @@
             ],
             "title": "Archetype"
           },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "classic",
+              "myth_bifang"
+            ],
+            "title": "Mode",
+            "default": "classic"
+          },
           "phase": {
             "type": "string",
             "enum": [
@@ -1409,6 +1590,16 @@
               }
             ],
             "title": "Epitaph"
+          },
+          "story": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoryView"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -1521,6 +1712,76 @@
           "kind"
         ],
         "title": "SkipRewardAction"
+      },
+      "StoryChoice": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "consequence": {
+            "type": "string",
+            "title": "Consequence"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "consequence"
+        ],
+        "title": "StoryChoice"
+      },
+      "StoryView": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "body": {
+            "type": "string",
+            "title": "Body"
+          },
+          "choices": {
+            "items": {
+              "$ref": "#/components/schemas/StoryChoice"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "selected_choice": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Choice"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "version",
+          "title",
+          "body",
+          "choices"
+        ],
+        "title": "StoryView"
       },
       "TauntAction": {
         "properties": {

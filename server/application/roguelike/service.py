@@ -25,12 +25,15 @@ from server.domain.roguelike.models import (
     PlayCardAction,
     RemoveCardAction,
     RestAction,
+    RunMode,
     RunResponse,
     RunState,
     SkipRewardAction,
     TauntAction,
     UpgradeCardAction,
 )
+from server.domain.roguelike.myth import choose_story, complete_myth_victory
+from server.domain.roguelike.presentation import battle_event
 from server.domain.roguelike.random_source import randbelow
 
 
@@ -40,14 +43,17 @@ class RoguelikeService:
     def __init__(self, repository: RunRepository):
         self._repository = repository
 
-    def create_run(self, archetype: str, access_token: str | None) -> CreateRunResponse:
-        """创建匿名权威局面；复用有效 Bearer 档案，错误凭证抛 Unauthorized。"""
+    def create_run(
+        self, archetype: str, access_token: str | None, mode: RunMode = "classic"
+    ) -> CreateRunResponse:
+        """创建指定模式的匿名权威局面；复用有效 Bearer 档案，错误凭证抛 Unauthorized。"""
         profile_id, token = self._repository.prepare_profile(access_token)
         epitaphs = self._repository.list_epitaphs(profile_id)
         run = create_run_state(
             profile_id,
             archetype,
             seed=secrets.randbits(63),
+            mode=mode,
             causal_epitaphs=epitaphs,
         )
         self._repository.insert_run(run)
@@ -128,16 +134,29 @@ class RoguelikeService:
     def _settle_battle(self, run: RunState, events: list[GameEvent]) -> list[GameEvent]:
         if run.phase != "battle_won":
             return events
+        if run.mode == "myth_bifang":
+            complete_myth_victory(run, events)
+            return events
         current = next(node for node in run.map.nodes if node.id == run.map.current_node_id)
         if current.kind == "boss":
             run_map.complete_current_node(run)
             run.phase = "completed"
             run.epitaph = "九层天关尽破，监天判官的朱笔改写成了欠条。"
-            events.append(GameEvent(kind="completed", text=run.epitaph))
+            events.append(
+                battle_event(
+                    run,
+                    "completed",
+                    run.epitaph,
+                    source="system",
+                    visual="defeat",
+                )
+            )
             return events
         source = "elite" if current.kind == "elite" else "normal"
         nodes.generate_reward(run, source)
-        events.append(GameEvent(kind="reward_ready", text="战利品已经摆好"))
+        events.append(
+            battle_event(run, "reward_ready", "战利品已经摆好", source="system")
+        )
         return events
 
     def _choose_reward(self, run: RunState, action: ChooseRewardAction) -> list[GameEvent]:
@@ -147,6 +166,8 @@ class RoguelikeService:
         return nodes.skip_reward(run)
 
     def _choose_event(self, run: RunState, action: ChooseEventAction) -> list[GameEvent]:
+        if run.mode == "myth_bifang":
+            return choose_story(run, action.choice_id)
         return nodes.choose_event(run, action.choice_id)
 
     def _buy(self, run: RunState, action: BuyAction) -> list[GameEvent]:

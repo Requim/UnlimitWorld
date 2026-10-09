@@ -46,7 +46,8 @@ def test_catalog_contains_complete_launch_content() -> None:
 
     assert len(catalog.cards) == 18
     assert len(catalog.relics) == 6
-    assert len(catalog.enemies) == 6
+    assert len(catalog.enemies) == 7
+    assert next(enemy for enemy in catalog.enemies if enemy.id == "bifang").max_hp == 48
     assert {item.id for item in catalog.archetypes} == {"sword", "fire", "talisman"}
     assert all(card.upgrade_text for card in catalog.cards)
     assert all(item.description for item in catalog.relics)

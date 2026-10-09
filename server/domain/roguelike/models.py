@@ -8,6 +8,9 @@ from pydantic import BaseModel, ConfigDict, Field, RootModel
 
 
 ArchetypeId = Literal["sword", "fire", "talisman"]
+RunMode = Literal["classic", "myth_bifang"]
+EventSource = Literal["player", "enemy", "heaven", "system"]
+EventVisual = Literal["sword", "fire", "shield", "thunder", "hit", "defeat", "idle"]
 NodeKind = Literal["combat", "elite", "event", "shop", "rest", "boss"]
 RunPhase = Literal[
     "map",
@@ -171,6 +174,21 @@ class EventChoice(BaseModel):
     description: str
 
 
+class StoryChoice(BaseModel):
+    id: str
+    label: str
+    consequence: str
+
+
+class StoryView(BaseModel):
+    id: str
+    version: str
+    title: str
+    body: str
+    choices: list[StoryChoice]
+    selected_choice: str | None = None
+
+
 class ShopItem(BaseModel):
     id: str
     kind: Literal["card", "relic"]
@@ -191,11 +209,37 @@ class HistoryEntry(BaseModel):
     text: str
 
 
+class PlayerPresentationState(BaseModel):
+    hp: int
+    block: int
+    wrath: int
+    reflect: int
+
+
+class EnemyPresentationState(BaseModel):
+    hp: int
+    block: int
+    burn: int
+    weak: int
+
+
+class CombatPresentationSnapshot(BaseModel):
+    player: PlayerPresentationState
+    enemy: EnemyPresentationState
+    turn: int | None = None
+    energy: int | None = None
+
+
 class GameEvent(BaseModel):
     kind: str
     text: str
     amount: int | None = None
     target: str | None = None
+    source: EventSource | None = None
+    card_id: str | None = None
+    visual: EventVisual | None = None
+    absorbed: int | None = None
+    state_after: CombatPresentationSnapshot | None = None
 
 
 class RunState(BaseModel):
@@ -205,6 +249,7 @@ class RunState(BaseModel):
     profile_id: str
     revision: int = 0
     archetype: ArchetypeId
+    mode: RunMode = "classic"
     phase: RunPhase = "map"
     layer: int = 0
     player: PlayerState = Field(default_factory=PlayerState)
@@ -217,6 +262,9 @@ class RunState(BaseModel):
     shop: ShopState | None = None
     history: list[HistoryEntry] = Field(default_factory=list)
     epitaph: str | None = None
+    story_id: str | None = None
+    story_version: str | None = None
+    story_selected_choice: str | None = None
     rng_seed: int
     rng_counter: int = 0
     causal_epitaphs: list[str] = Field(default_factory=list)
@@ -226,6 +274,7 @@ class RunView(BaseModel):
     run_id: str
     revision: int
     archetype: ArchetypeId
+    mode: RunMode = "classic"
     phase: RunPhase
     layer: int
     player: PlayerState
@@ -238,6 +287,7 @@ class RunView(BaseModel):
     shop: ShopState | None
     history: list[HistoryEntry]
     epitaph: str | None
+    story: StoryView | None = None
 
 
 class RunResponse(BaseModel):
@@ -253,6 +303,7 @@ class CreateRunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     archetype: ArchetypeId
+    mode: RunMode = "classic"
 
 
 class ActionBase(BaseModel):

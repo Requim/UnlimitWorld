@@ -53,7 +53,7 @@ def create_app(db_path: str | Path = ".data/m5.sqlite3") -> FastAPI:
     ) -> CreateRunResponse:
         """创建匿名局面；可用既有 Bearer 归属同档案，错误凭证返回 401。"""
         token = credentials.credentials if credentials else None
-        return service.create_run(body.archetype, token)
+        return service.create_run(body.archetype, token, body.mode)
 
     @api.get("/api/v2/runs/{run_id}", response_model=RunResponse)
     def get_run(

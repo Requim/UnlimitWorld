@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import json
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
+import pytest
 from fastapi.testclient import TestClient
 
 from server.interface.roguelike_app import create_app
@@ -15,6 +18,15 @@ def auth(token: str) -> dict[str, str]:
 
 def create_run(client: TestClient, archetype: str = "sword") -> dict[str, Any]:
     response = client.post("/api/v2/runs", json={"archetype": archetype})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def create_myth_run(client: TestClient, archetype: str = "sword") -> dict[str, Any]:
+    response = client.post(
+        "/api/v2/runs",
+        json={"archetype": archetype, "mode": "myth_bifang"},
+    )
     assert response.status_code == 201, response.text
     return response.json()
 
@@ -51,8 +63,159 @@ def test_health_catalog_and_openapi_have_explicit_models(tmp_path: Path) -> None
     assert "ActionRequest" in schema["components"]["schemas"]
     combat_fields = schema["components"]["schemas"]["CombatView"]["properties"]
     intent_fields = schema["components"]["schemas"]["EnemyIntent"]["properties"]
+    event_fields = schema["components"]["schemas"]["GameEvent"]["properties"]
     assert "taunt_preview" in combat_fields
     assert "wrath_change" in intent_fields
+    assert {"source", "card_id", "visual", "absorbed", "state_after"} <= set(event_fields)
+
+
+def test_create_mode_defaults_classic_and_rejects_unknown(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "mode.sqlite3")) as client:
+        classic = create_run(client)
+        invalid = client.post(
+            "/api/v2/runs",
+            json={"archetype": "sword", "mode": "unknown"},
+        )
+
+    assert classic["run"]["mode"] == "classic"
+    assert classic["run"]["story"] is None
+    assert invalid.status_code == 422
+
+
+@pytest.mark.parametrize(
+    ("choice_id", "expected"),
+    [
+        ("borrow_fire", (16, 3, 0, 0, 3)),
+        ("seal_evidence", (0, 0, 10, 6, 3)),
+        ("destroy_scroll", (0, 0, 0, 0, 4)),
+    ],
+)
+def test_myth_api_accepts_each_story_choice(
+    tmp_path: Path,
+    choice_id: str,
+    expected: tuple[int, int, int, int, int],
+) -> None:
+    with TestClient(create_app(tmp_path / f"{choice_id}.sqlite3")) as client:
+        created = create_myth_run(client)
+        run = created["run"]
+        response = action(
+            client,
+            run["run_id"],
+            created["access_token"],
+            0,
+            f"choose-{choice_id}",
+            "choose_event",
+            choice_id=choice_id,
+        )
+
+    assert response.status_code == 200
+    selected = response.json()["run"]
+    combat = selected["combat"]
+    actual = (
+        selected["player"]["wrath"],
+        combat["enemy"]["burn"],
+        selected["player"]["block"],
+        combat["enemy"]["block"],
+        combat["energy"],
+    )
+    assert actual == expected
+    assert selected["story"]["selected_choice"] == choice_id
+
+
+def test_myth_choice_retry_conflicts_and_invalid_actions_are_atomic(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "atomic.sqlite3")) as client:
+        created = create_myth_run(client)
+        run = created["run"]
+        common = (client, run["run_id"], created["access_token"], 0, "story-1")
+        first = action(*common, "choose_event", choice_id="borrow_fire")
+        duplicate = action(*common, "choose_event", choice_id="borrow_fire")
+        changed = action(*common, "choose_event", choice_id="seal_evidence")
+        stale = action(
+            client, run["run_id"], created["access_token"], 0, "story-stale",
+            "choose_event", choice_id="borrow_fire",
+        )
+        before = client.get(
+            f"/api/v2/runs/{run['run_id']}", headers=auth(created["access_token"])
+        ).json()
+        repeated = action(
+            client, run["run_id"], created["access_token"], 1, "story-repeat",
+            "choose_event", choice_id="borrow_fire",
+        )
+        after = client.get(
+            f"/api/v2/runs/{run['run_id']}", headers=auth(created["access_token"])
+        ).json()
+
+    assert first.status_code == duplicate.status_code == 200
+    assert duplicate.json() == first.json()
+    assert changed.status_code == stale.status_code == 409
+    assert repeated.status_code == 422
+    assert after == before
+
+
+def test_invalid_myth_choice_does_not_mutate_story(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "invalid.sqlite3")) as client:
+        created = create_myth_run(client)
+        run = created["run"]
+        response = action(
+            client, run["run_id"], created["access_token"], 0, "invalid-story",
+            "choose_event", choice_id="missing",
+        )
+        snapshot = client.get(
+            f"/api/v2/runs/{run['run_id']}", headers=auth(created["access_token"])
+        ).json()["run"]
+
+    assert response.status_code == 422
+    assert snapshot == run
+
+
+def test_myth_story_and_choice_survive_restart(tmp_path: Path) -> None:
+    db_path = tmp_path / "restart-myth.sqlite3"
+    with TestClient(create_app(db_path)) as client:
+        created = create_myth_run(client, "fire")
+        run = created["run"]
+        chosen = action(
+            client, run["run_id"], created["access_token"], 0, "persist-story",
+            "choose_event", choice_id="seal_evidence",
+        ).json()["run"]
+
+    with TestClient(create_app(db_path)) as restarted:
+        restored = restarted.get(
+            f"/api/v2/runs/{run['run_id']}", headers=auth(created["access_token"])
+        ).json()["run"]
+
+    assert restored == chosen
+    assert restored["story"]["selected_choice"] == "seal_evidence"
+
+
+def test_legacy_state_without_mode_or_story_defaults_classic(tmp_path: Path) -> None:
+    db_path = tmp_path / "legacy.sqlite3"
+    with TestClient(create_app(db_path)) as client:
+        created = create_run(client)
+    _strip_new_state_fields(db_path, created["run"]["run_id"])
+
+    with TestClient(create_app(db_path)) as restarted:
+        restored = restarted.get(
+            f"/api/v2/runs/{created['run']['run_id']}",
+            headers=auth(created["access_token"]),
+        )
+
+    assert restored.status_code == 200
+    assert restored.json()["run"]["mode"] == "classic"
+    assert restored.json()["run"]["story"] is None
+
+
+def _strip_new_state_fields(db_path: Path, run_id: str) -> None:
+    with sqlite3.connect(db_path) as connection:
+        raw = connection.execute(
+            "SELECT state_json FROM runs WHERE run_id = ?", (run_id,)
+        ).fetchone()[0]
+        state = json.loads(raw)
+        for field in ("mode", "story_id", "story_version", "story_selected_choice"):
+            state.pop(field, None)
+        connection.execute(
+            "UPDATE runs SET state_json = ? WHERE run_id = ?",
+            (json.dumps(state, ensure_ascii=False), run_id),
+        )
 
 
 def test_combat_payload_exposes_intent_and_taunt_preview(tmp_path: Path) -> None:

@@ -231,6 +231,15 @@ export interface components {
             /** Option Index */
             option_index: number;
         };
+        /** CombatPresentationSnapshot */
+        CombatPresentationSnapshot: {
+            player: components["schemas"]["PlayerPresentationState"];
+            enemy: components["schemas"]["EnemyPresentationState"];
+            /** Turn */
+            turn?: number | null;
+            /** Energy */
+            energy?: number | null;
+        };
         /** CombatView */
         CombatView: {
             /** Turn */
@@ -270,6 +279,12 @@ export interface components {
              * @enum {string}
              */
             archetype: "sword" | "fire" | "talisman";
+            /**
+             * Mode
+             * @default classic
+             * @enum {string}
+             */
+            mode: "classic" | "myth_bifang";
         };
         /** CreateRunResponse */
         CreateRunResponse: {
@@ -339,6 +354,17 @@ export interface components {
             /** Text */
             text: string;
         };
+        /** EnemyPresentationState */
+        EnemyPresentationState: {
+            /** Hp */
+            hp: number;
+            /** Block */
+            block: number;
+            /** Burn */
+            burn: number;
+            /** Weak */
+            weak: number;
+        };
         /** EnemyState */
         EnemyState: {
             /** Id */
@@ -390,6 +416,15 @@ export interface components {
             amount?: number | null;
             /** Target */
             target?: string | null;
+            /** Source */
+            source?: ("player" | "enemy" | "heaven" | "system") | null;
+            /** Card Id */
+            card_id?: string | null;
+            /** Visual */
+            visual?: ("sword" | "fire" | "shield" | "thunder" | "hit" | "defeat" | "idle") | null;
+            /** Absorbed */
+            absorbed?: number | null;
+            state_after?: components["schemas"]["CombatPresentationSnapshot"] | null;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -458,6 +493,17 @@ export interface components {
             card_uid: string;
             /** Target Id */
             target_id?: string | null;
+        };
+        /** PlayerPresentationState */
+        PlayerPresentationState: {
+            /** Hp */
+            hp: number;
+            /** Block */
+            block: number;
+            /** Wrath */
+            wrath: number;
+            /** Reflect */
+            reflect: number;
         };
         /** PlayerState */
         PlayerState: {
@@ -579,6 +625,12 @@ export interface components {
              */
             archetype: "sword" | "fire" | "talisman";
             /**
+             * Mode
+             * @default classic
+             * @enum {string}
+             */
+            mode: "classic" | "myth_bifang";
+            /**
              * Phase
              * @enum {string}
              */
@@ -600,6 +652,7 @@ export interface components {
             history: components["schemas"]["HistoryEntry"][];
             /** Epitaph */
             epitaph: string | null;
+            story?: components["schemas"]["StoryView"] | null;
         };
         /** ShopItem */
         ShopItem: {
@@ -646,6 +699,30 @@ export interface components {
              * @enum {string}
              */
             kind: "skip_reward";
+        };
+        /** StoryChoice */
+        StoryChoice: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Consequence */
+            consequence: string;
+        };
+        /** StoryView */
+        StoryView: {
+            /** Id */
+            id: string;
+            /** Version */
+            version: string;
+            /** Title */
+            title: string;
+            /** Body */
+            body: string;
+            /** Choices */
+            choices: components["schemas"]["StoryChoice"][];
+            /** Selected Choice */
+            selected_choice?: string | null;
         };
         /** TauntAction */
         TauntAction: {

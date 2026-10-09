@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from server.domain.roguelike.models import CombatView, RunState, RunView, TauntPreview
+from server.domain.roguelike.myth import build_story_view
 
 
 def build_run_view(run: RunState) -> RunView:
@@ -12,6 +13,7 @@ def build_run_view(run: RunState) -> RunView:
         run_id=run.run_id,
         revision=run.revision,
         archetype=run.archetype,
+        mode=run.mode,
         phase=run.phase,
         layer=run.layer,
         player=run.player,
@@ -24,6 +26,7 @@ def build_run_view(run: RunState) -> RunView:
         shop=run.shop,
         history=run.history,
         epitaph=run.epitaph,
+        story=build_story_view(run),
     )
 
 
