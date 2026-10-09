@@ -355,7 +355,8 @@ Phaser 1.35 MB / gzip 351.75 KB 的加载预算风险继续保留。
 
 ### 3.10 毕方权威模式、剧情与结构化事件
 
-2026-10-09：Task 1 在 `codex/m5-card-roguelike` linked worktree 独立完成，
+2026-10-09：Task 1 在 `codex/m5-card-roguelike` linked worktree 实施与自测完成，
+独立审查进行中；不能将自测替代审查或整体样板验收。
 未启动或重启运行服务，未修改生产数据库、素材和 `PROJECT_STATUS.md`。
 
 - `POST /api/v2/runs` 新增 `classic | myth_bifang` 模式，省略及旧 JSON
@@ -378,6 +379,31 @@ Phaser 1.35 MB / gzip 351.75 KB 的加载预算风险继续保留。
   Task 1 范围 171 个 Python 函数均不超过 50 有效行。
 - 扩大函数检查到历史全仓会报告 7 个既有超限函数，位于旧 LLM/旧入口及旧测试，
   本任务未修改这些文件；控制器已完成 SQLite 一致备份并确认 integrity ok。
+
+### 3.11 高清种子请求失败与资源整理闭环
+
+2026-10-09：仅向用户指定 API 发起修士、毕方、场景三张高质量请求，
+模型 `gpt-image-2`，角色 `2048x3072`、场景 `3840x2160`。
+
+- 原装 CLI dry-run 参数检查通过；三任务启动后，毕方约 31.2 秒返回，
+  但 `b64_json` 为 null；CLI 解码失败退出 1，fail-fast 中止其余本地任务。
+- 没有取得任何新原图，无法验证像素、画质或 alpha；不称为种子生成成功。
+  其余任务在供应商侧是否生成/收费未知，不作推断。
+- 没有追加收费请求、更换模型、改原装工具或保存凭据。
+  原装工具摘要仍为 `3666b807de3f0a1d0a4a767b886d612c0b8f71025c500bba6693d1c6995a0873`。
+- 用户专用返回格式适配器已询问授权；图像侧等待回复，独立规则工作继续。
+  实际记录见 `docs/m5/myth/seed-direction.md`、`seed-provenance.json`。
+- 新资源 manifest 为 `blocked-generation`，种子、动作和卡面均为空；
+  不挂虚构路径，不覆盖旧 27 图。
+- 已实现独立 `tools/prepare_myth_assets.py`：核验真实像素、原样保留画布，
+  不插值放大；全输入预检、真实 alpha、源/输出路径边界、摘要与分辨率达标标记。
+  只允许空的 blocked-generation manifest 在恢复时替换，不覆盖既有资源。
+- TDD 先观察缺实现失败，再观察恢复 manifest/非法根类型失败；
+  最后 `tests/test_myth_assets.py` 为 11 passed、2 skipped。
+  两项物理符号链接测试因 Windows 权限跳过，不宣称已实测该路径。
+  本单元 22 个函数无超长；综合新规则/API/工具 100 passed、2 skipped。
+- 本节归档的是资源整理和失败证据，不是高清画质、实际动作或 M5 完成。
+  真正三图取得并获用户视觉认可后，才展开动作与九张卡面。
 
 ## 4. 后续范围
 

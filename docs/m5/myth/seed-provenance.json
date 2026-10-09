@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-09",
+  "status": "blocked-generation",
+  "provider_requested": "https://api2.jojocode.com/v1",
+  "model_requested": "gpt-image-2",
+  "quality_requested": "high",
+  "original_cli_sha256": "3666b807de3f0a1d0a4a767b886d612c0b8f71025c500bba6693d1c6995a0873",
+  "batch": {
+    "jobs_started": 3,
+    "concurrency": 3,
+    "max_attempts": 1,
+    "fail_fast": true,
+    "exit_code": 1,
+    "observed_failure": "bifang response b64_json is null; original CLI cannot decode it",
+    "other_jobs_result": "cancelled locally; remote generation and billing unknown"
+  },
+  "requested": [
+    {"id": "hero", "size": [2048, 3072]},
+    {"id": "bifang", "size": [2048, 3072]},
+    {"id": "scene", "size": [3840, 2160]}
+  ],
+  "assets": [],
+  "native_dimensions_verified": false,
+  "user_seed_approval": false,
+  "additional_paid_attempts": 0
+}

@@ -1,0 +1,9 @@
+{
+  "version": "bifang-v1",
+  "status": "blocked-generation",
+  "dimensions_met": false,
+  "reason": "missing-image-payload",
+  "seeds": {},
+  "animations": {},
+  "cards": {}
+}
