@@ -49,6 +49,36 @@ def test_health_catalog_and_openapi_have_explicit_models(tmp_path: Path) -> None
     assert len(catalog["relics"]) == 6
     assert "RunView" in schema["components"]["schemas"]
     assert "ActionRequest" in schema["components"]["schemas"]
+    combat_fields = schema["components"]["schemas"]["CombatView"]["properties"]
+    intent_fields = schema["components"]["schemas"]["EnemyIntent"]["properties"]
+    assert "taunt_preview" in combat_fields
+    assert "wrath_change" in intent_fields
+
+
+def test_combat_payload_exposes_intent_and_taunt_preview(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "m5.sqlite3")) as client:
+        created = create_run(client)
+        run = created["run"]
+        node = next(item for item in run["map"]["nodes"] if item["available"])
+        response = action(
+            client,
+            run["run_id"],
+            created["access_token"],
+            run["revision"],
+            "choose-first",
+            "choose_node",
+            node_id=node["id"],
+        )
+
+    combat = response.json()["run"]["combat"]
+    assert combat["taunt_preview"] == {
+        "available": True,
+        "energy_gain": 1,
+        "wrath_change": 8,
+        "next_attack_bonus": 2,
+        "text": "获得 1 灵力，天谴 +8；敌人下次攻击每段 +2。",
+    }
+    assert set(combat["enemy"]["intent"]) >= {"value", "hits", "wrath_change", "text"}
 
 
 def test_profile_token_scopes_runs_and_survives_restart(tmp_path: Path) -> None:
@@ -194,6 +224,21 @@ def advance_noncombat(client: TestClient, run: dict[str, Any], token: str, count
     return response.json()["run"]
 
 
+def _open_followup_karma_event(
+    client: TestClient, token: str, counter: list[int]
+) -> dict[str, Any]:
+    response = client.post(
+        "/api/v2/runs",
+        json={"archetype": "sword"},
+        headers=auth(token),
+    )
+    run = response.json()["run"]
+    run = advance_noncombat(client, run, token, counter)
+    run = play_combat(client, run, token, counter)
+    run = advance_noncombat(client, run, token, counter)
+    return advance_noncombat(client, run, token, counter)
+
+
 def test_full_normal_action_path_wins_and_reward_survives_restart(tmp_path: Path) -> None:
     db_path = tmp_path / "m5.sqlite3"
     counter = [0]
@@ -233,17 +278,10 @@ def test_full_normal_action_path_wins_and_reward_survives_restart(tmp_path: Path
     assert run["epitaph"]
 
     with TestClient(create_app(db_path)) as client:
-        followup = client.post(
-            "/api/v2/runs",
-            json={"archetype": "sword"},
-            headers=auth(token),
-        ).json()
-        next_run = followup["run"]
-        next_run = advance_noncombat(client, next_run, token, counter)
-        next_run = play_combat(client, next_run, token, counter)
-        next_run = advance_noncombat(client, next_run, token, counter)
-        next_run = advance_noncombat(client, next_run, token, counter)
+        next_run = _open_followup_karma_event(client, token, counter)
 
     assert next_run["phase"] == "event"
     karma = next(choice for choice in next_run["choices"] if choice["id"] == "karma")
-    assert karma["description"] == run["epitaph"]
+    assert run["epitaph"] in karma["description"]
+    assert "获得 25 灵石" in karma["description"]
+    assert "天谴 +5" in karma["description"]

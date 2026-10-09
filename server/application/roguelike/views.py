@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from server.domain.roguelike.models import CombatView, RunState, RunView
+from server.domain.roguelike.models import CombatView, RunState, RunView, TauntPreview
 
 
 def build_run_view(run: RunState) -> RunView:
@@ -41,7 +41,21 @@ def _build_combat_view(run: RunState) -> CombatView | None:
         exhaust_count=len(combat.exhaust_pile),
         enemy=combat.enemy,
         taunt_used=combat.taunt_used,
+        taunt_preview=_build_taunt_preview(run),
         sword_intent=combat.sword_intent,
         lightning_redirect=combat.lightning_redirect,
         thunder_count=run.player.wrath // 30,
+    )
+
+
+def _build_taunt_preview(run: RunState) -> TauntPreview:
+    combat = run.combat
+    wrath_change = 0 if "advice_bell" in run.relics else 8
+    text = f"获得 1 灵力，天谴 +{wrath_change}；敌人下次攻击每段 +2。"
+    return TauntPreview(
+        available=bool(combat and not combat.taunt_used),
+        energy_gain=1,
+        wrath_change=wrath_change,
+        next_attack_bonus=2,
+        text=text,
     )

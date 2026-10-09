@@ -51,16 +51,24 @@ def _create_enemy(definition) -> EnemyState:
     )
 
 
-def _build_intent(raw: tuple[str, int]) -> EnemyIntent:
-    kind, value = raw
+def _build_intent(
+    raw: tuple[str, int], *, weak: int = 0, attack_bonus: int = 0
+) -> EnemyIntent:
+    kind, base_value = raw
+    value = _final_intent_value(kind, base_value, weak, attack_bonus)
     if kind == "multi":
         return EnemyIntent(kind="multi", value=value, hits=2, text=f"连续 2 次造成 {value} 点伤害")
-    texts = {
-        "attack": f"造成 {value} 点伤害",
-        "defend": f"获得 {value} 点护盾",
-        "burn": f"造成 {value} 点伤害并增加天谴",
-    }
-    return EnemyIntent(kind=kind, value=value, text=texts[kind])
+    if kind == "burn":
+        return EnemyIntent(kind="burn", value=value, wrath_change=3, text=f"造成 {value} 点伤害，天谴 +3")
+    text = f"获得 {value} 点护盾" if kind == "defend" else f"造成 {value} 点伤害"
+    return EnemyIntent(kind=kind, value=value, text=text)
+
+
+def _final_intent_value(kind: str, base: int, weak: int, attack_bonus: int) -> int:
+    if kind == "defend":
+        return base
+    value = base + attack_bonus
+    return value * 3 // 4 if weak > 0 else value
 
 
 def draw_cards(run: RunState, count: int) -> list[GameEvent]:
@@ -189,9 +197,13 @@ def _focus(run: RunState, upgraded: bool) -> list[GameEvent]:
 
 def _charge_sword(run: RunState, upgraded: bool) -> list[GameEvent]:
     combat = _combat(run)
+    events = [_attack(run, 6 if upgraded else 4)]
+    if combat.enemy.hp <= 0:
+        return events
     gain = 2 if upgraded else 1
     combat.sword_intent += gain
-    return [_attack(run, 6 if upgraded else 4), GameEvent(kind="sword_intent", text=f"获得 {gain} 剑意", amount=gain)]
+    events.append(GameEvent(kind="sword_intent", text=f"获得 {gain} 剑意", amount=gain))
+    return events
 
 
 def _flurry(run: RunState, upgraded: bool) -> list[GameEvent]:
@@ -205,7 +217,10 @@ def _flurry(run: RunState, upgraded: bool) -> list[GameEvent]:
 
 
 def _sword_draw(run: RunState, upgraded: bool) -> list[GameEvent]:
-    return [_attack(run, 7 if upgraded else 5), *draw_cards(run, 2 if upgraded else 1)]
+    events = [_attack(run, 7 if upgraded else 5)]
+    if _combat(run).enemy.hp > 0:
+        events.extend(draw_cards(run, 2 if upgraded else 1))
+    return events
 
 
 def _myriad_swords(run: RunState, upgraded: bool) -> list[GameEvent]:
@@ -223,7 +238,10 @@ def _hidden_edge(run: RunState, upgraded: bool) -> list[GameEvent]:
 
 
 def _fire_seed(run: RunState, upgraded: bool) -> list[GameEvent]:
-    return [_attack(run, 6 if upgraded else 4), _apply_burn(run, 4 if upgraded else 3)]
+    events = [_attack(run, 6 if upgraded else 4)]
+    if _combat(run).enemy.hp > 0:
+        events.append(_apply_burn(run, 4 if upgraded else 3))
+    return events
 
 
 def _fan_flames(run: RunState, upgraded: bool) -> list[GameEvent]:
@@ -232,8 +250,12 @@ def _fan_flames(run: RunState, upgraded: bool) -> list[GameEvent]:
 
 def _burn_heaven(run: RunState, upgraded: bool) -> list[GameEvent]:
     amount = (14 if upgraded else 10) + run.player.wrath // 4
+    events = [_attack(run, amount)]
+    if _combat(run).enemy.hp <= 0:
+        return events
     run.player.wrath += 6
-    return [_attack(run, amount), GameEvent(kind="wrath", text="天谴增加 6", amount=6, target="player")]
+    events.append(GameEvent(kind="wrath", text="天谴增加 6", amount=6, target="player"))
+    return events
 
 
 def _borrow_fire(run: RunState, upgraded: bool) -> list[GameEvent]:
@@ -265,8 +287,10 @@ def _demon_mirror(run: RunState, upgraded: bool) -> list[GameEvent]:
 
 def _silence_talisman(run: RunState, upgraded: bool) -> list[GameEvent]:
     amount = 3 if upgraded else 2
-    _combat(run).enemy.weak += amount
-    return [GameEvent(kind="weak", text=f"敌人虚弱 {amount} 回合", amount=amount, target=_combat(run).enemy.id)]
+    combat = _combat(run)
+    combat.enemy.weak += amount
+    _refresh_intent(combat)
+    return [GameEvent(kind="weak", text=f"敌人虚弱 {amount} 回合", amount=amount, target=combat.enemy.id)]
 
 
 def _swift_script(run: RunState, upgraded: bool) -> list[GameEvent]:
@@ -285,20 +309,12 @@ def taunt(run: RunState) -> list[GameEvent]:
         raise InvalidAction("本场战斗已经挑衅过")
     combat.taunt_used = True
     combat.energy += 1
-    if "advice_bell" not in run.relics:
-        run.player.wrath += 8
-    if combat.enemy.intent.kind in {"attack", "multi", "burn"}:
-        combat.enemy.intent.value += 2
-        combat.enemy.intent.text = _intent_text(combat.enemy.intent)
-    return [GameEvent(kind="taunt", text="挑衅成功：获得 1 灵力，敌人攻势增强")]
-
-
-def _intent_text(intent: EnemyIntent) -> str:
-    if intent.kind == "multi":
-        return f"连续 {intent.hits} 次造成 {intent.value} 点伤害"
-    if intent.kind == "burn":
-        return f"造成 {intent.value} 点伤害并增加天谴"
-    return f"造成 {intent.value} 点伤害"
+    wrath_change = 0 if "advice_bell" in run.relics else 8
+    run.player.wrath += wrath_change
+    combat.pending_attack_bonus += 2
+    _refresh_intent(combat)
+    text = f"挑衅成功：获得 1 灵力，天谴 +{wrath_change}；敌人下次攻击每段 +2"
+    return [GameEvent(kind="taunt", text=text)]
 
 
 def end_turn(run: RunState) -> list[GameEvent]:
@@ -347,24 +363,26 @@ def _enemy_action(run: RunState) -> list[GameEvent]:
         events.append(GameEvent(kind="enemy_block", text=f"敌人获得 {intent.value} 护盾", amount=intent.value, target=enemy.id))
     else:
         events.extend(_enemy_attacks(run, intent))
-        if intent.kind == "burn" and run.player.hp > 0:
-            run.player.wrath += 3
-            events.append(GameEvent(kind="wrath", text="敌招令天谴增加 3", amount=3, target="player"))
+        combat.pending_attack_bonus = 0
+        if run.player.hp <= 0 or enemy.hp <= 0:
+            return events
+        if intent.wrath_change:
+            run.player.wrath += intent.wrath_change
+            events.append(GameEvent(kind="wrath", text=f"敌招令天谴增加 {intent.wrath_change}", amount=intent.wrath_change, target="player"))
     if enemy.weak > 0:
         enemy.weak -= 1
-    _advance_intent(enemy)
+    _advance_intent(combat)
     return events
 
 
 def _enemy_attacks(run: RunState, intent: EnemyIntent) -> list[GameEvent]:
     events = []
-    amount = intent.value * 3 // 4 if _combat(run).enemy.weak > 0 else intent.value
     for _ in range(intent.hits):
         if run.player.hp <= 0:
             break
-        dealt = _damage_player(run, amount)
+        dealt = _damage_player(run, intent.value)
         events.append(GameEvent(kind="enemy_damage", text=f"受到 {dealt} 点伤害", amount=dealt, target="player"))
-        if run.player.reflect > 0:
+        if run.player.hp > 0 and run.player.reflect > 0:
             reflected = _deal_damage_to_enemy(_combat(run).enemy, run.player.reflect)
             events.append(GameEvent(kind="reflect", text=f"反伤 {reflected} 点", amount=reflected, target=_combat(run).enemy.id))
             if _combat(run).enemy.hp <= 0:
@@ -380,10 +398,21 @@ def _damage_player(run: RunState, amount: int) -> int:
     return dealt
 
 
-def _advance_intent(enemy: EnemyState) -> None:
+def _advance_intent(combat: CombatState) -> None:
+    definition = get_enemy(combat.enemy.id)
+    combat.enemy.intent_index = (combat.enemy.intent_index + 1) % len(definition.intent_pattern)
+    _refresh_intent(combat)
+
+
+def _refresh_intent(combat: CombatState) -> None:
+    enemy = combat.enemy
     definition = get_enemy(enemy.id)
-    enemy.intent_index = (enemy.intent_index + 1) % len(definition.intent_pattern)
-    enemy.intent = _build_intent(definition.intent_pattern[enemy.intent_index])
+    raw = definition.intent_pattern[enemy.intent_index]
+    enemy.intent = _build_intent(
+        raw,
+        weak=enemy.weak,
+        attack_bonus=combat.pending_attack_bonus,
+    )
 
 
 def _burn_tick(run: RunState) -> list[GameEvent]:

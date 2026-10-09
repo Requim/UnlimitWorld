@@ -81,8 +81,9 @@ class PlayerState(BaseModel):
 
 class EnemyIntent(BaseModel):
     kind: Literal["attack", "defend", "burn", "multi"]
-    value: int
-    hits: int = 1
+    value: int = Field(description="已计入虚弱和挑衅的每段最终伤害，防御时为护盾值")
+    hits: int = Field(default=1, description="该意图的攻击段数")
+    wrath_change: int = Field(default=0, description="意图命中且双方存活时造成的天谴变化")
     text: str
 
 
@@ -108,8 +109,17 @@ class CombatState(BaseModel):
     exhaust_pile: list[CardInstance] = Field(default_factory=list)
     enemy: EnemyState
     taunt_used: bool = False
+    pending_attack_bonus: int = 0
     sword_intent: int = 0
     lightning_redirect: bool = False
+
+
+class TauntPreview(BaseModel):
+    available: bool
+    energy_gain: int = Field(description="提交挑衅后立即获得的灵力")
+    wrath_change: int = Field(description="计入法宝后的实际天谴变化")
+    next_attack_bonus: int = Field(description="敌人下一次真实攻击的每段伤害加成")
+    text: str = Field(description="前端可直接展示的完整效果说明")
 
 
 class CombatView(BaseModel):
@@ -122,6 +132,7 @@ class CombatView(BaseModel):
     exhaust_count: int
     enemy: EnemyState
     taunt_used: bool
+    taunt_preview: TauntPreview
     sword_intent: int
     lightning_redirect: bool
     thunder_count: int

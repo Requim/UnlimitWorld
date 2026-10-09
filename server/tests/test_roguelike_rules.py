@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from server.application.roguelike.factory import create_run_state
+from server.application.roguelike.views import build_run_view
 from server.domain.roguelike.catalog import get_catalog
 from server.domain.roguelike.combat import end_turn, play_card, start_combat, taunt
 from server.domain.roguelike.errors import InvalidAction
@@ -170,6 +171,132 @@ def test_taunt_can_only_be_used_once_per_combat() -> None:
         taunt(run)
 
 
+def test_taunt_during_defend_is_carried_to_next_real_attack() -> None:
+    run = make_combat()
+    assert run.combat is not None
+    run.combat.enemy.intent_index = 1
+    run.combat.enemy.intent = EnemyIntent(kind="defend", value=4, text="获得 4 点护盾")
+
+    taunt(run)
+    end_turn(run)
+
+    assert run.combat.pending_attack_bonus == 2
+    assert run.combat.enemy.intent.kind == "attack"
+    assert run.combat.enemy.intent.value == 6
+    end_turn(run)
+    assert run.player.hp == 54
+    assert run.combat.pending_attack_bonus == 0
+
+
+def test_taunt_preview_uses_relic_adjusted_authoritative_values() -> None:
+    run = make_combat()
+    run.relics.append("advice_bell")
+
+    preview = build_run_view(run).combat.taunt_preview
+
+    assert preview.available is True
+    assert preview.energy_gain == 1
+    assert preview.wrath_change == 0
+    assert preview.next_attack_bonus == 2
+    assert "天谴 +0" in preview.text
+    assert "下次攻击" in preview.text
+
+
+def test_weak_preview_matches_damage_and_expires_by_enemy_turn() -> None:
+    run = make_combat("talisman")
+    assert run.combat is not None
+    card = put_card_in_hand(run, "silence_talisman")
+
+    play_card(run, card.uid, run.combat.enemy.id)
+
+    assert run.combat.enemy.intent.value == 3
+    end_turn(run)
+    assert run.player.hp == 57
+    assert run.combat.enemy.weak == 1
+    end_turn(run)
+    assert run.combat.enemy.weak == 0
+    assert run.combat.enemy.intent.value == 4
+
+
+def test_burn_intent_preview_matches_damage_hits_and_wrath() -> None:
+    run = make_combat("talisman", "incense_guest")
+    assert run.combat is not None
+    card = put_card_in_hand(run, "silence_talisman")
+    play_card(run, card.uid, run.combat.enemy.id)
+    taunt(run)
+    preview = run.combat.enemy.intent
+
+    assert preview.value == 3
+    assert preview.hits == 1
+    assert preview.wrath_change == 3
+    assert "天谴 +3" in preview.text
+    events = end_turn(run)
+    damage = next(event.amount for event in events if event.kind == "enemy_damage")
+    assert damage == preview.value
+    assert run.player.wrath == 11
+
+
+def test_player_block_absorbs_thunder_then_clears_next_turn() -> None:
+    run = make_combat()
+    passive_enemy(run)
+    run.player.block = 5
+    run.player.wrath = 30
+
+    events = end_turn(run)
+
+    thunder = next(event for event in events if event.kind == "thunder")
+    assert thunder.amount == 3
+    assert run.player.hp == 57
+    assert run.player.block == 0
+
+
+def test_lethal_enemy_attack_does_not_trigger_reflect() -> None:
+    run = make_combat("talisman")
+    assert run.combat is not None
+    run.player.hp = 3
+    run.player.reflect = 10
+    run.combat.enemy.hp = 40
+    run.combat.enemy.max_hp = 40
+    run.combat.enemy.intent = EnemyIntent(kind="attack", value=4, text="造成 4 点伤害")
+
+    end_turn(run)
+
+    assert run.phase == "game_over"
+    assert run.combat.enemy.hp == 40
+
+
+def test_lethal_sword_draw_does_not_draw_or_advance_random_source() -> None:
+    run = make_combat("sword")
+    assert run.combat is not None
+    run.combat.enemy.hp = 5
+    card = put_card_in_hand(run, "sword_draw")
+    run.combat.draw_pile = [CardInstance(uid="waiting", card_id="guard")]
+    counter = run.rng_counter
+
+    play_card(run, card.uid, run.combat.enemy.id)
+
+    assert run.phase == "battle_won"
+    assert run.combat.hand == []
+    assert run.combat.draw_pile[0].uid == "waiting"
+    assert run.rng_counter == counter
+
+
+@pytest.mark.parametrize(
+    ("archetype", "card_id", "field"),
+    [("sword", "charge_sword", "sword_intent"), ("fire", "fire_seed", "burn")],
+)
+def test_lethal_attack_skips_followup_effect(archetype: str, card_id: str, field: str) -> None:
+    run = make_combat(archetype)
+    assert run.combat is not None
+    run.combat.enemy.hp = 4
+    card = put_card_in_hand(run, card_id)
+
+    play_card(run, card.uid, run.combat.enemy.id)
+
+    target = run.combat if field == "sword_intent" else run.combat.enemy
+    assert getattr(target, field) == 0
+
+
 def test_zero_energy_and_invalid_target_do_not_mutate_combat() -> None:
     run = make_combat()
     assert run.combat is not None
@@ -254,7 +381,7 @@ def test_rest_heals_thirty_percent_without_exceeding_maximum() -> None:
     assert run.player.hp == 60
 
 
-def test_map_only_allows_current_connected_layer_and_boss_ends_run() -> None:
+def test_map_locks_future_layers_and_has_single_boss() -> None:
     run = create_run_state("profile-test", "sword", seed=37)
     first = next(node for node in run.map.nodes if node.layer == 1)
     future = next(node for node in run.map.nodes if node.layer == 2)

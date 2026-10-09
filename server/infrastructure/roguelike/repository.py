@@ -191,5 +191,7 @@ class SQLiteRunRepository:
             "SELECT payload_json, result_json FROM actions WHERE run_id = ? AND action_id = ?",
             (run_id, action_id),
         ).fetchone()
+
+
 def _token_hash(access_token: str) -> str:
     return hashlib.sha256(access_token.encode("utf-8")).hexdigest()

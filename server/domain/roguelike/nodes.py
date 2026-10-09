@@ -171,7 +171,8 @@ def open_event(run: RunState) -> list[EventChoice]:
     ]
     if run.causal_epitaphs:
         epitaph = run.causal_epitaphs[randbelow(run, len(run.causal_epitaphs))]
-        choices[0] = EventChoice(id="karma", label="翻阅前人因果", description=epitaph)
+        description = f"{epitaph} 效果：获得 25 灵石，天谴 +5。"
+        choices[0] = EventChoice(id="karma", label="翻阅前人因果", description=description)
     run.choices = choices
     run.phase = "event"
     return choices
