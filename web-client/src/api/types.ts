@@ -1,7 +1,14 @@
 import type { components } from "./schema";
 
 export type ActionRequest = components["schemas"]["ActionRequest"];
-export type ArchetypeId = components["schemas"]["CreateRunRequest"]["archetype"];
+type GeneratedCreateRunRequest = components["schemas"]["CreateRunRequest"];
+
+/** 创建局面的请求输入；服务端在 mode 缺失时使用 classic。 */
+export type CreateRunInput = Omit<GeneratedCreateRunRequest, "mode"> & {
+  mode?: GeneratedCreateRunRequest["mode"];
+};
+
+export type ArchetypeId = CreateRunInput["archetype"];
 export type Catalog = components["schemas"]["CatalogResponse"];
 export type GameEvent = components["schemas"]["GameEvent"];
 type GeneratedRunView = components["schemas"]["RunView"];

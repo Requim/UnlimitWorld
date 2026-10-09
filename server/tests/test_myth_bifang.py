@@ -45,7 +45,11 @@ def test_myth_start_has_story_and_sample_deck(tmp_path: Path) -> None:
     assert run["mode"] == "myth_bifang"
     story = run["story"]
     assert (story["id"], story["version"]) == ("bifang_trial", "bifang-v1")
-    assert story["title"] and story["body"]
+    assert story["title"] == "章莪山灰烬案"
+    assert story["body"] == (
+        "章莪山无草木而多玉石。天道把山火归罪于毕方；毕方坚持自己只是火灾的预兆，"
+        "不是纵火者。为证明清白，它当庭烧毁了指控卷宗，于是天道命修士为仅剩的灰烬作证。"
+    )
     assert [choice["id"] for choice in story["choices"]] == [
         "borrow_fire",
         "seal_evidence",

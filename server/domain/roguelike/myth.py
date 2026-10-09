@@ -10,7 +10,10 @@ from .presentation import battle_event
 STORY_ID = "bifang_trial"
 STORY_VERSION = "bifang-v1"
 STORY_TITLE = "章莪山灰烬案"
-STORY_BODY = "玉石山上无草木，毕方衔着旧案灰烬，等你决定这桩天火该如何结案。"
+STORY_BODY = (
+    "章莪山无草木而多玉石。天道把山火归罪于毕方；毕方坚持自己只是火灾的预兆，"
+    "不是纵火者。为证明清白，它当庭烧毁了指控卷宗，于是天道命修士为仅剩的灰烬作证。"
+)
 STORY_CHOICES = [
     StoryChoice(
         id="borrow_fire",
@@ -82,7 +85,7 @@ def choose_story(run: RunState, choice_id: str) -> list[GameEvent]:
             source="system",
         )
     ]
-    events.extend(start_combat(run, "bifang"))
+    events.extend(start_combat(run, "bifang", defeat_epitaph=DEFEAT_EPITAPH))
     events.extend(_apply_story_modifier(run, choice_id))
     return events
 
@@ -222,11 +225,6 @@ def complete_myth_victory(run: RunState, events: list[GameEvent]) -> None:
             visual="defeat",
         )
     )
-
-
-def get_defeat_epitaph(run: RunState) -> str | None:
-    """返回毕方模式失败碑文；经典模式返回 None，无副作用。"""
-    return DEFEAT_EPITAPH if run.mode == "myth_bifang" else None
 
 
 def _require_combat(run: RunState) -> CombatState:

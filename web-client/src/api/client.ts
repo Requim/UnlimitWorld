@@ -2,6 +2,7 @@ import type {
   ActionRequest,
   ArchetypeId,
   Catalog,
+  CreateRunInput,
   CreateRunResponse,
   RunResponse,
 } from "./types";
@@ -26,12 +27,17 @@ export function getCatalog(): Promise<Catalog> {
   return request<Catalog>("/api/v2/catalog");
 }
 
-/** 创建新局；可传旧 token 继承本机因果，成功返回新的局面与凭证。 */
-export function createRun(archetype: ArchetypeId, token?: string): Promise<CreateRunResponse> {
+/** 创建新局；mode 省略时为经典局，可传旧 token 继承本机因果。 */
+export function createRun(
+  archetype: ArchetypeId,
+  token?: string,
+  mode?: CreateRunInput["mode"],
+): Promise<CreateRunResponse> {
+  const body: CreateRunInput = mode ? { archetype, mode } : { archetype };
   return request<CreateRunResponse>("/api/v2/runs", {
     method: "POST",
     headers: authHeaders(token),
-    body: JSON.stringify({ archetype }),
+    body: JSON.stringify(body),
   });
 }
 

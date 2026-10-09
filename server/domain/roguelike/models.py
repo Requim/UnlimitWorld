@@ -115,6 +115,7 @@ class CombatState(BaseModel):
     pending_attack_bonus: int = 0
     sword_intent: int = 0
     lightning_redirect: bool = False
+    defeat_epitaph: str | None = None
 
 
 class TauntPreview(BaseModel):

@@ -28,15 +28,21 @@ ATTACK_CARDS = {
 }
 
 
-def start_combat(run: RunState, enemy_id: str) -> list[GameEvent]:
-    """用当前牌组开始战斗；会洗牌、抽五张并重置场内资源，敌人 ID 无效时抛 KeyError。"""
+def start_combat(
+    run: RunState, enemy_id: str, *, defeat_epitaph: str | None = None
+) -> list[GameEvent]:
+    """用当前牌组开始战斗；可持久化内容侧失败碑文，敌人 ID 无效时抛 KeyError。"""
     definition = get_enemy(enemy_id)
     pile = [card.model_copy(deep=True) for card in run.deck]
     shuffle(run, pile)
     enemy = _create_enemy(definition)
     run.player.block = 6 if "ancestor_talisman" in run.relics else 0
     run.player.reflect = 0
-    run.combat = CombatState(enemy=enemy, draw_pile=pile)
+    run.combat = CombatState(
+        enemy=enemy,
+        draw_pile=pile,
+        defeat_epitaph=defeat_epitaph,
+    )
     run.phase = "combat"
     draw_cards(run, 5)
     return [
@@ -615,9 +621,7 @@ def _check_deaths(run: RunState, events: list[GameEvent]) -> bool:
     combat = _combat(run)
     if run.player.hp <= 0:
         run.phase = "game_over"
-        from server.domain.roguelike.myth import get_defeat_epitaph
-
-        run.epitaph = get_defeat_epitaph(run) or f"止步第 {run.layer} 层，被{combat.enemy.name}收走了嘴硬。"
+        run.epitaph = combat.defeat_epitaph or f"止步第 {run.layer} 层，被{combat.enemy.name}收走了嘴硬。"
         events.append(
             battle_event(
                 run,
