@@ -1,0 +1,249 @@
+from __future__ import annotations
+
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+from typing import Any
+
+from fastapi.testclient import TestClient
+
+from server.interface.roguelike_app import create_app
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def create_run(client: TestClient, archetype: str = "sword") -> dict[str, Any]:
+    response = client.post("/api/v2/runs", json={"archetype": archetype})
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+def action(
+    client: TestClient,
+    run_id: str,
+    token: str,
+    revision: int,
+    action_id: str,
+    kind: str,
+    **data: Any,
+):
+    payload = {
+        "action_id": action_id,
+        "expected_revision": revision,
+        "kind": kind,
+        **data,
+    }
+    return client.post(
+        f"/api/v2/runs/{run_id}/actions", json=payload, headers=auth(token)
+    )
+
+
+def test_health_catalog_and_openapi_have_explicit_models(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "m5.sqlite3")) as client:
+        assert client.get("/health").json() == {"status": "ok"}
+        catalog = client.get("/api/v2/catalog").json()
+        schema = client.get("/openapi.json").json()
+
+    assert len(catalog["cards"]) == 18
+    assert len(catalog["relics"]) == 6
+    assert "RunView" in schema["components"]["schemas"]
+    assert "ActionRequest" in schema["components"]["schemas"]
+
+
+def test_profile_token_scopes_runs_and_survives_restart(tmp_path: Path) -> None:
+    db_path = tmp_path / "m5.sqlite3"
+    with TestClient(create_app(db_path)) as client:
+        created = create_run(client)
+        other = create_run(client, "fire")
+
+    with TestClient(create_app(db_path)) as restarted:
+        own = restarted.get(
+            f"/api/v2/runs/{created['run']['run_id']}",
+            headers=auth(created["access_token"]),
+        )
+        forbidden = restarted.get(
+            f"/api/v2/runs/{created['run']['run_id']}",
+            headers=auth(other["access_token"]),
+        )
+        sibling = restarted.post(
+            "/api/v2/runs",
+            json={"archetype": "talisman"},
+            headers=auth(created["access_token"]),
+        )
+
+    assert own.status_code == 200
+    assert forbidden.status_code == 401
+    assert sibling.status_code == 201
+    assert sibling.json()["access_token"] == created["access_token"]
+
+
+def test_duplicate_conflict_and_illegal_action_are_atomic(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "m5.sqlite3")) as client:
+        created = create_run(client)
+        run = created["run"]
+        token = created["access_token"]
+        node = next(item for item in run["map"]["nodes"] if item["available"])
+        first = action(client, run["run_id"], token, 0, "same", "choose_node", node_id=node["id"])
+        duplicate = action(client, run["run_id"], token, 0, "same", "choose_node", node_id=node["id"])
+        smuggled = action(client, run["run_id"], token, 0, "same", "choose_node", node_id="other")
+        stale = action(client, run["run_id"], token, 0, "stale", "end_turn")
+        before = client.get(f"/api/v2/runs/{run['run_id']}", headers=auth(token)).json()
+        illegal = action(
+            client,
+            run["run_id"],
+            token,
+            before["run"]["revision"],
+            "illegal",
+            "choose_node",
+            node_id=node["id"],
+        )
+        after = client.get(f"/api/v2/runs/{run['run_id']}", headers=auth(token)).json()
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 200
+    assert duplicate.json() == first.json()
+    assert smuggled.status_code == 409
+    assert stale.status_code == 409
+    assert illegal.status_code == 422
+    assert after == before
+
+
+def test_two_concurrent_actions_only_advance_one_revision(tmp_path: Path) -> None:
+    db_path = tmp_path / "m5.sqlite3"
+    with TestClient(create_app(db_path)) as client:
+        created = create_run(client)
+        run = created["run"]
+        token = created["access_token"]
+        nodes = [item for item in run["map"]["nodes"] if item["available"]]
+
+    def choose(index: int) -> int:
+        with TestClient(create_app(db_path)) as worker:
+            response = action(
+                worker,
+                run["run_id"],
+                token,
+                0,
+                f"parallel-{index}",
+                "choose_node",
+                node_id=nodes[index]["id"],
+            )
+            return response.status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        statuses = sorted(pool.map(choose, (0, 1)))
+
+    assert statuses == [200, 409]
+
+
+def play_combat(client: TestClient, run: dict[str, Any], token: str, counter: list[int]):
+    catalog = {card["id"]: card for card in client.get("/api/v2/catalog").json()["cards"]}
+    while run["phase"] == "combat":
+        combat = run["combat"]
+        progressed = False
+        for card in list(combat["hand"]):
+            definition = catalog[card["card_id"]]
+            cost = definition["upgraded_cost"] if card["upgraded"] else definition["cost"]
+            if cost > combat["energy"]:
+                continue
+            data = {"card_uid": card["uid"]}
+            if definition["target"] == "enemy":
+                data["target_id"] = combat["enemy"]["id"]
+            counter[0] += 1
+            response = action(
+                client, run["run_id"], token, run["revision"], f"a-{counter[0]}", "play_card", **data
+            )
+            assert response.status_code == 200, response.text
+            run = response.json()["run"]
+            progressed = True
+            break
+        if progressed or run["phase"] != "combat":
+            continue
+        if not combat["taunt_used"]:
+            counter[0] += 1
+            response = action(
+                client, run["run_id"], token, run["revision"], f"a-{counter[0]}", "taunt"
+            )
+        else:
+            counter[0] += 1
+            response = action(
+                client, run["run_id"], token, run["revision"], f"a-{counter[0]}", "end_turn"
+            )
+        assert response.status_code == 200, response.text
+        run = response.json()["run"]
+    return run
+
+
+def advance_noncombat(client: TestClient, run: dict[str, Any], token: str, counter: list[int]):
+    counter[0] += 1
+    common = (client, run["run_id"], token, run["revision"], f"a-{counter[0]}")
+    if run["phase"] == "map":
+        node = next(item for item in run["map"]["nodes"] if item["available"])
+        response = action(*common, "choose_node", node_id=node["id"])
+    elif run["phase"] == "reward":
+        response = action(*common, "choose_reward", option_index=0)
+    elif run["phase"] == "event":
+        response = action(*common, "choose_event", choice_id=run["choices"][0]["id"])
+    elif run["phase"] == "shop":
+        response = action(*common, "leave_shop")
+    elif run["phase"] == "rest":
+        response = action(*common, "rest", mode="heal")
+    else:
+        raise AssertionError(f"unexpected phase: {run['phase']}")
+    assert response.status_code == 200, response.text
+    return response.json()["run"]
+
+
+def test_full_normal_action_path_wins_and_reward_survives_restart(tmp_path: Path) -> None:
+    db_path = tmp_path / "m5.sqlite3"
+    counter = [0]
+    with TestClient(create_app(db_path)) as client:
+        created = create_run(client, "sword")
+        run = created["run"]
+        token = created["access_token"]
+        reward_snapshot = None
+        for _ in range(500):
+            if run["phase"] in {"completed", "game_over"}:
+                break
+            run = (
+                play_combat(client, run, token, counter)
+                if run["phase"] == "combat"
+                else advance_noncombat(client, run, token, counter)
+            )
+            if run["phase"] == "reward" and reward_snapshot is None:
+                reward_snapshot = run["reward"]
+                break
+        assert reward_snapshot is not None
+
+    with TestClient(create_app(db_path)) as restarted:
+        restored = restarted.get(f"/api/v2/runs/{run['run_id']}", headers=auth(token)).json()["run"]
+        assert restored["reward"] == reward_snapshot
+        run = restored
+        for _ in range(800):
+            if run["phase"] in {"completed", "game_over"}:
+                break
+            run = (
+                play_combat(restarted, run, token, counter)
+                if run["phase"] == "combat"
+                else advance_noncombat(restarted, run, token, counter)
+            )
+
+    assert run["phase"] == "completed"
+    assert run["layer"] == 9
+    assert run["epitaph"]
+
+    with TestClient(create_app(db_path)) as client:
+        followup = client.post(
+            "/api/v2/runs",
+            json={"archetype": "sword"},
+            headers=auth(token),
+        ).json()
+        next_run = followup["run"]
+        next_run = advance_noncombat(client, next_run, token, counter)
+        next_run = play_combat(client, next_run, token, counter)
+        next_run = advance_noncombat(client, next_run, token, counter)
+        next_run = advance_noncombat(client, next_run, token, counter)
+
+    assert next_run["phase"] == "event"
+    karma = next(choice for choice in next_run["choices"] if choice["id"] == "karma")
+    assert karma["description"] == run["epitaph"]
