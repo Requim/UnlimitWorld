@@ -1,0 +1,43 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "2048x3072",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2078,
+    "prompt_sha256": "daa4efe3833dd9d81488af62ea3a49a6f766a97a8b2ff9cc2df37db1dc61edd6"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 143,
+  "response_sha256": "a8b6c4dc2edd5d4ebaeca57f9c8cc305b5998555a1ce10920c395401e1abac13",
+  "response_structure": {
+    "created": 1791559238,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 101
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "bifang-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    2352,
+    3520
+  ],
+  "requested_size": [
+    2048,
+    3072
+  ],
+  "native_target_met": false,
+  "bytes": 9105945,
+  "sha256": "1d8d1187a4ae0a2036d75435030eda99d6a94b2f9f0874a6fc495be1fcfab1af",
+  "elapsed_seconds": 171.781
+}

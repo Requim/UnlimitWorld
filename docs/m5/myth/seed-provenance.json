@@ -1,6 +1,6 @@
 {
   "date": "2026-10-09",
-  "status": "blocked-generation",
+  "status": "partial-seeds",
   "provider_requested": "https://api2.jojocode.com/v1",
   "model_requested": "gpt-image-2",
   "quality_requested": "high",
@@ -39,12 +39,46 @@
     {"id": "bifang", "size": [2048, 3072]},
     {"id": "scene", "size": [3840, 2160]}
   ],
-  "assets": [],
+  "assets": [
+    {
+      "id": "bifang",
+      "source_path": ".data/imagegen/myth-seeds/diagnostic-20261009-1/bifang-seed.png",
+      "requested_size": [2048, 3072],
+      "actual_size": [2352, 3520],
+      "source_bytes": 9105945,
+      "source_sha256": "1d8d1187a4ae0a2036d75435030eda99d6a94b2f9f0874a6fc495be1fcfab1af",
+      "native_resolution_verified": true,
+      "exact_requested_dimensions": false,
+      "minimum_requested_dimensions_met": true,
+      "local_upscaling": false,
+      "provider_internal_upscaling": "unknown",
+      "user_visual_approval": false,
+      "alpha_preview": {
+        "path": ".data/imagegen/myth-seeds/diagnostic-20261009-1/bifang-alpha-v2.png",
+        "status": "preview-only-needs-edge-cleanup",
+        "tool": "remove_chroma_key.py",
+        "tool_sha256": "fa2989807052b857bed08f7fee0caa2502b54c46afc0a6f28cd706c25f636630",
+        "options": ["--auto-key", "corners", "--tolerance", "32"],
+        "size": [2352, 3520],
+        "mode": "RGBA",
+        "bytes": 6209274,
+        "sha256": "d137bf024dd7af1370c251cf00b3d388277ce9e8f6f88571c7659afc7ccede92",
+        "opaque_rgb_changed_pixels": 0,
+        "local_upscaling": false,
+        "extra_image_posts": 0,
+        "game_manifest_updated": false,
+        "visual_issue": "Magenta fringe remains; not approved as a production sprite."
+      }
+    }
+  ],
   "native_dimensions_verified": false,
+  "verified_seed_count": 1,
+  "required_seed_count": 3,
   "user_seed_approval": false,
-  "additional_paid_attempts": 1,
+  "additional_paid_attempts": 2,
   "diagnosis": {
     "date": "2026-10-09",
+    "scope": "pre-repair read-only investigation",
     "report": "docs/m5/myth/image-api-diagnosis.md",
     "image_posts_this_diagnosis": 0,
     "authenticated_model_gets": 1,
@@ -59,5 +93,26 @@
     "response_format_mismatch": "supported hypothesis, not confirmed",
     "provider_size_support": "not verified",
     "root_cause_confirmed": false
+  },
+  "adapter_verification": {
+    "id": "2026-10-09-diagnostic-1",
+    "authorization": "User requested the fix after the proposed custom adapter and one-image diagnostic.",
+    "tool": "tools/jojocode_image.py",
+    "tool_sha256": "0be36fed20d7c36cd52633ef905ce7ec284fdc4eaa5cb44d2c7e8eae6ff1574f",
+    "model_requested": "gpt-image-2",
+    "quality_requested": "high",
+    "size_requested": [2048, 3072],
+    "image_posts": 1,
+    "http_status": 200,
+    "source": "url",
+    "base64_field": "absent",
+    "root_cause_confirmed_for_this_request": true,
+    "root_cause": "URL-only image response is incompatible with the bundled CLI base64-only decoder.",
+    "images_saved": 1,
+    "remaining_jobs_started": 0,
+    "elapsed_seconds": 171.781,
+    "exit_code": 0,
+    "billing_status": "unknown",
+    "report": "docs/m5/myth/image-response-20261009-1.json"
   }
 }
