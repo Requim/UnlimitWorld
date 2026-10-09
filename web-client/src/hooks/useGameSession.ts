@@ -48,7 +48,7 @@ export function useGameSession(): GameSession {
   }, []);
 
   const commandState = {
-    sessionRef, generationRef, queueRef, run, busy, applyResponse,
+    sessionRef, generationRef, queueRef, run, busy, uncertain, applyResponse,
     setRun, setEvents, setStatus, setBusy, setError, setUncertain,
   };
   const startRun = useStartRunCommand(commandState);
@@ -65,6 +65,7 @@ interface CommandState {
   queueRef: RefObject<ActionQueue>;
   run: RunView | null;
   busy: boolean;
+  uncertain: boolean;
   applyResponse: (run: RunView, events: GameEvent[]) => void;
   setRun: (value: RunView | null) => void;
   setEvents: (value: GameEvent[]) => void;
@@ -97,7 +98,7 @@ function useStartRunCommand(state: CommandState) {
 function usePerformCommand(state: CommandState) {
   return useCallback(async (action: ActionInput) => {
     const session = state.sessionRef.current;
-    if (!session || !state.run || state.busy) return;
+    if (!session || !state.run || state.busy || state.uncertain) return;
     state.setBusy(true);
     state.setError(null);
     try {

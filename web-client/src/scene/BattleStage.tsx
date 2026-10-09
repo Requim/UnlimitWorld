@@ -3,10 +3,12 @@ import { useEffect, useRef, useState } from "react";
 
 import type { GameEvent, RunView } from "../api/types";
 import type { AssetState } from "../game/useAssets";
+import { BattleSceneRuntime, type BattleSnapshot } from "./battleRuntime";
 
 interface BattleStageProps {
   combat: NonNullable<RunView["combat"]>;
   events: GameEvent[];
+  revision: number;
   assets: AssetState;
   reducedMotion: boolean;
   onRetry: () => void;
@@ -15,23 +17,34 @@ interface BattleStageProps {
 /** 承载 Phaser 技术战场；规则与胜负始终来自服务端 RunView。 */
 export function BattleStage(props: BattleStageProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const gameRef = useRef<{ destroy: (removeCanvas: boolean) => void } | null>(null);
+  const latestRef = useRef<BattleSnapshot>(toSnapshot(props));
+  const runtimeRef = useRef<BattleSceneRuntime | null>(null);
+  if (!runtimeRef.current) runtimeRef.current = new BattleSceneRuntime(latestRef.current);
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  latestRef.current = toSnapshot(props);
+  useEffect(() => runtimeRef.current?.update(latestRef.current), [props.combat, props.events, props.reducedMotion, props.revision]);
   useEffect(() => {
     let cancelled = false;
     if (!hostRef.current) return;
+    setRuntimeError(null);
     void import("./createBattleGame").then(({ createBattleGame }) => {
       if (cancelled || !hostRef.current) return;
-      gameRef.current = createBattleGame(hostRef.current, props.combat, props.assets, props.events, props.reducedMotion, setRuntimeError);
-    }).catch((error: unknown) => setRuntimeError(error instanceof Error ? error.message : "战场启动失败"));
-    return () => { cancelled = true; gameRef.current?.destroy(true); gameRef.current = null; };
-  }, [props.combat.enemy.id, props.assets.manifest, props.reducedMotion]);
+      const adapter = createBattleGame(hostRef.current, latestRef.current, props.assets, setRuntimeError);
+      runtimeRef.current?.attach(adapter);
+    }).catch((error: unknown) => !cancelled && setRuntimeError(error instanceof Error ? error.message : "战场启动失败"));
+    return () => { cancelled = true; runtimeRef.current?.detach(); };
+  }, [props.combat.enemy.id, props.assets.manifest, props.assets.status]);
+  const retry = () => { setRuntimeError(null); props.onRetry(); };
   return (
     <div className="battle-stage">
       <div className="phaser-host" ref={hostRef} aria-label="技术战场画面" />
-      <AssetNotice assets={props.assets} runtimeError={runtimeError} onRetry={props.onRetry} />
+      <AssetNotice assets={props.assets} runtimeError={runtimeError} onRetry={retry} />
     </div>
   );
+}
+
+function toSnapshot(props: BattleStageProps): BattleSnapshot {
+  return { combat: props.combat, events: props.events, revision: props.revision, reducedMotion: props.reducedMotion };
 }
 
 function AssetNotice({ assets, runtimeError, onRetry }: { assets: AssetState; runtimeError: string | null; onRetry: () => void }) {

@@ -1,5 +1,5 @@
 import { BatteryCharging, CloudLightning, Flame, Shield, Swords, Zap } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import type { ActionInput, Catalog, GameEvent, RunView } from "../api/types";
 import { findCard } from "../game/catalog";
@@ -31,7 +31,7 @@ export function CombatView(props: CombatViewProps) {
     <section className="combat-view" data-testid="phase-combat">
       <CombatStatus run={props.run} />
       <div className="battle-frame">
-        <BattleStage assets={props.assets} combat={combat} events={props.events}
+        <BattleStage assets={props.assets} combat={combat} events={props.events} revision={props.run.revision}
           reducedMotion={props.reducedMotion} onRetry={props.onRetryAssets} />
         <button className="enemy-target" data-testid="enemy-target" disabled={props.busy || definition?.target !== "enemy"}
           onClick={attack} title="对敌方打出所选卡牌">

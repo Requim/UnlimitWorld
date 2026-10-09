@@ -96,7 +96,8 @@ svg { flex: 0 0 auto; }
 .combat-status .thunder-live { color: var(--yellow); }
 .battle-frame { position: relative; min-height: 190px; overflow: hidden; border-bottom: 1px solid var(--ink); }
 .battle-stage, .phaser-host { position: absolute; inset: 0; }
-.phaser-host canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+.phaser-host { display: grid; place-items: center; }
+.phaser-host canvas { max-width: 100% !important; max-height: 100% !important; object-fit: contain; }
 .asset-notice {
   position: absolute; left: 12px; top: 12px; z-index: 4; max-width: 340px; display: flex; align-items: center; gap: 8px;
   padding: 7px 8px; background: rgba(255,255,255,.94); border: 1px solid var(--ink); font-size: 11px;
@@ -119,7 +120,7 @@ svg { flex: 0 0 auto; }
 .command-bar button { min-width: 150px; border: 1px solid var(--ink); background: white; padding: 6px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
 .command-bar button span { color: var(--muted); font-size: 11px; }
 .command-bar .end-turn { background: var(--ink); color: white; min-width: 122px; }
-.hand-zone { min-height: 176px; display: flex; justify-content: center; align-items: stretch; gap: 8px; overflow-x: auto; padding: 10px 14px; scroll-snap-type: x proximity; }
+.hand-zone { min-height: 176px; display: flex; justify-content: safe center; align-items: stretch; gap: 8px; overflow-x: auto; padding: 10px 14px; scroll-snap-type: x proximity; }
 .card-tile {
   position: relative; flex: 0 0 132px; width: 132px; min-height: 156px; padding: 25px 10px 9px; border: 2px solid var(--ink); border-radius: 6px;
   background: white; text-align: left; display: flex; flex-direction: column; cursor: pointer; scroll-snap-align: center; transition: transform 120ms ease;
@@ -129,15 +130,22 @@ svg { flex: 0 0 auto; }
 .card-cost { position: absolute; left: 6px; top: 6px; display: grid; place-items: center; width: 25px; height: 25px; background: var(--yellow); border: 1px solid var(--ink); border-radius: 50%; font-weight: 900; }
 .card-school { position: absolute; right: 7px; top: 8px; font-size: 10px; color: var(--muted); }
 .card-tile strong { margin: 9px 0; text-align: center; font-family: "STKaiti", "KaiTi", serif; font-size: 18px; }
+.card-art { width: 100%; height: 58px; margin-top: 7px; border: 1px solid var(--line); object-fit: cover; }
+.card-art-error { display: grid; place-items: center; height: 58px; margin-top: 7px; border: 1px dashed var(--cinnabar); color: var(--cinnabar); font-size: 11px; }
 .card-rule { line-height: 1.45; font-size: 12px; }
 .card-tile small { margin-top: auto; padding-top: 7px; color: var(--muted); border-top: 1px solid var(--line); }
+.hand-zone .card-tile { height: 156px; min-height: 156px; padding: 25px 8px 6px; overflow: hidden; }
+.hand-zone .card-art, .hand-zone .card-art-error { height: 34px; min-height: 34px; margin-top: 2px; }
+.hand-zone .card-tile strong { margin: 3px 0; font-size: 15px; line-height: 1; }
+.hand-zone .card-rule { display: -webkit-box; overflow: hidden; font-size: 10px; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.hand-zone .card-tile small { padding-top: 3px; font-size: 10px; line-height: 1; }
 .school-sword { border-bottom: 5px solid var(--teal); }
 .school-fire { border-bottom: 5px solid var(--cinnabar); }
 .school-talisman { border-bottom: 5px solid var(--yellow); }
 .cast-selected { min-height: 42px; border: 0; border-top: 1px solid var(--ink); background: var(--yellow); font-weight: 900; cursor: pointer; }
 
 .choice-view, .shop-view { display: flex; flex-direction: column; justify-content: center; }
-.choice-cards, .shop-items { display: flex; justify-content: center; align-items: stretch; gap: 16px; padding: 18px; overflow-x: auto; }
+.choice-cards, .shop-items { display: flex; justify-content: safe center; align-items: stretch; gap: 16px; padding: 18px; overflow-x: auto; }
 .choice-cards .card-tile { flex-basis: 190px; width: 190px; min-height: 240px; }
 .event-choices { width: min(100% - 32px, 760px); margin: 20px auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
 .event-choices button, .shop-items > button {
@@ -223,6 +231,7 @@ svg { flex: 0 0 auto; }
   .command-bar button span { display: block; max-width: 145px; }
   .hand-zone { justify-content: flex-start; min-height: 166px; padding: 7px; }
   .card-tile { flex-basis: 122px; width: 122px; min-height: 150px; }
+  .hand-zone .card-tile { height: 150px; min-height: 150px; }
   .choice-cards { justify-content: flex-start; }
   .choice-cards .card-tile { flex-basis: 160px; width: 160px; min-height: 220px; }
   .event-choices { grid-template-columns: 1fr; margin: 8px auto; gap: 8px; }
@@ -239,6 +248,8 @@ svg { flex: 0 0 auto; }
   .combat-status { min-height: 34px; }
   .hand-zone { min-height: 152px; }
   .card-tile { min-height: 138px; }
+  .hand-zone .card-tile { height: 138px; min-height: 138px; padding-bottom: 4px; }
+  .hand-zone .card-art, .hand-zone .card-art-error { height: 27px; min-height: 27px; }
   .command-bar { min-height: 46px; }
   .asset-notice { transform: scale(.9); transform-origin: top left; }
 }

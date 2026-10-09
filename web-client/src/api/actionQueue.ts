@@ -28,6 +28,7 @@ export class ActionQueue {
     revision: number,
     input: ActionInput,
   ): Promise<RunResponse | null> {
+    if (this.pending) throw new Error("仍有结果未知的动作，请先重试或同步权威局面");
     const request = { ...input, action_id: crypto.randomUUID(), expected_revision: revision } as ActionRequest;
     this.pending = { runId, token, request, generation: this.generation };
     return this.sendPending();

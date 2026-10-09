@@ -7,6 +7,7 @@ import { PhaseRouter } from "./components/phaseRouter";
 import { StartScreen } from "./components/StartScreen";
 import { useAssets } from "./game/useAssets";
 import { useEventAudio } from "./game/audio";
+import { AssetProvider } from "./game/AssetContext";
 import { useGameSession } from "./hooks/useGameSession";
 import { loadSettings, saveSettings, type GameSettings } from "./state/storage";
 
@@ -27,18 +28,18 @@ export default function App() {
       onStart={(archetype) => { setChoosingNewRun(false); void session.startRun(archetype); }} />;
   }
   return (
-    <main className={settings.reducedMotion ? "game-shell reduced-motion" : "game-shell"}
+    <AssetProvider state={assets}><main className={settings.reducedMotion ? "game-shell reduced-motion" : "game-shell"}
       data-phase={session.run.phase} data-revision={session.run.revision} data-testid="game-root">
       <GameHud run={session.run} onDeck={() => setDrawer("deck")} onSettings={() => setDrawer("settings")} />
       <PhaseRouter phase={session.run.phase} run={session.run} catalog={session.catalog} events={session.events}
-        assets={assets} busy={session.busy} reducedMotion={settings.reducedMotion} onAction={session.perform}
+        assets={assets} busy={session.busy || session.uncertain} reducedMotion={settings.reducedMotion} onAction={session.perform}
         onRetryAssets={retryAssets} onNewRun={() => setChoosingNewRun(true)} />
       <RequestStatus busy={session.busy} error={session.error} uncertain={session.uncertain}
         onRetry={() => void session.retryAction()} />
       {drawer === "deck" && <DeckDrawer run={session.run} catalog={session.catalog} onClose={() => setDrawer(null)} />}
       {drawer === "settings" && <SettingsDrawer settings={settings} onChange={updateSettings} onClose={() => setDrawer(null)} />}
       {drawer && <button className="drawer-backdrop" aria-label="关闭面板" onClick={() => setDrawer(null)} />}
-    </main>
+    </main></AssetProvider>
   );
 }
 

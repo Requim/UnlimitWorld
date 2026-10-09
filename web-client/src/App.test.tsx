@@ -7,7 +7,7 @@ import * as client from "./api/client";
 
 vi.mock("./api/client", async () => {
   const actual = await vi.importActual<typeof import("./api/client")>("./api/client");
-  return { ...actual, getCatalog: vi.fn(), createRun: vi.fn(), getRun: vi.fn() };
+  return { ...actual, getCatalog: vi.fn(), createRun: vi.fn(), getRun: vi.fn(), sendAction: vi.fn() };
 });
 
 const catalog = {
@@ -31,6 +31,7 @@ const run = {
 
 describe("App", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     localStorage.clear();
     vi.mocked(client.getCatalog).mockResolvedValue(catalog);
     vi.mocked(client.createRun).mockResolvedValue({ run, events: [], access_token: "token" });
@@ -63,5 +64,26 @@ describe("App", () => {
     render(<App />);
 
     expect(await screen.findByTestId("reload-client")).toBeInTheDocument();
+  });
+
+  it("网络结果未知时锁定服务端命令但保留菜单和原动作重试", async () => {
+    vi.mocked(client.sendAction)
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({ run: { ...run, revision: 1 }, events: [] });
+    render(<App />);
+    fireEvent.click(await screen.findByTestId("create-sword"));
+    await screen.findByTestId("game-root");
+
+    fireEvent.click(screen.getByTestId("map-node-L1N0"));
+    expect(await screen.findByTestId("retry-action")).toBeInTheDocument();
+    expect(screen.getByTestId("map-node-L1N0")).toBeDisabled();
+    expect(screen.getByTestId("settings-open")).toBeEnabled();
+    fireEvent.click(screen.getByTestId("map-node-L1N0"));
+    expect(client.sendAction).toHaveBeenCalledTimes(1);
+
+    fireEvent.click(screen.getByTestId("retry-action"));
+    await waitFor(() => expect(screen.getByTestId("game-root")).toHaveAttribute("data-revision", "1"));
+    expect(client.sendAction).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(client.sendAction).mock.calls[1][2]).toEqual(vi.mocked(client.sendAction).mock.calls[0][2]);
   });
 });
