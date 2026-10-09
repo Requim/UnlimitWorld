@@ -14,6 +14,26 @@
     "observed_failure": "bifang response b64_json is null; original CLI cannot decode it",
     "other_jobs_result": "cancelled locally; remote generation and billing unknown"
   },
+  "retries": [
+    {
+      "id": "2026-10-09-bifang-1",
+      "authorization": "User explicitly requested retry using the previous API.",
+      "asset": "bifang",
+      "model_requested": "gpt-image-2",
+      "quality_requested": "high",
+      "size_requested": [2048, 3072],
+      "cli_invocations": 1,
+      "concurrency": 1,
+      "max_attempts": 1,
+      "fail_fast": true,
+      "elapsed_seconds": 37.1,
+      "exit_code": 1,
+      "observed_failure": "b64_json decoding value is None; original CLI raised TypeError",
+      "images_saved": 0,
+      "remaining_jobs_started": 0,
+      "billing_status": "unknown"
+    }
+  ],
   "requested": [
     {"id": "hero", "size": [2048, 3072]},
     {"id": "bifang", "size": [2048, 3072]},
@@ -22,5 +42,5 @@
   "assets": [],
   "native_dimensions_verified": false,
   "user_seed_approval": false,
-  "additional_paid_attempts": 0
+  "additional_paid_attempts": 1
 }
