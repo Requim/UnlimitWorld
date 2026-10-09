@@ -186,13 +186,12 @@ function screenshotPixels(png) {
 
 async function responsiveCase(browser, baseUrl, viewport, archetype, definitions, out) {
   const context = await browser.newContext({ viewport });
-  await context.addInitScript(() => localStorage.setItem('tiandao.cardRogue.settings.v1',
-    JSON.stringify({ volume: 0.65, muted: true, reducedMotion: true })));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
   try {
     let run = await startRun(page, baseUrl, archetype);
+    await enableReducedMotion(page);
     await assertLayout(page, viewport);
     await capture(page, out, `${viewport.width}x${viewport.height}-map`);
     run = await clickAdvance(page, baseUrl, `map-node-${chooseNode(run).id}`);
@@ -216,6 +215,14 @@ async function responsiveCase(browser, baseUrl, viewport, archetype, definitions
     await capture(page, out, `failed-${viewport.width}x${viewport.height}`);
     throw error;
   } finally { await context.close(); }
+}
+
+async function enableReducedMotion(page) {
+  await page.getByTestId('settings-open').click();
+  const motion = page.getByRole('button', { name: '减少动态效果', exact: true });
+  if (await motion.getAttribute('aria-pressed') !== 'true') await motion.click();
+  await expect(motion).toHaveAttribute('aria-pressed', 'true');
+  await page.getByTitle('关闭', { exact: true }).click();
 }
 
 async function verifyCombatCanvasAdvance(page, baseUrl, run) {
