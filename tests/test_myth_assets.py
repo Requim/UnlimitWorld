@@ -2,6 +2,8 @@
 
 import importlib
 import json
+from pathlib import Path
+import sys
 
 import pytest
 from PIL import Image
@@ -22,6 +24,19 @@ def seed_inputs(root, native=False):
         image.save(root / f"{key}-alpha.png")
     scene_size = (3840, 2160) if native else (64, 36)
     Image.new("RGB", scene_size, (60, 120, 110)).save(root / "zhang-e-mountain-seed.png")
+
+
+def blocked_bundle(root):
+    root.mkdir()
+    blocked = {"version": "bifang-v1", "status": "blocked-generation",
+               "seeds": {}, "animations": {}, "cards": {}}
+    (root / "manifest.json").write_text(json.dumps(blocked), encoding="utf-8")
+    (root / "existing-proof.bin").write_bytes(b"preserve-existing-asset")
+
+
+def bundle_snapshot(root):
+    return {path.relative_to(root): path.read_bytes()
+            for path in root.rglob("*") if path.is_file()}
 
 
 def test_exact_native_sizes_are_reported_without_unlocking_animation_approval(tmp_path):
@@ -47,6 +62,7 @@ def test_bundle_keeps_actual_pixels_and_does_not_claim_requested_resolution(tmp_
     assert hero["source_size"] == [32, 48]
     assert hero["output_size"] == [32, 48]
     assert hero["native_target_met"] is False
+    assert hero["alpha_method"] == "provided-alpha-cutout"
     assert len(hero["source_sha256"]) == len(hero["output_sha256"]) == 64
     with Image.open(target / "seeds/hero.png") as image:
         assert image.size == (32, 48)
@@ -78,13 +94,63 @@ def test_alpha_must_keep_source_canvas_size(tmp_path):
     assert not target.exists()
 
 
-def test_missing_source_preserves_existing_bundle(tmp_path):
+def test_missing_source_preserves_existing_bundle_byte_for_byte(tmp_path):
     source, target = tmp_path / "source", tmp_path / "assets"
     seed_inputs(source)
+    blocked_bundle(target)
+    before = bundle_snapshot(target)
     (source / "bifang-seed.png").unlink()
     with pytest.raises(FileNotFoundError):
         pipeline().prepare_seeds(source, target)
-    assert not target.exists()
+    assert bundle_snapshot(target) == before
+
+
+def test_image_save_failure_preserves_existing_bundle_byte_for_byte(tmp_path, monkeypatch):
+    source, target = tmp_path / "source", tmp_path / "assets"
+    seed_inputs(source)
+    blocked_bundle(target)
+    before = bundle_snapshot(target)
+    original_save, calls = Image.Image.save, 0
+
+    def fail_second_save(image, path, *args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            raise OSError("injected image save failure")
+        return original_save(image, path, *args, **kwargs)
+
+    monkeypatch.setattr(Image.Image, "save", fail_second_save)
+    with pytest.raises(OSError, match="injected image save failure"):
+        pipeline().prepare_seeds(source, target)
+    assert bundle_snapshot(target) == before
+    monkeypatch.setattr(Image.Image, "save", original_save)
+    assert pipeline().prepare_seeds(source, target)["status"] == "seed-review"
+
+
+@pytest.mark.parametrize("failed_output", ["manifest.json", "evidence.json"])
+def test_publication_failure_restores_blocked_bundle(tmp_path, monkeypatch, failed_output):
+    source, target, report_path = (
+        tmp_path / "source", tmp_path / "assets", tmp_path / "evidence.json")
+    seed_inputs(source)
+    blocked_bundle(target)
+    before = bundle_snapshot(target)
+    original_replace = Path.replace
+    failure_path = target / failed_output if failed_output == "manifest.json" else report_path
+
+    def fail_selected_publish(path, destination):
+        if Path(destination).resolve() == failure_path.resolve():
+            raise OSError(f"injected {failed_output} publication failure")
+        return original_replace(path, destination)
+
+    monkeypatch.setattr(Path, "replace", fail_selected_publish)
+    monkeypatch.setattr(sys, "argv", ["prepare_myth_assets.py", "--source-dir", str(source),
+                                     "--asset-root", str(target), "--report", str(report_path)])
+    assert pipeline().main() == 1
+    assert bundle_snapshot(target) == before
+    assert not report_path.exists()
+    monkeypatch.setattr(Path, "replace", original_replace)
+    assert pipeline().prepare_seeds(source, target, report_path)["status"] == "seed-review"
+    assert report_path.is_file()
 
 
 def test_existing_output_is_not_silently_overwritten(tmp_path):
@@ -93,6 +159,19 @@ def test_existing_output_is_not_silently_overwritten(tmp_path):
     pipeline().prepare_seeds(source, target)
     with pytest.raises(FileExistsError):
         pipeline().prepare_seeds(source, target)
+
+
+def test_existing_optional_report_is_not_overwritten(tmp_path):
+    source, target, report_path = (
+        tmp_path / "source", tmp_path / "assets", tmp_path / "evidence.json")
+    seed_inputs(source)
+    blocked_bundle(target)
+    before = bundle_snapshot(target)
+    report_path.write_bytes(b"existing user evidence")
+    with pytest.raises(FileExistsError):
+        pipeline().prepare_seeds(source, target, report_path)
+    assert bundle_snapshot(target) == before
+    assert report_path.read_bytes() == b"existing user evidence"
 
 
 def test_empty_blocked_manifest_can_be_recovered_when_real_seeds_arrive(tmp_path):
@@ -105,6 +184,17 @@ def test_empty_blocked_manifest_can_be_recovered_when_real_seeds_arrive(tmp_path
     report = pipeline().prepare_seeds(source, target)
     assert report["status"] == "seed-review"
     assert (target / "seeds/hero.png").is_file()
+
+
+def test_cli_reports_files_without_resizing_when_dimensions_are_short(tmp_path, monkeypatch, capsys):
+    source, target = tmp_path / "source", tmp_path / "assets"
+    seed_inputs(source)
+    monkeypatch.setattr(sys, "argv", ["prepare_myth_assets.py", "--source-dir", str(source),
+                                     "--asset-root", str(target)])
+    assert pipeline().main() == 0
+    output = capsys.readouterr().out
+    assert "Prepared 3 files without resizing" in output
+    assert "dimensions_met=False" in output
 
 
 def test_blocked_label_does_not_allow_overwriting_nonempty_manifest(tmp_path):

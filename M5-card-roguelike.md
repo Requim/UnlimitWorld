@@ -398,10 +398,16 @@ Phaser 1.35 MB / gzip 351.75 KB 的加载预算风险继续保留。
 - 已实现独立 `tools/prepare_myth_assets.py`：核验真实像素、原样保留画布，
   不插值放大；全输入预检、真实 alpha、源/输出路径边界、摘要与分辨率达标标记。
   只允许空的 blocked-generation manifest 在恢复时替换，不覆盖既有资源。
-- TDD 先观察缺实现失败，再观察恢复 manifest/非法根类型失败；
-  最后 `tests/test_myth_assets.py` 为 11 passed、2 skipped。
+- 审查修复后 alpha 仅标为中性的 `provided-alpha-cutout`，不在无命令与工具摘要
+  证据时声称原装抠图工具来源；编码、重开验证、manifest 与可选报告先在有界
+  staging 完成，再事务式发布。保存、manifest 或报告发布失败会恢复原 blocked
+  manifest，仅清理本轮文件，并已用实际重试证明不会阻塞恢复；既有报告拒绝覆盖。
+- TDD 先观察缺实现失败，再观察恢复 manifest/非法根类型失败；审查修复新增的
+  alpha、保存失败、manifest/报告发布失败、可重试与 CLI 措辞用例先得到
+  `5 failed, 10 passed, 2 skipped`，现为 `16 passed, 2 skipped`。
   两项物理符号链接测试因 Windows 权限跳过，不宣称已实测该路径。
-  本单元 22 个函数无超长；综合新规则/API/工具 100 passed、2 skipped。
+  本次工具与测试 42 个函数无超长；此前综合新规则/API/工具仍为
+  100 passed、2 skipped，本次未把局部复跑冒充综合复跑。
 - 本节归档的是资源整理和失败证据，不是高清画质、实际动作或 M5 完成。
   真正三图取得并获用户视觉认可后，才展开动作与九张卡面。
 
