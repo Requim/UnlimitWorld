@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chooseCard, chooseNode } from './playtest-policy.mjs';
 import { captureStaticCanvas, verifyStaticCanvasUpdate } from './playtest-canvas.mjs';
+import { ensureCardSelected } from './playtest-selection.mjs';
 
 const require = createRequire(new URL('../web-client/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
@@ -60,7 +61,9 @@ async function startRun(page, baseUrl, archetype) {
 
 async function castCard(page, baseUrl, run, card, definitions) {
   const definition = definitions.find((item) => item.id === card.card_id);
-  await page.getByTestId(`hand-card-${card.uid}`).click();
+  const tile = page.getByTestId(`hand-card-${card.uid}`);
+  await ensureCardSelected(tile);
+  await expect(tile).toHaveClass(/(^|\s)selected(\s|$)/);
   const target = definition.target === 'enemy' ? 'enemy-target' : 'cast-selected';
   return clickAdvance(page, baseUrl, target);
 }
