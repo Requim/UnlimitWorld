@@ -48,7 +48,7 @@ npm run dev
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests/test_function_lengths.py tests/test_art_assets.py tests/test_canvas_pixels.py -q
-node --test tests/playtest-policy.test.mjs
+node --test tests/playtest-policy.test.mjs tests/playtest-canvas.test.mjs tests/playtest-selection.test.mjs
 node tools/playtest-m5.mjs --url http://127.0.0.1:5173 --out .data/playtest
 cd web-client
 npm test
@@ -64,6 +64,8 @@ Playwright 通道可用 `M5_BROWSER_CHANNEL` 覆盖。
 正式素材未生成时，技术路径通过也不代表美术通过。
 画布非空检测采样实际浏览器 PNG，并隐藏 DOM 战斗覆盖层；
 不读取 WebGL 非保留绘制缓冲，也不以该检查代替角色取景与视觉验收。
+更新检查通过真实设置启用减少动态，用同尺寸的静态前后帧验证正常挑衅；
+不注入刷新初始化来覆盖被测设置。已选卡牌不再次点击取消后强制出牌。
 浏览器验证命令和验收结果补充于 `M5-card-roguelike.md` 的当前实施记录。
 旧全量测试存在已记录的失败；新样板测试通过不能替代旧版本验收。
 
