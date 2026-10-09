@@ -6,7 +6,7 @@
 ## 当前阶段
 
 - **当前里程碑：** M5 卡牌肉鸽重做（用户已确认计划）
-- **当前进度：** M5-1 独立浏览器完整样板开发中；旧 M4 主线冻结保留
+- **当前进度：** M5-1 后端规则/API 已审查归档，进入浏览器客户端实施；旧 M4 主线冻结保留
 - **下一阶段：** 完成 M5-1 规则、UI、美术与完整试玩验收，再决定扩容及旧服务接入
 - **当前主文档：** [M5-card-roguelike.md](M5-card-roguelike.md)
 - **历史里程碑：**
@@ -58,7 +58,10 @@
 ## 当前验证状态
 
 - M5 启动基线：`python -m pytest server/tests/test_run_map.py server/tests/test_event_config.py -q`，48 passed。
-- M5 新版验收结果尚未产生；当前 ImageGen CLI 路径等待用户授权。
+- M5 新后端：34 passed，连验证工具共 47 passed；后端独立审查通过。
+- M5 浏览器完整流程尚未验收；正式位图 blocked，ImageGen CLI 等待授权及本机 Key。
+- 原代码 `525f4ce` 全量复跑：14 failed、284 passed、14 skipped；
+  旧并发/引擎/集成失败与旧随机事件断言抖动保留，不宣称全量通过。
 
 - 3K-1 定向验证记录见 `M3-client-launch.md`：
   - `python -m pytest server\tests\test_event_config.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`：128 passed
@@ -92,8 +95,8 @@
 2. `AGENTS.md`：读取编码规则、阶段门控、架构约束。
 3. `M5-card-roguelike.md`：当前卡牌肉鸽重做需求、实施记录和验收边界。
 4. 若处理旧玩法，读取 `M4-roguelike-run-map.md`；旧主线当前冻结。
-4. 若回到上架准备，再读取 `M3-client-launch.md` 的 3L 部署与合规范围。
-5. `README.md`：仅作为项目介绍和启动说明，不作为当前进度事实源。
+5. 若回到上架准备，再读取 `M3-client-launch.md` 的 3L 部署与合规范围。
+6. `README.md`：仅作为项目介绍和启动说明，不作为当前进度事实源。
 
 ## 后续需求进入规则
 

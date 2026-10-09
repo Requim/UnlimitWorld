@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "status": "pending-generation",
+  "reason": "原创位图尚未生成：等待 ImageGen CLI 授权及本机 API Key。",
+  "characters": {
+    "cultivator": "/assets/characters/cultivator.png"
+  },
+  "enemies": {
+    "paper_soldier": "/assets/characters/paper_soldier.png",
+    "incense_guest": "/assets/characters/incense_guest.png",
+    "fallen_monk": "/assets/characters/fallen_monk.png",
+    "debt_immortal": "/assets/characters/debt_immortal.png",
+    "heaven_tax_collector": "/assets/characters/heaven_tax_collector.png",
+    "heaven_judge": "/assets/characters/heaven_judge.png"
+  },
+  "backgrounds": {
+    "battle": "/assets/backgrounds/battle.webp",
+    "boss": "/assets/backgrounds/boss.webp"
+  },
+  "cards": {
+    "flying_sword": "/assets/cards/flying_sword.webp",
+    "guard": "/assets/cards/guard.webp",
+    "focus": "/assets/cards/focus.webp",
+    "charge_sword": "/assets/cards/charge_sword.webp",
+    "flurry": "/assets/cards/flurry.webp",
+    "sword_draw": "/assets/cards/sword_draw.webp",
+    "myriad_swords": "/assets/cards/myriad_swords.webp",
+    "hidden_edge": "/assets/cards/hidden_edge.webp",
+    "fire_seed": "/assets/cards/fire_seed.webp",
+    "fan_flames": "/assets/cards/fan_flames.webp",
+    "burn_heaven": "/assets/cards/burn_heaven.webp",
+    "borrow_fire": "/assets/cards/borrow_fire.webp",
+    "embers": "/assets/cards/embers.webp",
+    "golden_bell": "/assets/cards/golden_bell.webp",
+    "demon_mirror": "/assets/cards/demon_mirror.webp",
+    "silence_talisman": "/assets/cards/silence_talisman.webp",
+    "swift_script": "/assets/cards/swift_script.webp",
+    "lightning_talisman": "/assets/cards/lightning_talisman.webp"
+  }
+}
