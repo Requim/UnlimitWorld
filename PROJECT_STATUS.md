@@ -1,14 +1,14 @@
 # Project Status：天道不正经
 
-> 更新时间：2026-06-14
+> 更新时间：2026-10-09
 > 作用：本文件是当前开发进度的唯一入口。Codex 每次进入本项目时，先读本文件，再按需读取 `AGENTS.md` 和当前里程碑文档。
 
 ## 当前阶段
 
-- **当前里程碑：** M4 Roguelike 路线地图
-- **当前进度：** 已完成到 Phase M4-1，并补入路线终章续图提示、全局路线图与挂机页事件优先 UI 体验
-- **下一阶段：** Phase 3L（国内云部署、ICP 备案、微信审核提交）或 M4 后续路线地图体验打磨
-- **当前主文档：** [M4-roguelike-run-map.md](M4-roguelike-run-map.md)
+- **当前里程碑：** M5 卡牌肉鸽重做（用户已确认计划）
+- **当前进度：** M5-1 独立浏览器完整样板开发中；旧 M4 主线冻结保留
+- **下一阶段：** 完成 M5-1 规则、UI、美术与完整试玩验收，再决定扩容及旧服务接入
+- **当前主文档：** [M5-card-roguelike.md](M5-card-roguelike.md)
 - **历史里程碑：**
   - M1 已完成并归档：[M1-core-gameplay.md](M1-core-gameplay.md)
   - M2 已完成并归档：[M2-networking.md](M2-networking.md)
@@ -32,6 +32,15 @@
 
 ## 下一步
 
+用户于 2026-10-09 确认从挂机玩法转向抽牌式卡牌肉鸽：
+
+- 浏览器优先，国风怪诞漫画美术与 UI 全部重做。
+- 九层有限路线、三流派、可预判且可反制的天谴、独立 SQLite 存档。
+- 首版不接旧账号、支付、微信、真实 AI 或生产数据库。
+- 在 `codex/m5-card-roguelike` 隔离分支实施；原工作区配置改动保持不变。
+- M5-1 必需验收项见 M5 文档；未达标不能宣称整局完成。
+- 原 M4、3L 下列后续方向暂时冻结，未完成项仍保持未完成。
+
 可选方向一：回到 Phase 3L，进入国内云部署、ICP 备案、微信审核提交的上架准备阶段。
 
 优先范围：
@@ -47,6 +56,9 @@
 - 设计局内黑市商品边界。
 
 ## 当前验证状态
+
+- M5 启动基线：`python -m pytest server/tests/test_run_map.py server/tests/test_event_config.py -q`，48 passed。
+- M5 新版验收结果尚未产生；当前 ImageGen CLI 路径等待用户授权。
 
 - 3K-1 定向验证记录见 `M3-client-launch.md`：
   - `python -m pytest server\tests\test_event_config.py server\tests\test_game_engine.py server\tests\test_e2e_ws.py -q`：128 passed
@@ -78,7 +90,8 @@
 
 1. `PROJECT_STATUS.md`：判断当前进度、下一步、已知风险。
 2. `AGENTS.md`：读取编码规则、阶段门控、架构约束。
-3. `M4-roguelike-run-map.md`：读取当前 M4 路线地图需求、实施记录和遗留风险。
+3. `M5-card-roguelike.md`：当前卡牌肉鸽重做需求、实施记录和验收边界。
+4. 若处理旧玩法，读取 `M4-roguelike-run-map.md`；旧主线当前冻结。
 4. 若回到上架准备，再读取 `M3-client-launch.md` 的 3L 部署与合规范围。
 5. `README.md`：仅作为项目介绍和启动说明，不作为当前进度事实源。
 

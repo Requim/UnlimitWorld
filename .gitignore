@@ -40,5 +40,13 @@ htmlcov/
 tmp_*.html
 tmp_*.png
 
+# M5 独立浏览器样板
+web-client/node_modules/
+web-client/dist/
+web-client/test-results/
+web-client/playwright-report/
+.data/
+.superpowers/
+
 # WeChat mini-program TypeScript build output
 client/pages/**/*.js
