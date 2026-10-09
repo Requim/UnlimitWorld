@@ -8,12 +8,17 @@ import type {
 
 const API_ROOT = import.meta.env.VITE_API_URL ?? "";
 
-/** 表示服务端明确拒绝；status 可用于区分认证、冲突与规则错误。 */
+/** 携带 HTTP 失败状态；401/404/409/422 是明确拒绝，其余失败可能仍已提交。 */
 export class ApiError extends Error {
   public constructor(public readonly status: number, message: string) {
     super(message);
     this.name = "ApiError";
   }
+}
+
+/** 输入请求失败原因，返回动作结果是否未知；仅本 API 明确拒绝可安全解除幂等锁，无副作用。 */
+export function isUnknownActionOutcome(cause: unknown): boolean {
+  return !(cause instanceof ApiError && [401, 404, 409, 422].includes(cause.status));
 }
 
 /** 读取卡牌、敌人、法宝与流派目录；HTTP 错误抛 ApiError。 */

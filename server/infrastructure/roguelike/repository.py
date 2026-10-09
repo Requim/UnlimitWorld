@@ -106,7 +106,7 @@ class SQLiteRunRepository:
         return response
 
     def _return_cached(self, row: sqlite3.Row, payload: str) -> RunResponse:
-        if not hmac.compare_digest(row["payload_json"], payload):
+        if not hmac.compare_digest(row["payload_json"].encode("utf-8"), payload.encode("utf-8")):
             raise RevisionConflict("同一 action_id 不得提交不同内容")
         return RunResponse.model_validate_json(row["result_json"])
 

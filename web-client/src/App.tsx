@@ -20,7 +20,7 @@ export default function App() {
   const [choosingNewRun, setChoosingNewRun] = useState(false);
   const updateSettings = (next: GameSettings) => { setSettings(next); saveSettings(next); };
   useEventAudio(session.events, settings);
-  if (session.status === "error" && !session.catalog) return <LoadErrorScreen message={session.error} />;
+  if (session.status === "error" && !session.run) return <LoadErrorScreen message={session.error} />;
   if (session.status === "loading" || !session.catalog) return <LoadingScreen />;
   if (session.status === "unauthorized") return <UnauthorizedScreen message={session.error} onReset={session.resetSession} />;
   if (!session.run || choosingNewRun) {
@@ -34,7 +34,7 @@ export default function App() {
       <PhaseRouter phase={session.run.phase} run={session.run} catalog={session.catalog} events={session.events}
         assets={assets} busy={session.busy || session.uncertain} reducedMotion={settings.reducedMotion} onAction={session.perform}
         onRetryAssets={retryAssets} onNewRun={() => setChoosingNewRun(true)} />
-      <RequestStatus busy={session.busy} error={session.error} uncertain={session.uncertain}
+      <RequestStatus busy={session.busy} error={session.error} retryMode={session.retryMode}
         onRetry={() => void session.retryAction()} />
       {drawer === "deck" && <DeckDrawer run={session.run} catalog={session.catalog} onClose={() => setDrawer(null)} />}
       {drawer === "settings" && <SettingsDrawer settings={settings} onChange={updateSettings} onClose={() => setDrawer(null)} />}
@@ -57,9 +57,12 @@ function LoadErrorScreen({ message }: { message: string | null }) {
     <button data-testid="reload-client" onClick={() => window.location.reload()}><RefreshCw /> 重新连接</button></main>;
 }
 
-function RequestStatus({ busy, error, uncertain, onRetry }: { busy: boolean; error: string | null; uncertain: boolean; onRetry: () => void }) {
+function RequestStatus({ busy, error, retryMode, onRetry }: {
+  busy: boolean; error: string | null; retryMode: "action" | "sync" | null; onRetry: () => void;
+}) {
   if (busy) return <div className="request-toast"><LoaderCircle className="spin" /> 天道正在落笔</div>;
   if (!error) return null;
   return <div className="request-toast error"><AlertTriangle /><span>{error}</span>
-    {uncertain && <button data-testid="retry-action" onClick={onRetry}><RefreshCw /> 重试原动作</button>}</div>;
+    {retryMode && <button data-testid="retry-action" onClick={onRetry}><RefreshCw />
+      {retryMode === "sync" ? "同步权威局面" : "重试原动作"}</button>}</div>;
 }

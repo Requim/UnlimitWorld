@@ -1,4 +1,5 @@
 import type { ActionInput, ActionRequest, RunResponse } from "./types";
+import { isUnknownActionOutcome } from "./client";
 
 /** 发送已编号动作；输入局号、Bearer 与完整动作，失败保持原异常语义。 */
 export type ActionTransport = (
@@ -21,7 +22,7 @@ export class ActionQueue {
 
   public constructor(private readonly transport: ActionTransport) {}
 
-  /** 提交新动作；网络异常会保留请求，世代过期则返回 null。 */
+  /** 输入局号/凭证/版本/动作，返回权威响应；未知结果保留请求，过期请求返回 null，明确拒绝抛原错误。 */
   public async submit(
     runId: string,
     token: string,
@@ -51,12 +52,17 @@ export class ActionQueue {
     if (!pending) throw new Error("没有待提交动作");
     try {
       const response = await this.transport(pending.runId, pending.token, pending.request);
-      if (pending.generation !== this.generation) return null;
+      if (!this.ownsPending(pending)) return null;
       this.pending = null;
       return response;
     } catch (error) {
-      if (!(error instanceof TypeError)) this.pending = null;
+      if (!this.ownsPending(pending)) return null;
+      if (!isUnknownActionOutcome(error)) this.pending = null;
       throw error;
     }
+  }
+
+  private ownsPending(pending: PendingAction): boolean {
+    return pending.generation === this.generation && this.pending === pending;
   }
 }

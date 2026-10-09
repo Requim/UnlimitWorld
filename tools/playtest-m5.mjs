@@ -6,6 +6,7 @@ import { parseArgs } from 'node:util';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { chooseCard, chooseNode } from './playtest-policy.mjs';
+import { captureStaticCanvas, verifyStaticCanvasUpdate } from './playtest-canvas.mjs';
 
 const require = createRequire(new URL('../web-client/package.json', import.meta.url));
 const { chromium, expect } = require('@playwright/test');
@@ -185,6 +186,8 @@ function screenshotPixels(png) {
 
 async function responsiveCase(browser, baseUrl, viewport, archetype, definitions, out) {
   const context = await browser.newContext({ viewport });
+  await context.addInitScript(() => localStorage.setItem('tiandao.cardRogue.settings.v1',
+    JSON.stringify({ volume: 0.65, muted: true, reducedMotion: true })));
   const page = await context.newPage();
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
@@ -197,9 +200,8 @@ async function responsiveCase(browser, baseUrl, viewport, archetype, definitions
     await assertLayout(page, viewport);
     await capture(page, out, `${viewport.width}x${viewport.height}-combat`);
     const card = chooseCard(run, definitions);
-    const before = await page.locator('canvas').first().screenshot();
-    await castCard(page, baseUrl, run, card, definitions);
-    const after = await page.locator('canvas').first().screenshot();
+    const afterCard = await castCard(page, baseUrl, run, card, definitions);
+    const actionChangedCanvas = await verifyCombatCanvasAdvance(page, baseUrl, afterCard);
     await page.reload();
     const resumed = await readRun(page, baseUrl);
     await waitRevision(page, resumed.revision);
@@ -207,13 +209,31 @@ async function responsiveCase(browser, baseUrl, viewport, archetype, definitions
     const settingsPersisted = await verifyDrawers(page, resumed, out, viewport);
     assert.deepEqual(errors, [], 'Browser runtime errors');
     return {
-      viewport, archetype, canvas, actionChangedCanvas: !before.equals(after),
+      viewport, archetype, canvas, actionChangedCanvas,
       refreshRevision: resumed.revision, settingsPersisted,
     };
   } catch (error) {
     await capture(page, out, `failed-${viewport.width}x${viewport.height}`);
     throw error;
   } finally { await context.close(); }
+}
+
+async function verifyCombatCanvasAdvance(page, baseUrl, run) {
+  assert.equal(run.phase, 'combat', 'First card unexpectedly ended combat');
+  const card = page.getByTestId(`hand-card-${run.combat.hand[0].uid}`);
+  await card.click();
+  await card.click();
+  await expect(page.getByTestId('selected-card-detail')).toBeHidden();
+  const canvas = page.locator('canvas').first();
+  const beforeBounds = await canvas.boundingBox();
+  const before = await captureStaticCanvas(() => canvas.screenshot());
+  assert.equal(run.combat.taunt_preview.available, true, 'Canvas probe has no normal taunt action');
+  const advanced = await clickAdvance(page, baseUrl, 'taunt');
+  assert.equal(advanced.phase, 'combat', 'Canvas action probe left combat');
+  assert.equal(advanced.combat.taunt_used, true);
+  assert.equal(advanced.combat.energy, run.combat.energy + run.combat.taunt_preview.energy_gain);
+  assert.deepEqual(await canvas.boundingBox(), beforeBounds, 'Canvas geometry changed during update probe');
+  return verifyStaticCanvasUpdate(before, () => canvas.screenshot());
 }
 
 async function networkRecovery(browser, baseUrl) {
@@ -349,14 +369,17 @@ async function verifyDrawers(page, run, out, viewport) {
   await capture(page, out, `${viewport.width}x${viewport.height}-deck`);
   await page.getByTitle('关闭', { exact: true }).click();
   await page.getByTestId('settings-open').click();
+  const muted = page.getByRole('button', { name: '静音', exact: true });
+  if (await muted.getAttribute('aria-pressed') === 'true') await muted.click();
   const volume = page.getByRole('slider', { name: '音量' });
   await volume.focus();
   await volume.press('Home');
   await volume.press('ArrowRight');
   await expect(volume).toHaveValue('0.05');
-  await page.getByRole('button', { name: '静音', exact: true }).click();
+  await muted.click();
   await expect(volume).toBeDisabled();
-  await page.getByRole('button', { name: '减少动态效果', exact: true }).click();
+  const motion = page.getByRole('button', { name: '减少动态效果', exact: true });
+  if (await motion.getAttribute('aria-pressed') !== 'true') await motion.click();
   await page.reload();
   await waitRevision(page, run.revision);
   await page.getByTestId('settings-open').click();

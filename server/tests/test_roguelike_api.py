@@ -166,6 +166,26 @@ def test_two_concurrent_actions_only_advance_one_revision(tmp_path: Path) -> Non
     assert statuses == [200, 409]
 
 
+def test_unicode_action_retry_and_changed_payload_preserve_snapshot(tmp_path: Path) -> None:
+    with TestClient(create_app(tmp_path / "unicode.sqlite3")) as client:
+        created = create_run(client)
+        run_id = created["run"]["run_id"]
+        token = created["access_token"]
+        nodes = [node for node in created["run"]["map"]["nodes"] if node["available"]]
+        first = action(client, run_id, token, 0, "动作一", "choose_node", node_id=nodes[0]["id"])
+        before = client.get(f"/api/v2/runs/{run_id}", headers=auth(token))
+        duplicate = action(client, run_id, token, 0, "动作一", "choose_node", node_id=nodes[0]["id"])
+        changed = action(client, run_id, token, 0, "动作一", "choose_node", node_id=nodes[1]["id"])
+        snapshot = client.get(f"/api/v2/runs/{run_id}", headers=auth(token))
+
+    assert first.status_code == 200
+    assert duplicate.status_code == 200
+    assert duplicate.json() == first.json()
+    assert changed.status_code == 409
+    assert snapshot.json() == before.json()
+    assert snapshot.json()["run"] == first.json()["run"]
+
+
 def play_combat(client: TestClient, run: dict[str, Any], token: str, counter: list[int]):
     catalog = {card["id"]: card for card in client.get("/api/v2/catalog").json()["cards"]}
     while run["phase"] == "combat":

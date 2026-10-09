@@ -106,7 +106,8 @@ svg { flex: 0 0 auto; }
   padding: 7px 8px; background: rgba(255,255,255,.94); border: 1px solid var(--ink); font-size: 11px;
 }
 .asset-notice span { display: flex; flex-direction: column; }
-.asset-notice button { margin-left: auto; }
+.asset-notice button { margin-left: auto; padding: 0; flex: 0 0 auto; }
+.asset-notice button svg { width: 24px; height: 24px; }
 .enemy-target {
   position: absolute; z-index: 5; padding: 0; border: 2px solid transparent; background: transparent; cursor: crosshair;
 }
