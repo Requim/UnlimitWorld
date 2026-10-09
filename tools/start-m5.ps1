@@ -6,7 +6,7 @@ Preferred API port; an occupied port advances to the next free port.
 .PARAMETER WebPort
 Preferred browser port; an occupied port advances to the next free port.
 .OUTPUTS
-Service URLs and a local JSON record with process IDs. No existing process is stopped.
+Service URLs and a local JSON record with process IDs. Unrelated processes are never stopped.
 #>
 [CmdletBinding()]
 param(
@@ -46,7 +46,8 @@ function Wait-Endpoint([string]$Url, [System.Diagnostics.Process]$Process) {
 
 function Test-RecordedProcess([int]$ProcessId, [string]$Marker) {
     $process = Get-CimInstance Win32_Process -Filter "ProcessId = $ProcessId"
-    return $process -and $process.CommandLine.Contains($Marker)
+    if (-not $process -or -not $process.CommandLine) { return $false }
+    return $process.CommandLine.Contains($Marker) -and $process.CommandLine.Contains($root)
 }
 
 function Get-ExistingServices {
@@ -55,10 +56,12 @@ function Get-ExistingServices {
         $saved = Get-Content -LiteralPath $recordPath -Raw | ConvertFrom-Json
         $apiMatch = Test-RecordedProcess $saved.apiPid 'server.interface.roguelike_app:app'
         $webMatch = Test-RecordedProcess $saved.webPid (Join-Path $root 'web-client')
-        if ($saved.workspace -ne $root -or -not $apiMatch -or -not $webMatch) { return $null }
-        if ((Test-Endpoint "$($saved.apiUrl)/health") -and (Test-Endpoint $saved.webUrl)) {
-            return $saved
-        }
+        if ($saved.workspace -ne $root) { return $null }
+        $apiHealthy = $apiMatch -and (Test-Endpoint "$($saved.apiUrl)/health")
+        $webHealthy = $webMatch -and (Test-Endpoint $saved.webUrl)
+        $saved | Add-Member -NotePropertyName apiHealthy -NotePropertyValue $apiHealthy
+        $saved | Add-Member -NotePropertyName webHealthy -NotePropertyValue $webHealthy
+        return $saved
     } catch { return $null }
     return $null
 }
@@ -71,19 +74,30 @@ function Start-Api([string]$Python, [int]$Port) {
 }
 
 function Start-Web([string]$Node, [string]$Vite, [int]$Port, [string]$ApiUrl) {
-    $previous = $env:M5_API_URL
-    try {
-        $env:M5_API_URL = $ApiUrl
-        return Start-Process -FilePath $Node -WorkingDirectory (Join-Path $root 'web-client') `
-            -WindowStyle Hidden -PassThru `
-            -ArgumentList @("`"$Vite`"", '--host', '127.0.0.1', '--port', "$Port", '--strictPort') `
-            -RedirectStandardOutput (Join-Path $data 'm5-web.log') `
-            -RedirectStandardError (Join-Path $data 'm5-web-error.log')
-    } finally { $env:M5_API_URL = $previous }
+    $helper = Join-Path $root 'tools\run-m5-web.ps1'
+    return Start-Process -FilePath 'powershell.exe' -WorkingDirectory $root `
+        -WindowStyle Hidden -PassThru `
+        -ArgumentList @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$helper`"", `
+            '-Node', "`"$Node`"", '-Vite', "`"$Vite`"", '-Port', "$Port", '-ApiUrl', $ApiUrl)
+}
+
+function Stop-ManagedService([System.Diagnostics.Process]$HostProcess, [string]$Marker) {
+    if (-not (Test-RecordedProcess $HostProcess.Id $Marker)) {
+        throw 'Refusing to stop a service process outside this workspace.'
+    }
+    $children = Get-CimInstance Win32_Process -Filter "ParentProcessId = $($HostProcess.Id)"
+    foreach ($child in $children) {
+        if (Test-RecordedProcess $child.ProcessId $Marker) {
+            Stop-Process -Id $child.ProcessId -ErrorAction SilentlyContinue
+        }
+    }
+    $HostProcess.Refresh()
+    if (-not $HostProcess.HasExited) { $HostProcess.Kill() }
+    $HostProcess.WaitForExit()
 }
 
 $existing = Get-ExistingServices
-if ($existing) {
+if ($existing -and $existing.apiHealthy -and $existing.webHealthy) {
     Write-Output "Browser: $($existing.webUrl)"
     Write-Output "API: $($existing.apiUrl)"
     exit 0
@@ -94,20 +108,32 @@ if (-not (Test-Path -LiteralPath $python)) { throw 'Create .venv and install ser
 if (-not (Test-Path -LiteralPath $vite)) { throw 'Run npm ci in web-client first.' }
 $node = (Get-Command node -ErrorAction Stop).Source
 New-Item -ItemType Directory -Path $data -Force | Out-Null
-$ApiPort = Find-FreePort $ApiPort
+$reuseApi = $existing -and $existing.apiHealthy
+if ($reuseApi) {
+    $ApiPort = ([uri]$existing.apiUrl).Port
+} else {
+    $ApiPort = Find-FreePort $ApiPort
+}
+if ($existing -and $existing.webHealthy) {
+    $oldWeb = Get-Process -Id $existing.webPid
+    Stop-ManagedService $oldWeb $vite
+    $WebPort = ([uri]$existing.webUrl).Port
+}
 $WebPort = Find-FreePort $WebPort $ApiPort
 $apiUrl = "http://127.0.0.1:$ApiPort"
 $webUrl = "http://127.0.0.1:$WebPort"
 $api = $null
 $web = $null
 try {
-    $api = Start-Api $python $ApiPort
+    if ($reuseApi) { $api = Get-Process -Id $existing.apiPid }
+    else { $api = Start-Api $python $ApiPort }
     Wait-Endpoint "$apiUrl/health" $api
     $web = Start-Web $node $vite $WebPort $apiUrl
     Wait-Endpoint $webUrl $web
 } catch {
-    foreach ($started in @($api, $web)) {
-        if ($started -and -not $started.HasExited) { $started.Kill() }
+    if ($web -and -not $web.HasExited) { Stop-ManagedService $web $vite }
+    if (-not $reuseApi -and $api -and -not $api.HasExited) {
+        Stop-ManagedService $api 'server.interface.roguelike_app:app'
     }
     throw
 }

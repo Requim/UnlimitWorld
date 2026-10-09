@@ -11,6 +11,7 @@
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r server/requirements-m5.txt
+.\.venv\Scripts\python.exe -m pip install -r tools/requirements-qa.txt
 cd web-client
 npm ci
 cd ..
@@ -22,10 +23,14 @@ cd ..
 powershell -ExecutionPolicy Bypass -File tools/start-m5.ps1
 ```
 
-启动器使用隐藏窗口，只绑定 `127.0.0.1`，不会关闭已有服务。
+启动器使用隐藏窗口，只绑定 `127.0.0.1`，不会关闭无关进程。
 默认网页端口 5173、API 端口 8787；占用时自动换空闲端口，
 实际地址及进程编号写入 `.data/m5-services.json` 并显示在输出中。
 重复启动会复用健康的同工作区服务。
+部分服务退出时复用仍健康的 API；API 重启后仅重启同工作区的托管网页进程。
+网页子进程设置 `CI=true`，避免后台输入流关闭导致 Vite 自动退出。
+隐藏 PowerShell 宿主持续持有网页进程和日志流，退出状态记录在
+`.data/m5-web-lifecycle.log`；不是自动重启守护器。
 日志为 `.data/m5-api*.log`、`.data/m5-web*.log`。
 
 也可开两个终端手动运行：
@@ -42,13 +47,23 @@ npm run dev
 ## 验证
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests/test_function_lengths.py -q
+.\.venv\Scripts\python.exe -m pytest server/tests/test_roguelike_rules.py server/tests/test_roguelike_api.py tests/test_function_lengths.py tests/test_art_assets.py tests/test_canvas_pixels.py -q
+node --test tests/playtest-policy.test.mjs
+node tools/playtest-m5.mjs --url http://127.0.0.1:5173 --out .data/playtest
 cd web-client
 npm test
 npm run typecheck
 npm run build
+npx playwright test --config playwright.external.config.ts --workers=1
 ```
 
+完整浏览器脚本使用本机 Chrome；可用 `PLAYWRIGHT_CHANNEL` 改为已安装的浏览器通道。
+它只使用正常游戏动作，不注入测试局面；截图和 JSON 结果写入被忽略的 `.data/`。
+`playwright.external.config.ts` 只复用已启动的 5173/8787 服务，不自行启停进程。
+Playwright 通道可用 `M5_BROWSER_CHANNEL` 覆盖。
+正式素材未生成时，技术路径通过也不代表美术通过。
+画布非空检测采样实际浏览器 PNG，并隐藏 DOM 战斗覆盖层；
+不读取 WebGL 非保留绘制缓冲，也不以该检查代替角色取景与视觉验收。
 浏览器验证命令和验收结果补充于 `M5-card-roguelike.md` 的当前实施记录。
 旧全量测试存在已记录的失败；新样板测试通过不能替代旧版本验收。
 
