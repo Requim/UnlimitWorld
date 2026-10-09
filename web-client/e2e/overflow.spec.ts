@@ -22,16 +22,20 @@ for (const className of ["hand-zone", "choice-cards"]) {
   });
 }
 
-test("手机短屏 ready 卡面不会裁掉名称、规则和费用", async ({ page }) => {
+test("手机短屏 ready 卡面与选中详情保留完整规则", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 667 });
   await page.goto("/");
   await page.evaluate(() => {
-    document.body.innerHTML = `<div class="hand-zone" data-testid="short-hand">
+    document.body.innerHTML = `<aside class="selected-card-detail" data-testid="selected-card-detail">
+        <strong>万剑归宗+</strong>
+        <span data-testid="rule">造成 12 点伤害，并获得两层剑意；若目标带有虚弱，再抽一张牌。升级：额外获得剑意。</span>
+        <small>1 灵力 · 敌方目标</small>
+      </aside>
+      <div class="hand-zone" data-testid="short-hand">
       <button class="card-tile school-sword" data-testid="ready-card">
         <span class="card-cost" data-testid="cost">1</span><span class="card-school">御剑</span>
         <img class="card-art" alt="飞剑卡面" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
         <strong data-testid="name">万剑归宗+</strong>
-        <span class="card-rule" data-testid="rule">造成 12 点伤害。升级：额外获得剑意。</span>
         <small data-testid="target">敌方目标</small>
       </button>
     </div>`;
@@ -39,8 +43,11 @@ test("手机短屏 ready 卡面不会裁掉名称、规则和费用", async ({ p
   const card = page.getByTestId("ready-card");
   const cardBox = await card.boundingBox();
   expect(cardBox?.height).toBeLessThanOrEqual(138);
-  for (const testId of ["cost", "name", "rule", "target"]) {
+  for (const testId of ["cost", "name", "target"]) {
     const child = await page.getByTestId(testId).boundingBox();
     expect(child && cardBox && child.y >= cardBox.y && child.y + child.height <= cardBox.y + cardBox.height).toBe(true);
   }
+  const rule = page.getByTestId("rule");
+  expect(await rule.evaluate((element) => element.scrollHeight <= element.clientHeight)).toBe(true);
+  await expect(rule).toHaveText(/再抽一张牌。升级：额外获得剑意。/);
 });

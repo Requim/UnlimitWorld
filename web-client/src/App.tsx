@@ -28,7 +28,7 @@ export default function App() {
       onStart={(archetype) => { setChoosingNewRun(false); void session.startRun(archetype); }} />;
   }
   return (
-    <AssetProvider state={assets}><main className={settings.reducedMotion ? "game-shell reduced-motion" : "game-shell"}
+    <AssetProvider state={assets} retry={retryAssets}><main className={settings.reducedMotion ? "game-shell reduced-motion" : "game-shell"}
       data-phase={session.run.phase} data-revision={session.run.revision} data-testid="game-root">
       <GameHud run={session.run} onDeck={() => setDrawer("deck")} onSettings={() => setDrawer("settings")} />
       <PhaseRouter phase={session.run.phase} run={session.run} catalog={session.catalog} events={session.events}

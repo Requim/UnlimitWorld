@@ -2,7 +2,7 @@ import { BatteryCharging, CloudLightning, Flame, Shield, Swords, Zap } from "luc
 import { useState } from "react";
 
 import type { ActionInput, Catalog, GameEvent, RunView } from "../api/types";
-import { findCard } from "../game/catalog";
+import { cardCost, cardDescription, findCard } from "../game/catalog";
 import type { AssetState } from "../game/useAssets";
 import { BattleStage } from "../scene/BattleStage";
 import { CardTile } from "./CardTile";
@@ -42,6 +42,7 @@ export function CombatView(props: CombatViewProps) {
         </button>
       </div>
       <CommandBar run={props.run} busy={props.busy} onAction={props.onAction} />
+      <SelectedCardDetail card={selected} definition={definition} />
       <div className="hand-zone" aria-label="手牌">
         {combat.hand.map((card) => <CardTile card={card} catalog={props.catalog} disabled={props.busy}
           key={card.uid} selected={card.uid === selectedUid} testId={`hand-card-${card.uid}`}
@@ -50,6 +51,20 @@ export function CombatView(props: CombatViewProps) {
       <button className="cast-selected" data-testid="cast-selected" disabled={props.busy || !selected || definition?.target === "enemy"}
         onClick={cast}>{selected ? definition?.target === "enemy" ? "点敌人出牌" : `打出 ${definition?.name ?? "所选卡牌"}` : "先选择一张牌"}</button>
     </section>
+  );
+}
+
+function SelectedCardDetail({ card, definition }: {
+  card: NonNullable<RunView["combat"]>["hand"][number] | null;
+  definition: ReturnType<typeof findCard> | null;
+}) {
+  if (!card || !definition) return <div className="selected-card-detail empty" aria-hidden="true" />;
+  return (
+    <aside className="selected-card-detail" data-testid="selected-card-detail">
+      <strong>{definition.name}{card.upgraded ? "+" : ""}</strong>
+      <span data-testid="selected-card-rule">{cardDescription(card, definition)}</span>
+      <small>{cardCost(card, definition)} 灵力 · {definition.target === "enemy" ? "敌方目标" : "立即生效"}</small>
+    </aside>
   );
 }
 

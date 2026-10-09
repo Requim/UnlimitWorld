@@ -90,7 +90,7 @@ svg { flex: 0 0 auto; }
 .route-node.completed { background: var(--teal); border-color: var(--teal); color: white; }
 .route-node.kind-boss.available { background: var(--cinnabar); color: white; box-shadow: 4px 4px 0 var(--ink); }
 
-.combat-view { min-height: calc(100vh - 58px); display: grid; grid-template-rows: auto minmax(190px, 1fr) auto auto auto; overflow: hidden; }
+.combat-view { min-height: calc(100vh - 58px); display: grid; grid-template-rows: auto minmax(190px, 1fr) auto auto auto auto; overflow: hidden; }
 .combat-status { min-height: 40px; display: flex; justify-content: center; align-items: center; gap: 16px; padding: 6px 12px; background: var(--ink); color: white; font-size: 13px; }
 .combat-status span { display: flex; align-items: center; gap: 5px; }
 .combat-status .thunder-live { color: var(--yellow); }
@@ -120,6 +120,11 @@ svg { flex: 0 0 auto; }
 .command-bar button { min-width: 150px; border: 1px solid var(--ink); background: white; padding: 6px 12px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
 .command-bar button span { color: var(--muted); font-size: 11px; }
 .command-bar .end-turn { background: var(--ink); color: white; min-width: 122px; }
+.selected-card-detail { min-height: 42px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 6px 14px; background: white; border-bottom: 1px solid var(--line); font-size: 12px; }
+.selected-card-detail strong { flex: 0 0 auto; font: 800 16px "STKaiti", "KaiTi", serif; }
+.selected-card-detail span { max-width: 680px; line-height: 1.35; }
+.selected-card-detail small { flex: 0 0 auto; color: var(--muted); }
+.selected-card-detail.empty { min-height: 0; padding: 0; border: 0; }
 .hand-zone { min-height: 176px; display: flex; justify-content: safe center; align-items: stretch; gap: 8px; overflow-x: auto; padding: 10px 14px; scroll-snap-type: x proximity; }
 .card-tile {
   position: relative; flex: 0 0 132px; width: 132px; min-height: 156px; padding: 25px 10px 9px; border: 2px solid var(--ink); border-radius: 6px;
@@ -137,7 +142,7 @@ svg { flex: 0 0 auto; }
 .hand-zone .card-tile { height: 156px; min-height: 156px; padding: 25px 8px 6px; overflow: hidden; }
 .hand-zone .card-art, .hand-zone .card-art-error { height: 34px; min-height: 34px; margin-top: 2px; }
 .hand-zone .card-tile strong { margin: 3px 0; font-size: 15px; line-height: 1; }
-.hand-zone .card-rule { display: -webkit-box; overflow: hidden; font-size: 10px; line-height: 1.15; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.hand-zone .card-rule { display: none; }
 .hand-zone .card-tile small { padding-top: 3px; font-size: 10px; line-height: 1; }
 .school-sword { border-bottom: 5px solid var(--teal); }
 .school-fire { border-bottom: 5px solid var(--cinnabar); }
@@ -219,7 +224,7 @@ svg { flex: 0 0 auto; }
   .route-nodes { gap: 5px; }
   .route-node { min-height: 42px; gap: 3px; font-size: 11px; }
   .route-node svg { width: 15px; }
-  .combat-view { min-height: calc(100vh - 52px); grid-template-rows: auto minmax(170px, 1fr) auto 166px 39px; }
+  .combat-view { min-height: calc(100vh - 52px); grid-template-rows: auto minmax(170px, 1fr) auto auto 166px 39px; }
   .combat-status { justify-content: flex-start; overflow-x: auto; gap: 12px; font-size: 11px; }
   .battle-frame { min-height: 170px; }
   .enemy-target { right: 0; top: 5%; width: 190px; min-height: 135px; }
@@ -229,6 +234,9 @@ svg { flex: 0 0 auto; }
   .command-bar { justify-content: stretch; padding: 5px; }
   .command-bar button { min-width: 0; flex: 1; padding: 5px; font-size: 12px; }
   .command-bar button span { display: block; max-width: 145px; }
+  .selected-card-detail { justify-content: flex-start; flex-wrap: wrap; gap: 2px 8px; padding: 5px 8px; }
+  .selected-card-detail span { flex: 1 0 calc(100% - 80px); }
+  .selected-card-detail small { margin-left: 58px; }
   .hand-zone { justify-content: flex-start; min-height: 166px; padding: 7px; }
   .card-tile { flex-basis: 122px; width: 122px; min-height: 150px; }
   .hand-zone .card-tile { height: 150px; min-height: 150px; }
@@ -244,7 +252,7 @@ svg { flex: 0 0 auto; }
 }
 
 @media (max-height: 760px) {
-  .combat-view { grid-template-rows: 34px minmax(150px, 1fr) 46px 152px 37px; }
+  .combat-view { grid-template-rows: 34px minmax(150px, 1fr) 46px auto 152px 37px; }
   .combat-status { min-height: 34px; }
   .hand-zone { min-height: 152px; }
   .card-tile { min-height: 138px; }

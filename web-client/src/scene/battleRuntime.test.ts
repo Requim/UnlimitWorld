@@ -26,6 +26,18 @@ describe("BattleSceneRuntime", () => {
     expect(render).toHaveBeenCalledOnce();
     expect(render.mock.calls[0][0]).toEqual(expect.objectContaining({ revision: 2 }));
   });
+
+  it("资源变化重附着场景时不重播同 revision 效果", () => {
+    const firstRender = vi.fn();
+    const secondRender = vi.fn();
+    const runtime = new BattleSceneRuntime(snapshot(3, 11));
+    runtime.attach({ render: firstRender, destroy: vi.fn() });
+
+    runtime.attach({ render: secondRender, destroy: vi.fn() });
+
+    expect(firstRender).toHaveBeenCalledWith(expect.objectContaining({ revision: 3 }), true);
+    expect(secondRender).toHaveBeenCalledWith(expect.objectContaining({ revision: 3 }), false);
+  });
 });
 
 function snapshot(revision: number, enemyHp: number): BattleSnapshot {

@@ -36,11 +36,10 @@ export class BattleSceneRuntime {
     this.flush();
   }
 
-  /** 销毁当前场景并重置事件去重游标。 */
+  /** 销毁当前场景；保留事件去重游标，防止资源重附着重播旧效果。 */
   public detach(): void {
     this.adapter?.destroy();
     this.adapter = null;
-    this.lastEffectRevision = null;
   }
 
   private flush(): void {
