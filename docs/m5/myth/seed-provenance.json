@@ -11,7 +11,7 @@
     "max_attempts": 1,
     "fail_fast": true,
     "exit_code": 1,
-    "observed_failure": "bifang response b64_json is null; original CLI cannot decode it",
+    "observed_failure": "SDK b64_json read is None; raw response not captured; original CLI cannot decode it",
     "other_jobs_result": "cancelled locally; remote generation and billing unknown"
   },
   "retries": [
@@ -42,5 +42,22 @@
   "assets": [],
   "native_dimensions_verified": false,
   "user_seed_approval": false,
-  "additional_paid_attempts": 1
+  "additional_paid_attempts": 1,
+  "diagnosis": {
+    "date": "2026-10-09",
+    "report": "docs/m5/myth/image-api-diagnosis.md",
+    "image_posts_this_diagnosis": 0,
+    "authenticated_model_gets": 1,
+    "model_list_http_status": 200,
+    "requested_model_listed": true,
+    "provider_4k_alias_listed": true,
+    "sdk_version": "3.26.1",
+    "offline_cases_with_none": ["missing_field", "explicit_null", "url_only"],
+    "cli_decodes_base64_only": true,
+    "provider_playground_handles_base64_and_url": true,
+    "raw_previous_image_response_captured": false,
+    "response_format_mismatch": "supported hypothesis, not confirmed",
+    "provider_size_support": "not verified",
+    "root_cause_confirmed": false
+  }
 }
