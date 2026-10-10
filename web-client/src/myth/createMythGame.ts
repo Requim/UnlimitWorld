@@ -19,6 +19,7 @@ interface World {
   background: Phaser.GameObjects.Image | null; width: number; height: number;
   manifest: MythManifest; pending: Set<() => void>; reducedMotion: boolean; loadFailed: boolean;
   generations: Record<"hero" | "bifang", number>; destroyed: boolean;
+  heldTerminal: Record<"hero" | "bifang", MythClipKey | null>;
 }
 
 /** 在 parent 加载独立种子及已登记条带；ready 后可播放，loaderror 显式通知，返回销毁门面。 */
@@ -27,7 +28,8 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
   error: (message: string) => void): MythSceneAdapter {
   const world: World = { scene: null, hero: null, bifang: null, background: null,
     width, height, manifest, pending: new Set(), reducedMotion, loadFailed: false,
-    generations: { hero: 0, bifang: 0 }, destroyed: false };
+    generations: { hero: 0, bifang: 0 }, destroyed: false,
+    heldTerminal: { hero: null, bifang: null } };
   const game = new Phaser.Game({ type: Phaser.CANVAS, parent, width: Math.max(1, width), height: Math.max(1, height),
     transparent: true, render: { antialias: true }, scale: { mode: Phaser.Scale.NONE },
     scene: {
@@ -91,8 +93,12 @@ function positionWorld(world: World): void {
 
 function positionNamedActor(world: World, name: "hero" | "bifang", layout: ActorLayout): void {
   const actor = name === "hero" ? world.hero : world.bifang;
-  const key = actor?.anims.currentAnim?.key;
-  if (actor && key && isMythClipKey(key) && !key.endsWith("_idle")) {
+  if (world.reducedMotion || !actor) {
+    restoreActor(world, name, layout);
+    return;
+  }
+  const key = activeClipKey(actor) ?? world.heldTerminal[name];
+  if (key) {
     const clip = world.manifest.animations[key];
     if (clip) {
       positionClip(world, actor, key, clip);
@@ -100,6 +106,11 @@ function positionNamedActor(world: World, name: "hero" | "bifang", layout: Actor
     }
   }
   restoreActor(world, name, layout);
+}
+
+function activeClipKey(actor: Phaser.GameObjects.Sprite): MythClipKey | null {
+  const key = actor.anims.currentAnim?.key;
+  return actor.anims.isPlaying && key && isMythClipKey(key) && !key.endsWith("_idle") ? key : null;
 }
 
 function positionActor(sprite: Phaser.GameObjects.Sprite, actor: ActorLayout): void {
@@ -175,6 +186,7 @@ function setReducedMotion(world: World, value: boolean): void {
 async function playClip(world: World, actor: Phaser.GameObjects.Sprite, key: MythClipKey,
   clip: MythClip, signal: AbortSignal): Promise<MythPlaybackResult> {
   const name = actorName(key);
+  world.heldTerminal[name] = null;
   const generation = ++world.generations[name];
   positionClip(world, actor, key, clip);
   const result = await waitForMythAnimation(actor, key, signal, (cancel) => trackCancellation(world, cancel));
@@ -195,7 +207,11 @@ function positionClip(world: World, actor: Phaser.GameObjects.Sprite, key: MythC
 function restoreAfterPlayback(world: World, name: "hero" | "bifang", key: MythClipKey,
   generation: number, result: MythPlaybackResult): void {
   if (world.destroyed || world.generations[name] !== generation) return;
-  if (result === "cancelled" || !isTerminalMythClip(key)) restoreNamedActor(world, name);
+  if (result === "completed" && isTerminalMythClip(key)) {
+    world.heldTerminal[name] = key;
+    return;
+  }
+  restoreNamedActor(world, name);
 }
 
 function actorName(key: MythClipKey): "hero" | "bifang" {
@@ -229,6 +245,7 @@ function restoreNamedActor(world: World, name: "hero" | "bifang"): void {
 function restoreActor(world: World, name: "hero" | "bifang", layout: ActorLayout): void {
   const actor = name === "hero" ? world.hero : world.bifang;
   if (!actor) return;
+  world.heldTerminal[name] = null;
   const key = `${name}_idle` as MythClipKey;
   const idle = world.manifest.animations[key];
   actor.stop();

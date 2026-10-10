@@ -124,6 +124,36 @@ test("synthetic smooth-v2 演出可由减少动态及时取消并稳定回种子
   expect(await canvasStayedStable(page, 300)).toBe(true);
 });
 
+test("synthetic smooth-v2 减少动态后 resize 保持静态种子几何", async ({ page }) => {
+  const synthetic = await routeSyntheticClip(page, "hero_sword", 16, 24, SMOOTH_COLORS);
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-phase", "combat");
+  await synthetic.loaded;
+  const routed = await routeSwordResponse(page, await readRun(page));
+  await page.getByTestId("taunt").click();
+  expect((await routed.received).kind).toBe("taunt");
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
+  await page.getByTestId("settings-open").click();
+  const toggle = page.getByRole("button", { name: "减少动态效果" });
+  await toggle.click();
+  await expect(page.getByTestId("myth-root")).toHaveClass(/reduced-motion/);
+  const canvas = page.locator(".myth-canvas canvas");
+  const initialWidth = (await canvas.boundingBox())!.width;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await canvas.boundingBox())!.width).not.toBe(initialWidth);
+  await expect(page.getByTestId("end-turn")).toBeEnabled();
+  expect(await canvasStayedStable(page, 120)).toBe(true);
+  const resized = await canvasRegionSample(page, [.04, .46, .12, .98]);
+  await toggle.click();
+  await expect(page.getByTestId("myth-root")).not.toHaveClass(/reduced-motion/);
+  await toggle.click();
+  await expect(page.getByTestId("myth-root")).toHaveClass(/reduced-motion/);
+  expect(await canvasStayedStable(page, 120)).toBe(true);
+  const restored = await canvasRegionSample(page, [.04, .46, .12, .98]);
+  expect(sampleDifference(resized, restored)).toBeLessThan(.01);
+});
+
 test("synthetic smooth-v2 播放中 resize 会保留动作并在完成后解锁命令", async ({ page }) => {
   const synthetic = await routeSyntheticClip(page, "hero_sword", 16, 24, SMOOTH_COLORS);
   await openStory(page, "sword");
@@ -150,18 +180,27 @@ test("synthetic smooth-v2 播放中 resize 会保留动作并在完成后解锁�
 
 test("synthetic smooth-v2 终局退场保留第12帧直到结算", async ({ page }) => {
   const colors = SMOOTH_COLORS.slice(0, 12);
-  await routeSyntheticClip(page, "bifang_retreat", 12, 24, colors);
+  const synthetic = await routeSyntheticClip(page, "bifang_retreat", 12, 24, colors);
   await openStory(page, "sword");
   await page.getByTestId("story-choice-borrow_fire").click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-phase", "combat");
+  await synthetic.loaded;
   const run = await readRun(page);
   const defeated = lethalRun(run);
-  await page.route(ACTION_ROUTE, (route) => route.fulfill({ json: { run: defeated, events: [
-    { kind: "completed", text: defeated.epitaph!, source: "system", target: "enemy", visual: "defeat",
-      state_after: { player: run.player, enemy: { hp: 0, block: 0, burn: 0, weak: 0 } } },
-  ] } }));
+  let accept!: (action: ActionRequest) => void;
+  const received = new Promise<ActionRequest>((resolve) => { accept = resolve; });
+  await page.route(ACTION_ROUTE, async (route) => {
+    const action = route.request().postDataJSON() as ActionRequest;
+    await route.fulfill({ json: { run: defeated, events: [
+      { kind: "completed", text: defeated.epitaph!, source: "system", target: "enemy", visual: "defeat",
+        state_after: { player: run.player, enemy: { hp: 0, block: 0, burn: 0, weak: 0 } } },
+    ] } });
+    accept(action);
+  });
   const sampled = sampleSyntheticFrames(page, colors, [.5, .98, .05, .98]);
   await expect(page.getByTestId("end-turn")).toBeEnabled();
   await page.getByTestId("end-turn").click();
+  expect((await received).kind).toBe("end_turn");
   await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
   await page.waitForTimeout(470);
   await saveSmoothEvidence(page, "synthetic-bifang-retreat-final.png");
