@@ -10,6 +10,11 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-09-myth-bifang-design.md`
 
+**2026-10-10 恢复与调整：** 修士/毕方/场景写实原图已取得，但用户明确要求
+更卡通、诙谐搞怪。旧种子与旧提示词不再作为当前美术验收输入；
+3B 实施中止并保留交接，新单张风格样张方案确认后再继续。
+Task 1 与 3A 保持已完成，Task 4 仍须实际种子认可；不重新派已完成任务。
+
 ## Global Constraints
 
 - 工作目录为已验证的 `codex/m5-card-roguelike` linked worktree；不改原工作区微信配置，不合并 main，不部署或接生产数据库。
@@ -88,8 +93,12 @@ def test_myth_start_has_story_and_sample_deck(client):
 - Tests/tool if needed: `tests/test_myth_assets.py`, `tools/prepare_myth_assets.py`
 
 **Steps**
-- [ ] Prompts: realistic full-body travelling swordsman on flat magenta; one-legged giant Bifang, teal feathers/red markings/white beak on flat magenta; bare jade mountain and fractured stone combat terrace without forest. No rendered UI/text or existing IP copying.
-- [ ] Original CLI generate-batch uses exact user host, gpt-image-2/high, 3 jobs and max-attempts 1; no extra paid attempts if returns wrong size.
+- [x] Prompts: realistic full-body travelling swordsman on flat magenta; one-legged giant Bifang, teal feathers/red markings/white beak on flat magenta; bare jade mountain and fractured stone combat terrace without forest. No rendered UI/text or existing IP copying.
+  此项只归档旧写实提示词完成，最新卡通方向尚未完成提示词/样张审核。
+- [x] Original CLI generate-batch uses exact user host, gpt-image-2/high, 3 jobs and max-attempts 1; no extra paid attempts if returns wrong size.
+  首轮返回解析失败已归档；2026-10-09 用户授权项目适配器并取得毕方。
+  2026-10-10 用户要求继续实施，缺失修士/场景沿用已验证适配器各请求一次，
+  原参数与提示词不变，保留脱敏证据，不再运行已知无法解析 URL 的原工具。
 - [ ] Inspect all returned images and actual dimensions; preserve SHA256 and requested/actual dimensions without credential. Only correctly sized images labelled native-target-met.
 - [ ] Original chroma-key tool removes backgrounds; inspect full limbs/weapon/beak/feather edges, never claim original alpha.
 - [ ] Save final images in independent myth directory and manifest status seed-review, not animation-ready. Existing assets remain intact.

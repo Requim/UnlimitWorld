@@ -1,0 +1,43 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "2048x3072",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1873,
+    "prompt_sha256": "0eb702d426294b402236c728451083cf7996ced451dee71edad30c99f885ff54"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 143,
+  "response_sha256": "4a970f7a4c990fa424423ccf77e79e5f51ef5956106e74f26c03692f4eff60cb",
+  "response_structure": {
+    "created": 1791595483,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 101
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "hero-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    2352,
+    3520
+  ],
+  "requested_size": [
+    2048,
+    3072
+  ],
+  "native_target_met": false,
+  "bytes": 6946866,
+  "sha256": "1dc383582302a4fd1f2a470b3d459e5c61627ad7a471b916d4488291a793c065",
+  "elapsed_seconds": 89.386
+}

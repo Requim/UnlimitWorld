@@ -1,6 +1,8 @@
 {
-  "date": "2026-10-09",
-  "status": "partial-seeds",
+  "date": "2026-10-10",
+  "status": "rejected-realistic-style",
+  "latest_user_feedback": "More cartoon-like, witty, humorous and quirky; current style is too realistic.",
+  "game_manifest_updated": false,
   "provider_requested": "https://api2.jojocode.com/v1",
   "model_requested": "gpt-image-2",
   "quality_requested": "high",
@@ -69,13 +71,59 @@
         "game_manifest_updated": false,
         "visual_issue": "Magenta fringe remains; not approved as a production sprite."
       }
+    },
+    {
+      "id": "hero",
+      "source_path": ".data/imagegen/myth-seeds/continue-20261010-hero/hero-seed.png",
+      "requested_size": [2048, 3072],
+      "actual_size": [2352, 3520],
+      "source_bytes": 6946866,
+      "source_sha256": "1dc383582302a4fd1f2a470b3d459e5c61627ad7a471b916d4488291a793c065",
+      "native_resolution_verified": true,
+      "exact_requested_dimensions": false,
+      "minimum_requested_dimensions_met": true,
+      "local_upscaling": false,
+      "provider_internal_upscaling": "unknown",
+      "user_visual_approval": false
+    },
+    {
+      "id": "scene",
+      "source_path": ".data/imagegen/myth-seeds/continue-20261010-scene/zhang-e-mountain-seed.png",
+      "requested_size": [3840, 2160],
+      "actual_size": [3840, 2160],
+      "source_bytes": 10413248,
+      "source_sha256": "cf2626169f8c48bb735331eaea3124c9f4c1c074971c58ecf85791482a8f62e6",
+      "native_resolution_verified": true,
+      "exact_requested_dimensions": true,
+      "minimum_requested_dimensions_met": true,
+      "local_upscaling": false,
+      "provider_internal_upscaling": "unknown",
+      "user_visual_approval": false
     }
   ],
-  "native_dimensions_verified": false,
-  "verified_seed_count": 1,
+  "native_dimensions_verified": true,
+  "verified_seed_count": 3,
   "required_seed_count": 3,
   "user_seed_approval": false,
-  "additional_paid_attempts": 2,
+  "additional_paid_attempts": 4,
+  "continuation": {
+    "date": "2026-10-10",
+    "authorization": "User requested continuation of the approved plugin and plan.",
+    "tool": "tools/jojocode_image.py",
+    "model_requested": "gpt-image-2",
+    "quality_requested": "high",
+    "image_posts": 2,
+    "images_saved": 2,
+    "bifang_regenerated": false,
+    "automatic_retries": 0,
+    "animation_or_card_posts": 0,
+    "reports": [
+      "docs/m5/myth/image-response-20261010-hero.json",
+      "docs/m5/myth/image-response-20261010-scene.json"
+    ],
+    "billing_status": "unknown",
+    "new_style_requests_after_feedback": 0
+  },
   "diagnosis": {
     "date": "2026-10-09",
     "scope": "pre-repair read-only investigation",

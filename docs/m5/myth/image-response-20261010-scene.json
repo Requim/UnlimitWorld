@@ -1,0 +1,47 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x2160",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2142,
+    "prompt_sha256": "f8bfca5e2cc6ca9257ade662bd51fd65025d718f8aa329fc1d0a4ca441331b18"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 13886541,
+  "response_sha256": "5ece5810e4ba624ff830e7439984da60ccabba715a21788fbee35e0a2e6550d3",
+  "response_structure": {
+    "created": 1791595570,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 13884332
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 2142
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "zhang-e-mountain-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    2160
+  ],
+  "requested_size": [
+    3840,
+    2160
+  ],
+  "native_target_met": true,
+  "bytes": 10413248,
+  "sha256": "cf2626169f8c48bb735331eaea3124c9f4c1c074971c58ecf85791482a8f62e6",
+  "elapsed_seconds": 53.285
+}
