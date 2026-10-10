@@ -85,6 +85,27 @@ test("双角色 idle 持续播放且减少动态设置会停在静态种子", as
   expect(await canvasStayedStable(page, 600)).toBe(true);
 });
 
+test("已登记动作条带加载失败时锁住战斗命令且保留安全操作", async ({ page }) => {
+  let actionRequests = 0;
+  await page.route("**/assets/myth/animations/hero_idle.png", (route) => route.fulfill({ status: 404 }));
+  await page.route(ACTION_ROUTE, async (route) => {
+    actionRequests += 1;
+    await route.continue();
+  });
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-phase", "combat");
+  await expect(page.getByText("神话位图加载失败")).toBeVisible();
+  await expect(page.getByTestId("end-turn")).toBeDisabled();
+  await expect(page.getByTestId("enemy-target")).toBeDisabled();
+  await expect(page.locator('[data-testid^="hand-card-"]').first()).toBeDisabled();
+  await expect(page.getByTestId("settings-open")).toBeEnabled();
+  await expect(page.getByTestId("retry-assets")).toBeEnabled();
+  await page.getByTestId("settings-open").click();
+  await expect(page.getByRole("complementary", { name: "游戏设置" })).toBeVisible();
+  expect(actionRequests).toBe(1);
+});
+
 test("真实服务回合可从 UI 推进到败局并播放败北动作", async ({ page }) => {
   test.setTimeout(90_000);
   await openStory(page, "sword");

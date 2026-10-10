@@ -17,7 +17,9 @@ export function MythStage(props: Props) {
   const [bounds, setBounds] = useState({ width: 0, height: 0 });
   const [error, setError] = useState<string | null>(null);
   const boundsRef = useRef(bounds);
+  const reducedMotionRef = useRef(props.reducedMotion);
   boundsRef.current = bounds;
+  reducedMotionRef.current = props.reducedMotion;
   useLayoutEffect(() => {
     if (!host.current) return;
     const update = () => {
@@ -35,8 +37,12 @@ export function MythStage(props: Props) {
     void import("./createMythGame").then(({ createMythGame }) => {
       if (cancelled || !host.current) return;
       runtime.current = createMythGame(host.current, manifest, boundsRef.current.width, boundsRef.current.height,
-        props.reducedMotion,
-        (adapter) => { if (!cancelled) props.onAdapter(adapter.present); },
+        reducedMotionRef.current,
+        (adapter) => {
+          if (cancelled) return;
+          adapter.setReducedMotion(reducedMotionRef.current);
+          props.onAdapter(adapter.present);
+        },
         (message) => { if (!cancelled) { setError(message); props.onAdapter(null); } });
     }).catch((cause: unknown) => {
       if (!cancelled) { setError(cause instanceof Error ? cause.message : "战场加载失败"); props.onAdapter(null); }

@@ -12,6 +12,15 @@ vi.mock("../api/client", async () => {
   return { ...actual, getCatalog: vi.fn(), createRun: vi.fn(), getRun: vi.fn(), sendAction: vi.fn() };
 });
 
+vi.mock("./MythStage", () => {
+  const present = async () => undefined;
+  return { MythStage: (props: { enabled: boolean; onTarget: () => void;
+    onAdapter: (adapter: ((...args: never[]) => Promise<void>) | null) => void }) => <>
+    <button data-testid="runtime-ready" onClick={() => props.onAdapter(present)}>runtime ready</button>
+    <button data-testid="enemy-target" disabled={!props.enabled} onClick={props.onTarget}>毕方</button>
+  </> };
+});
+
 const archetypes: Catalog["archetypes"] = [
   { id: "sword", name: "御剑", description: "剑意", starter_card_id: "charge_sword" },
   { id: "fire", name: "业火", description: "燃烧", starter_card_id: "fire_seed" },
@@ -65,6 +74,10 @@ it("战斗提交只锁网络命令，设置保持可用且局面只接受服务�
   vi.mocked(client.sendAction).mockReturnValue(response.promise);
   render(<MythApp />);
   fireEvent.click(await screen.findByTestId("create-sword"));
+  expect(await screen.findByTestId("end-turn")).toBeDisabled();
+  expect(screen.getByTestId("settings-open")).toBeEnabled();
+  fireEvent.click(screen.getByTestId("runtime-ready"));
+  await waitFor(() => expect(screen.getByTestId("hand-card-card-0")).toBeEnabled());
   fireEvent.click(await screen.findByTestId("hand-card-card-0"));
   fireEvent.click(screen.getByTestId("enemy-target"));
   await waitFor(() => expect(screen.getByTestId("myth-root")).toHaveAttribute("data-network-busy", "true"));

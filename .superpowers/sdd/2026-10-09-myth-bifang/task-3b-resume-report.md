@@ -106,3 +106,44 @@ BF3 最终法术表现通过。
 - 当前法术线条/盾圈为技术反馈，不是最终粒子、冲击、命中或法术演出资产。
 - 未执行 push；Task 3B 只建立中文本地 commit，交由控制器后续整合。
 - 复用了控制器已启动的 5173/8787 服务，没有启动冲突服务或停止其他进程。
+
+## Fix Round 1：runtime 就绪与资源失败门控
+
+复审指出两个生命周期竞态，本轮仅修复对应前端边界：
+
+- `MythStage` 用 ref 跨越动态 import 等待，创建 runtime 和发布 adapter 前均读取最新
+  `reducedMotion`。因此用户在模块尚未返回时切换设置，runtime 不会按旧值启动。
+- Phaser loader 的任一 `loaderror` 会写入 world 失败状态；`createWorld` 同时核验三张 seed、
+  manifest 中每条已登记 strip 的纹理和动画登记结果。失败时不调用 `ready`，不会发布 presenter。
+- combat 阶段在 presenter 尚未 ready 或已因资源错误撤销时，将该状态并入命令锁；卡牌、目标、
+  挑衅和结束回合不可提交。设置、素材重试和既有恢复/同步入口保持可用。
+- manifest 现保留并核验 `version: bifang-v1`，status 只接受 `seed-review` / `animation-review`；
+  动作条目必须为 4 帧、768×768、anchor `[0.5,1]`，idle 4fps、其他动作 8fps。
+- 运行时只要求 manifest 已登记的 9 条 strip；被人工拒绝且未登记的 `bifang_retreat` 仍是
+  如实展示的 1/10 未完成边界，不会被误报为下载失败，也不会用静态计时伪造退场动作。
+
+### TDD 记录
+
+RED：
+
+- `npm test -- --run src/myth/MythStage.test.tsx src/myth/mythAssets.test.ts`：17 项中 9 项按预期失败；
+  延迟 import 收到旧 `false`，清单未保留 version 且错误版本/status/帧协议未被拒绝。
+- `npx playwright test e2e/myth.spec.ts --grep "已登记动作条带加载失败"`：拦截
+  `hero_idle.png` 返回 404 后，错误可见但 `end-turn` 仍为 enabled，证明资源错误未进入命令锁。
+
+GREEN：
+
+- `npm test -- --run src/myth/MythStage.test.tsx src/myth/mythAssets.test.ts src/myth/createMythGame.test.ts src/myth/MythApp.test.tsx`：
+  4 files、22 tests 全部通过。
+- `npm test -- --reporter=dot`：27 files、121 tests 全部通过，无 OOM 或挂起。
+- `npx playwright test e2e/myth.spec.ts --grep "双角色 idle|已登记动作条带加载失败"`：2 passed；
+  正常九条清单仍启动双 idle，减少动态仍停在静态种子；单条已登记 strip 404 时命令锁与安全操作通过。
+- `npm run typecheck`：通过。
+- `npm run build`：通过；仅保留既有 Phaser 1,350.47 kB 大 chunk 警告。
+- `npm run check:functions`：检查 68 个源码文件，0 个函数超过 50 有效行。
+- `git diff --check`：通过；只报告工作区既有 CRLF 转换提示。
+
+覆盖文件：`MythStage.test.tsx` 覆盖延迟 import 设置竞态；`mythAssets.test.ts` 覆盖当前资源协议；
+`createMythGame.test.ts` / `mythRuntimeAssets.ts` 覆盖已登记纹理全集和未登记 retreat 边界；
+`MythApp.test.tsx` 覆盖 runtime ready 前命令锁；`e2e/myth.spec.ts` 用真实 Phaser 加载失败验证不发布
+可操作战场。未重复控制器已完成的全套 Chrome；本轮未出现新的 dev server native 退出。

@@ -9,9 +9,11 @@ export interface MythClip {
   url: string; frame_size: [number, number]; frames: number; fps: number;
   anchor: [number, number]; reference_height: number;
 }
+export type MythManifestStatus = "seed-review" | "animation-review";
 /** `/myth` 唯一资源协议；animations 可部分交付，cards 在正式卡面到位前保持空对象。 */
 export interface MythManifest {
-  status: string;
+  version: "bifang-v1";
+  status: MythManifestStatus;
   seeds: { hero: MythSeed; bifang: MythSeed; scene: MythSeed };
   animations: Partial<Record<MythClipKey, MythClip>>;
   cards: Record<string, unknown>;
@@ -28,7 +30,8 @@ export function parseMythManifest(value: unknown): MythManifest {
   const root = object(value);
   const seeds = object(root.seeds);
   const animations = parseAnimations(root.animations);
-  return { status: String(root.status), seeds: { hero: parseSeed(seeds.hero),
+  return { version: manifestVersion(root.version), status: manifestStatus(root.status),
+    seeds: { hero: parseSeed(seeds.hero),
     bifang: parseSeed(seeds.bifang), scene: parseSeed(seeds.scene) }, animations, cards: object(root.cards) };
 }
 
@@ -82,12 +85,17 @@ function parseSeed(value: unknown): MythSeed {
   return { url: assetPath(seed.url), size, bounds: bounds as number[] | undefined };
 }
 
-function parseClip(value: unknown): MythClip {
+function parseClip(key: MythClipKey, value: unknown): MythClip {
   const clip = object(value);
-  if (!Number.isInteger(clip.frames) || Number(clip.frames) < 2 || !Number.isFinite(clip.fps)
-    || Number(clip.fps) <= 0) throw new Error("动作条带规格无效");
-  return { url: assetPath(clip.url), frame_size: dimensions(clip.frame_size),
-    frames: Number(clip.frames), fps: Number(clip.fps), anchor: normalizedPoint(clip.anchor),
+  const frameSize = dimensions(clip.frame_size);
+  const fps = key.endsWith("_idle") ? 4 : 8;
+  if (frameSize[0] !== 768 || frameSize[1] !== 768 || clip.frames !== 4 || clip.fps !== fps) {
+    throw new Error("动作条带规格无效");
+  }
+  const anchor = normalizedPoint(clip.anchor);
+  if (anchor[0] !== .5 || anchor[1] !== 1) throw new Error("动作锚点规格无效");
+  return { url: assetPath(clip.url), frame_size: frameSize,
+    frames: 4, fps, anchor,
     reference_height: positiveNumber(clip.reference_height, "动作参考高度无效") };
 }
 
@@ -95,9 +103,19 @@ function parseAnimations(value: unknown): Partial<Record<MythClipKey, MythClip>>
   const parsed: Partial<Record<MythClipKey, MythClip>> = {};
   for (const [key, clip] of Object.entries(object(value))) {
     if (!isMythClipKey(key)) throw new Error("未知神话动作键");
-    parsed[key] = parseClip(clip);
+    parsed[key] = parseClip(key, clip);
   }
   return parsed;
+}
+
+function manifestVersion(value: unknown): "bifang-v1" {
+  if (value !== "bifang-v1") throw new Error("神话素材版本不受支持");
+  return value;
+}
+
+function manifestStatus(value: unknown): MythManifestStatus {
+  if (value !== "seed-review" && value !== "animation-review") throw new Error("神话素材状态无效");
+  return value;
 }
 
 function normalizedPoint(value: unknown): [number, number] {

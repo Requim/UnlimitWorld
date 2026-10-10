@@ -3,6 +3,7 @@ import type { GameEvent } from "../api/types";
 import { clipKeysForEvent, impactIndexForClips, mythClipPose, type MythClipKey } from "./mythAnimation";
 import type { MythClip, MythManifest } from "./mythAssets";
 import { mythLayout, type ActorLayout } from "./mythLayout";
+import { missingTextureKeys, mythClipTexture } from "./mythRuntimeAssets";
 import type { PresentationAdapter } from "./presentationQueue";
 
 /** Phaser 表现门面；present 只播权威事件，resize 不改规则，destroy 取消在途反馈。 */
@@ -15,7 +16,7 @@ export interface MythSceneAdapter {
 interface World {
   scene: Phaser.Scene | null; hero: Phaser.GameObjects.Sprite | null; bifang: Phaser.GameObjects.Sprite | null;
   background: Phaser.GameObjects.Image | null; width: number; height: number;
-  manifest: MythManifest; pending: Set<() => void>; reducedMotion: boolean;
+  manifest: MythManifest; pending: Set<() => void>; reducedMotion: boolean; loadFailed: boolean;
 }
 
 /** 在 parent 加载独立种子及已登记条带；ready 后可播放，loaderror 显式通知，返回销毁门面。 */
@@ -23,11 +24,11 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
   reducedMotion: boolean, ready: (adapter: MythSceneAdapter) => void,
   error: (message: string) => void): MythSceneAdapter {
   const world: World = { scene: null, hero: null, bifang: null, background: null,
-    width, height, manifest, pending: new Set(), reducedMotion };
+    width, height, manifest, pending: new Set(), reducedMotion, loadFailed: false };
   const game = new Phaser.Game({ type: Phaser.CANVAS, parent, width: Math.max(1, width), height: Math.max(1, height),
     transparent: true, render: { antialias: true }, scale: { mode: Phaser.Scale.NONE },
     scene: {
-      preload(this: Phaser.Scene) { preload(this, manifest, error); },
+      preload(this: Phaser.Scene) { preload(this, world, error); },
       create(this: Phaser.Scene) { createWorld(this, world, error) && ready(adapter); },
     } });
   const adapter: MythSceneAdapter = {
@@ -39,18 +40,19 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
   return adapter;
 }
 
-function preload(scene: Phaser.Scene, manifest: MythManifest, error: (message: string) => void): void {
-  for (const [key, seed] of Object.entries(manifest.seeds)) scene.load.image(`myth-${key}`, seed.url);
-  for (const [key, clip] of Object.entries(manifest.animations)) {
-    scene.load.spritesheet(clipTexture(key), clip.url, { frameWidth: clip.frame_size[0], frameHeight: clip.frame_size[1],
+function preload(scene: Phaser.Scene, world: World, error: (message: string) => void): void {
+  for (const [key, seed] of Object.entries(world.manifest.seeds)) scene.load.image(`myth-${key}`, seed.url);
+  for (const [key, clip] of Object.entries(world.manifest.animations)) {
+    scene.load.spritesheet(mythClipTexture(key), clip.url, { frameWidth: clip.frame_size[0], frameHeight: clip.frame_size[1],
       endFrame: clip.frames - 1 });
   }
-  scene.load.on("loaderror", () => error("神话位图加载失败"));
+  scene.load.on("loaderror", () => { world.loadFailed = true; error("神话位图加载失败"); });
 }
 
 function createWorld(scene: Phaser.Scene, world: World, error: (message: string) => void): boolean {
-  if (["hero", "bifang", "scene"].some((key) => !scene.textures.exists(`myth-${key}`))) {
-    error("神话种子纹理不完整");
+  const missing = missingTextureKeys(world.manifest, (key) => scene.textures.exists(key));
+  if (world.loadFailed || missing.length > 0) {
+    if (!world.loadFailed) error(`神话纹理不完整：${missing.join("、")}`);
     return false;
   }
   world.scene = scene;
@@ -58,8 +60,10 @@ function createWorld(scene: Phaser.Scene, world: World, error: (message: string)
   world.hero = scene.add.sprite(0, 0, "myth-hero");
   world.bifang = scene.add.sprite(0, 0, "myth-bifang");
   for (const [key, clip] of Object.entries(world.manifest.animations)) {
-    scene.anims.create({ key, frames: scene.anims.generateFrameNumbers(clipTexture(key), { start: 0, end: clip.frames - 1 }),
+    const animation = scene.anims.create({ key,
+      frames: scene.anims.generateFrameNumbers(mythClipTexture(key), { start: 0, end: clip.frames - 1 }),
       frameRate: clip.fps, repeat: key.endsWith("_idle") ? -1 : 0 });
+    if (!animation) { error(`神话动作登记失败：${key}`); return false; }
   }
   positionWorld(world);
   return true;
@@ -175,10 +179,6 @@ function restoreActor(world: World, name: "hero" | "bifang", layout: ActorLayout
   actor.stop();
   if (idle && !world.reducedMotion) playClip(world, actor, key, idle);
   else positionActor(actor.setTexture(`myth-${name}`), layout);
-}
-
-function clipTexture(key: string): string {
-  return `myth-clip-${key}`;
 }
 
 function visibleRatio(seed: MythManifest["seeds"]["hero"]): number {

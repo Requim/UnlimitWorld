@@ -22,7 +22,8 @@ export default function MythApp() {
   const presentation = useMythPresentation(session.run, session.events, adapter, session.resync);
   const run = presentation.run;
   const networkLocked = session.busy || session.uncertain;
-  const commandLocked = networkLocked || presentation.busy;
+  const stageLocked = run?.phase === "combat" && adapter === null;
+  const commandLocked = networkLocked || presentation.busy || stageLocked;
   const updateSettings = (next: GameSettings) => { setSettings(next); saveSettings(next); };
   if (session.status === "unauthorized") return <RecoveryScreen message={session.error} onReset={session.resetSession} />;
   if (session.status === "error" && !run) return <LoadError message={session.error} />;
