@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1300,
+    "prompt_sha256": "1c04baf78fb3fdf7041c58e71977fa7c102a212455d953a378468bec6f3ae9f7",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 504578,
+    "reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4769599,
+  "response_sha256": "9621e54164eb21eb2a7f600f0f7c1ac1f1820766ef99606584525d4b7e550059",
+  "response_structure": {
+    "created": 1791604600,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4768232
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1300
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "hero-defeat-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3576174,
+  "sha256": "e78deb9d46d3f509ee5f6cfb7b370528004014d134e2467dc3b7103427817291",
+  "elapsed_seconds": 65.518
+}

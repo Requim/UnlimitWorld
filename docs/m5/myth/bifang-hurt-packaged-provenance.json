@@ -1,0 +1,52 @@
+{
+  "name": "bifang_hurt",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "c031f619769af575c176af7ddf3801716e8bfcba7fd66950c4e0cd85d53fae69",
+  "anchor_sha256": "a2bbb223fb3819c09dd5c71b93450914165766ae083fbeb259e961f41b088680",
+  "shared_scale": 0.7514677103718199,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/bifang_hurt.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 768
+  },
+  "seed_scale": 0.35277873662409387,
+  "curated_pose_centers": [
+    [
+      510,
+      640
+    ],
+    [
+      1400,
+      650
+    ],
+    [
+      2200,
+      600
+    ],
+    [
+      3300,
+      670
+    ]
+  ],
+  "extra_component_centers": null,
+  "visible_source_pixels": 929033,
+  "unassigned_pixels": 80,
+  "alpha_coverage": 0.9999138889576581,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "0f3f7fdf04c12f8a282031a21f2c2b89bcba2f4da7795c94e0a6bb75aa0a609f",
+  "output_bytes": 1306506
+}

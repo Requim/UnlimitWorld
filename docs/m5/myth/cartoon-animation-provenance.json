@@ -1,0 +1,76 @@
+{
+  "date": "2026-10-10",
+  "status": "nine-clips-published-for-review-one-rejected",
+  "seed_user_approval_count": 3,
+  "seed_user_approval_feedback": "认可，战斗状态是 角色是会动的",
+  "action_user_visual_approval": false,
+  "provider_requested": "https://api2.jojocode.com/v1",
+  "operation": "reference-image-edit",
+  "model_requested": "gpt-image-2",
+  "quality_requested": "high",
+  "output_format": "png",
+  "image_posts_this_action_batch": 10,
+  "automatic_retries": 0,
+  "images_saved": 10,
+  "clips_published": 9,
+  "billing_status": "unknown",
+  "provider_internal_upscaling": "unknown",
+  "local_upscaling": false,
+  "reference_preparation": {
+    "tool": "build_sprite_edit_canvas.py",
+    "canvas_size": [3840, 3840],
+    "slot_size": [960, 960],
+    "reference_frames": 4,
+    "hero_reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b",
+    "bifang_reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "alpha_preparation": {
+    "tool": "remove_chroma_key.py",
+    "options": ["--auto-key", "corners", "--tolerance", "96", "--edge-contract", "1", "--edge-feather", "0.2"],
+    "native_transparency": false,
+    "canvas_resized": false,
+    "remaining_risk": "Fine magenta and green fringe on some hair or feathers remains; polish is not finally accepted."
+  },
+  "normalization": {
+    "tool": "tools/prepare_myth_animation.py",
+    "frame_size": [768, 768],
+    "frame_count": 4,
+    "sheet_size": [3072, 768],
+    "anchor": [0.5, 1],
+    "frame_one_locked_to_approved_seed": true,
+    "common_scale_per_clip": true,
+    "resampling": "Lanczos-downsampling-only",
+    "minimum_distinct_poses": 3,
+    "adjacent_duplicate_poses_allowed": false,
+    "deliberate_final_return_to_start_allowed": true,
+    "curated_minimum_alpha_coverage": 0.998,
+    "hero_idle_extraction": "Four equal slots; all content remains inside its slot.",
+    "other_clip_extraction": "Four curated body components; bifang_strike also includes explicit detached components."
+  },
+  "published": [
+    {"id": "hero_idle", "fps": 4, "reference_height": 762},
+    {"id": "hero_sword", "fps": 8, "reference_height": 634, "requested_size": [3840, 1280], "actual_size": [3840, 1648], "exact_requested_dimensions": false},
+    {"id": "hero_cast", "fps": 8, "reference_height": 768},
+    {"id": "hero_hurt", "fps": 8, "reference_height": 768},
+    {"id": "hero_defeat", "fps": 8, "reference_height": 768},
+    {"id": "bifang_idle", "fps": 4, "reference_height": 764},
+    {"id": "bifang_charge", "fps": 8, "reference_height": 679},
+    {"id": "bifang_strike", "fps": 8, "reference_height": 662},
+    {"id": "bifang_hurt", "fps": 8, "reference_height": 768}
+  ],
+  "per_clip_evidence": "docs/m5/myth/{dash-name}-packaged-provenance.json and image-response-20261010-{dash-name}.json",
+  "other_raw_strip_dimensions": [3840, 1280],
+  "rejected": [
+    {
+      "id": "bifang_retreat",
+      "report_file": "docs/m5/myth/image-response-20261010-bifang-retreat.json",
+      "source_sha256": "6d563109744b3543799c7f58b67d14f98eabd9f2100f3c496add49aa07b26c3b",
+      "reason": "Second pose shows two legs and several beaks are deformed.",
+      "published": false,
+      "paid_retry": false
+    }
+  ],
+  "card_illustrations_generated": 0,
+  "task4_complete": false,
+  "milestone5_complete": false
+}

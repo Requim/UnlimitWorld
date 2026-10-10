@@ -1,0 +1,50 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1328,
+    "prompt_sha256": "6daebf3860d0fc18c78d167ed53e64695eed2b081abea30648ec7f21091ac525",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 504578,
+    "reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 147,
+  "response_sha256": "d023580b43f58c748e8850ba641f23aefce334e953b718980af43ea8d676af9e",
+  "response_structure": {
+    "created": 1791604478,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 105
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "hero-cast-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 4613606,
+  "sha256": "92a52906d83c8c868ab4d4ddcf7479b2b8cef63e126721189edd09cdda6b87f1",
+  "elapsed_seconds": 87.893
+}

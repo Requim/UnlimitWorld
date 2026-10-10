@@ -75,6 +75,19 @@ def test_bundle_keeps_actual_pixels_and_does_not_claim_requested_resolution(tmp_
     assert manifest["seeds"]["scene"]["size"] == [64, 36]
 
 
+def test_visible_bounds_keep_padding_out_of_actor_footing_and_target_boxes(tmp_path):
+    source, target = tmp_path / "source", tmp_path / "assets"
+    seed_inputs(source)
+    report = pipeline().prepare_seeds(source, target)
+    manifest = json.loads((target / "manifest.json").read_text())
+    assert report["assets"]["hero"]["visible_bounds"] == [6, 6, 24, 42]
+    assert manifest["seeds"]["hero"]["bounds"] == [6, 6, 24, 42]
+    assert manifest["seeds"]["bifang"]["bounds"] == [6, 6, 24, 42]
+    assert manifest["seeds"]["scene"]["bounds"] == [0, 0, 64, 36]
+    with Image.open(target / "seeds/hero.png") as image:
+        assert image.size == (32, 48)
+
+
 @pytest.mark.parametrize("color", [(255, 255, 255, 255), (0, 0, 0, 0)])
 def test_fake_or_empty_alpha_preflight_does_not_write_bundle(tmp_path, color):
     source, target = tmp_path / "source", tmp_path / "assets"

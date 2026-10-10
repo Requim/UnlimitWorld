@@ -28,7 +28,8 @@ def prepare_seeds(source_dir: Path, asset_root: Path, report_path: Path | None =
         report_path: Optional JSON evidence file published in the same transaction.
 
     Returns:
-        Provenance data with actual sizes, hashes, alpha method and target status.
+        Provenance data with actual sizes, hashes, alpha method, visible pixel bounds
+        and target status. Bounds use left/top/right/bottom with exclusive far edges.
 
     Raises:
         OSError or ValueError for invalid input, unsafe paths, encoding, validation or
@@ -146,6 +147,8 @@ def _stage_asset(item: dict, stage: Path) -> dict:
         "url": f"/assets/myth/seeds/{output.name}",
         "requested_size": list(item["expected"]),
         "source_size": list(item["source_size"]), "output_size": list(item["image"].size),
+        "visible_bounds": list(item["image"].getchannel("A").getbbox()) if item["alpha"]
+        else [0, 0, *item["image"].size],
         "native_target_met": item["source_size"] == item["expected"],
         "alpha_method": "provided-alpha-cutout" if item["alpha"] else "not-applicable",
         "source_sha256": _digest(item["raw_path"]),
@@ -167,7 +170,8 @@ def _manifest(report: dict) -> dict:
     return {
         "version": report["version"], "status": report["status"],
         "dimensions_met": report["dimensions_met"],
-        "seeds": {key: {"url": value["url"], "size": value["output_size"]}
+        "seeds": {key: {"url": value["url"], "size": value["output_size"],
+                        "bounds": value["visible_bounds"]}
                   for key, value in report["assets"].items()},
         "animations": {}, "cards": {},
     }

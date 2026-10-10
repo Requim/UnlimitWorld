@@ -22,6 +22,7 @@ from PIL import Image, UnidentifiedImageError
 
 
 ENDPOINT = "https://api2.jojocode.com/v1/images/generations"
+EDIT_ENDPOINT = "https://api2.jojocode.com/v1/images/edits"
 MODEL = "gpt-image-2"
 MAX_IMAGE_BYTES = 32 * 1024 * 1024
 MAX_RESPONSE_BYTES = 64 * 1024 * 1024
@@ -134,10 +135,19 @@ def _bounded_body(response: httpx.Response, limit: int) -> bytes:
     return b"".join(chunks)
 
 
-def _generate_response(client: httpx.Client, payload: dict, key: str, report: dict) -> dict:
+def _image_request(payload: dict, key: str, reference: bytes | None) -> httpx.Request:
+    headers = {"Authorization": f"Bearer {key}"}
+    if reference is None:
+        return httpx.Request("POST", ENDPOINT, json=payload, headers=headers)
+    return httpx.Request(
+        "POST", EDIT_ENDPOINT, data={name: str(value) for name, value in payload.items()},
+        files={"image[]": ("reference.png", reference, "image/png")}, headers=headers)
+
+
+def _generate_response(client: httpx.Client, payload: dict, key: str, report: dict,
+                       reference: bytes | None = None) -> dict:
     report["image_posts"] = 1
-    request = httpx.Request("POST", ENDPOINT, json=payload,
-                            headers={"Authorization": f"Bearer {key}"})
+    request = _image_request(payload, key, reference)
     response = client.send(request, auth=None, stream=True, follow_redirects=False)
     try:
         report["http_status"] = response.status_code
@@ -286,6 +296,43 @@ def generate_image(job: dict, output_dir: Path, api_key: str, *,
         Final report publication failure retains a verified image, raises a distinct
         safe error code and attempts to write failure-report.json for recovery.
     """
+    return _execute_image(job, output_dir, api_key, allow_paid_request, client)
+
+
+def _load_reference(path: Path) -> tuple[bytes, dict]:
+    try:
+        if not path.is_file() or path.stat().st_size > MAX_IMAGE_BYTES:
+            raise ImageGenerationError("INVALID_REFERENCE_IMAGE")
+        data = path.read_bytes()
+        format_name, size = _inspect_image(data)
+        if format_name != "PNG" or not data:
+            raise ImageGenerationError("INVALID_REFERENCE_IMAGE")
+    except (OSError, ImageGenerationError):
+        raise ImageGenerationError("INVALID_REFERENCE_IMAGE") from None
+    return data, {"operation": "edit", "reference_size": list(size),
+                  "reference_bytes": len(data), "reference_sha256": sha256(data).hexdigest()}
+
+
+def edit_image(job: dict, reference_image: Path, output_dir: Path, api_key: str, *,
+               allow_paid_request: bool = False,
+               client: httpx.Client | None = None) -> dict:
+    """Edit one approved PNG reference with one opt-in multipart POST.
+
+    Accepts the same job parameters as generate_image plus a local reference PNG.
+    Returns redacted output evidence and reference dimensions/hash, never its path.
+    Validates before filesystem/network effects; uses only the fixed edit endpoint.
+    Failures follow generate_image's safe errors and preservation rules. Never
+    retries or falls back to text generation when the reference/edit request fails.
+    """
+    build_payload(job)
+    reference, metadata = _load_reference(reference_image)
+    return _execute_image(job, output_dir, api_key, allow_paid_request, client,
+                          reference, metadata)
+
+
+def _execute_image(job: dict, output_dir: Path, api_key: str, allow_paid_request: bool,
+                   client: httpx.Client | None, reference: bytes | None = None,
+                   reference_metadata: dict | None = None) -> dict:
     payload = build_payload(job)
     if not allow_paid_request or not isinstance(api_key, str) or not api_key.strip():
         raise ImageGenerationError("API_KEY_REQUIRED" if allow_paid_request else "PAID_OPT_IN_REQUIRED")
@@ -295,12 +342,14 @@ def generate_image(job: dict, output_dir: Path, api_key: str, *,
     root.mkdir(parents=True, exist_ok=False)
     report = {"status": "pending", "request": _request_metadata(payload),
               "image_posts": 0, "http_status": None, "billing_status": "unknown"}
+    if reference_metadata:
+        report["request"].update(reference_metadata)
     _write_report(root, report)
     started = time.monotonic()
     scope = nullcontext(client) if client else httpx.Client(timeout=600, trust_env=False)
     try:
         with scope as active:
-            value = _generate_response(active, payload, api_key, report)
+            value = _generate_response(active, payload, api_key, report, reference)
             _write_report(root, report)
             data = _image_bytes(active, value, report, root)
             _save_image(root, job.get("out", "image.png"), data, payload, report)
@@ -317,23 +366,26 @@ def generate_image(job: dict, output_dir: Path, api_key: str, *,
 def main() -> int:
     """Run one JSON/JSONL job; default to a redacted dry-run with no network effects.
 
-    Inputs are --input, --out-dir and optional --allow-paid-request. Live mode reads
+    Inputs are --input, --out-dir, optional --image and --allow-paid-request. Reads
     OPENAI_API_KEY only from process environment. Returns 0 on verified image save
     or dry-run, 1 on safe errors; never prints provider URLs, prompts or credentials.
     """
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--out-dir", type=Path, required=True)
+    parser.add_argument("--image", type=Path, help="Approved PNG reference; selects edit endpoint")
     parser.add_argument("--allow-paid-request", action="store_true")
     args = parser.parse_args()
     try:
         job = json.loads(args.input.read_text(encoding="utf-8"))
         payload = build_payload(job)
         if not args.allow_paid_request:
-            print(json.dumps({"dry_run": True, **_request_metadata(payload)}, indent=2))
+            metadata = _load_reference(args.image)[1] if args.image else {}
+            print(json.dumps({"dry_run": True, **_request_metadata(payload), **metadata}, indent=2))
             return 0
-        report = generate_image(job, args.out_dir, os.environ.get("OPENAI_API_KEY", ""),
-                                allow_paid_request=True)
+        key = os.environ.get("OPENAI_API_KEY", "")
+        report = (edit_image(job, args.image, args.out_dir, key, allow_paid_request=True)
+                  if args.image else generate_image(job, args.out_dir, key, allow_paid_request=True))
         print(json.dumps(report, indent=2))
         return 0
     except (ImageGenerationError, OSError, ValueError) as error:

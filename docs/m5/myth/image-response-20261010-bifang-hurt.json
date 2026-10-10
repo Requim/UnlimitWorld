@@ -1,0 +1,50 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1187,
+    "prompt_sha256": "8f09faa1fbb290b852cc892a16cce1059ee80df51662e08f354e2bd203a6d2b7",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 575519,
+    "reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 147,
+  "response_sha256": "dce558a3a2e286c73c1db992fe6050b874d4aa3b0d5b5f463bafc48bd140bdf2",
+  "response_structure": {
+    "created": 1791604632,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 105
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "bifang-hurt-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 4250616,
+  "sha256": "9f6b09426eee5dc18b9c93a091df9e1ea227db9f779888b8b9afe712548140cd",
+  "elapsed_seconds": 103.28
+}

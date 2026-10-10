@@ -1,6 +1,6 @@
 {
   "date": "2026-10-10",
-  "status": "bifang-approved-companion-seeds-awaiting-review",
+  "status": "bifang-seed-approved-companions-now-approved",
   "scope": "This record describes the single Bifang sample, not approval of companion seeds or production animation.",
   "authorization": "User approved the proposed guofeng animation direction and one Bifang style sample with deadpan, indignant comedy.",
   "direction_approved": true,
@@ -21,6 +21,8 @@
   "game_manifest_updated": false,
   "old_realistic_seed_provenance": "docs/m5/myth/seed-provenance.json",
   "companion_provenance_file": "docs/m5/myth/cartoon-companion-provenance.json",
+  "current_animation_provenance_file": "docs/m5/myth/cartoon-animation-provenance.json",
+  "historical_request_scope": "Counters and tool digest below describe the single style-sample generation, not later companion or action requests.",
   "asset": {
     "id": "bifang-cartoon-style-v1",
     "source_path": ".data/imagegen/myth-seeds/cartoon-20261010-bifang-1/bifang-cartoon-seed.png",

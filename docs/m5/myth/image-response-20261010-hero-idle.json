@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1354,
+    "prompt_sha256": "bbde7d3e77a2ab7e210e00e6f7369b0f5fd5fd8849506acc7203b74e66380c6f",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 504578,
+    "reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4875133,
+  "response_sha256": "9381392feb4c7d0f07be26331a36e2b9efee3d430944891272a270640becafd7",
+  "response_structure": {
+    "created": 1791604401,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4873712
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1354
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "hero-idle-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3655283,
+  "sha256": "33bdf62546f31138cee04d3f815f9df3ccf3907a6deb72084b287293ace2d258",
+  "elapsed_seconds": 54.283
+}

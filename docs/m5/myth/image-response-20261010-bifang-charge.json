@@ -1,0 +1,50 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1379,
+    "prompt_sha256": "e115acb93b560807741d89bba10141f8dffb5cca214f5cd484f0a9b9de3f0b9d",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 575519,
+    "reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 147,
+  "response_sha256": "364ef3629cbe699238fa924281848573168fe6547a78056da7b75014089b7f76",
+  "response_structure": {
+    "created": 1791604475,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 105
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "bifang-charge-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 4260417,
+  "sha256": "5dedae3c222b1fbec4c8c614969bb596e744238dd175fde45c0fd7cfa5d91739",
+  "elapsed_seconds": 79.878
+}

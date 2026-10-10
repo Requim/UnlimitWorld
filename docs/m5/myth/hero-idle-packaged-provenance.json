@@ -1,0 +1,33 @@
+{
+  "name": "hero_idle",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "09ccfde1ac5405033cb981327fc6e06c6903627e7ec11fff8f332646aafff786",
+  "anchor_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+  "shared_scale": 0.6906474820143885,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/hero_idle.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 4.0,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 762
+  },
+  "seed_scale": 0.3821898821898822,
+  "curated_pose_centers": null,
+  "extra_component_centers": null,
+  "alpha_coverage": 1,
+  "unassigned_pixels": 0,
+  "output_sha256": "cecf24a6af3e12163df3f3023ffd1222cb62447d4ec1d65518952add73212a5f",
+  "output_bytes": 1445105
+}

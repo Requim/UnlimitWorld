@@ -1,0 +1,51 @@
+{
+  "name": "bifang_idle",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "8cb108bac9aaa00059dedc7be63387144ecc50b56a527c9c90641b19a9bb921a",
+  "anchor_sha256": "a2bbb223fb3819c09dd5c71b93450914165766ae083fbeb259e961f41b088680",
+  "shared_scale": 0.7013698630136986,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/bifang_idle.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 4.0,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 764
+  },
+  "seed_scale": 0.3759061097687263,
+  "curated_pose_centers": [
+    [
+      490,
+      600
+    ],
+    [
+      1420,
+      600
+    ],
+    [
+      2370,
+      640
+    ],
+    [
+      3310,
+      610
+    ]
+  ],
+  "visible_source_pixels": 1144203,
+  "unassigned_pixels": 1611,
+  "alpha_coverage": 0.9985920330570711,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "a2777b18b59b89df988d83f0aade71b2ace596bf1eb76f50591fabf4852f593a",
+  "output_bytes": 1380080
+}

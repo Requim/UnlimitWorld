@@ -1,0 +1,52 @@
+{
+  "name": "hero_cast",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "8e5333b00b2f3a97cf4ba2206a5f3e12fb184ce9256099ee7bd90a9b32a4b986",
+  "anchor_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+  "shared_scale": 0.7091412742382271,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/hero_cast.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 768
+  },
+  "seed_scale": 0.37525987525987525,
+  "curated_pose_centers": [
+    [
+      470,
+      640
+    ],
+    [
+      1420,
+      640
+    ],
+    [
+      2340,
+      640
+    ],
+    [
+      3320,
+      640
+    ]
+  ],
+  "extra_component_centers": null,
+  "visible_source_pixels": 1220913,
+  "unassigned_pixels": 168,
+  "alpha_coverage": 0.9998623980578468,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "14344d8cd3b33587a5192f494f9e998a6e3147bcf8693135f82658b0b143f841",
+  "output_bytes": 1442519
+}

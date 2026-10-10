@@ -1,0 +1,52 @@
+{
+  "name": "hero_hurt",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "f769136e1b4a561ed9875212313207e0f0e86149f6d6ebf56d0527bc252e79a0",
+  "anchor_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+  "shared_scale": 0.7485380116959064,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/hero_hurt.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 768
+  },
+  "seed_scale": 0.35550935550935553,
+  "curated_pose_centers": [
+    [
+      460,
+      640
+    ],
+    [
+      1390,
+      720
+    ],
+    [
+      2300,
+      720
+    ],
+    [
+      3310,
+      640
+    ]
+  ],
+  "extra_component_centers": null,
+  "visible_source_pixels": 1140862,
+  "unassigned_pixels": 2048,
+  "alpha_coverage": 0.9982048661450728,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "d6080535adf12ba606b9c58d22ea909cd59a4359d10d896d3f17cf6fddf23e82",
+  "output_bytes": 1548577
+}

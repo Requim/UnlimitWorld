@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1349,
+    "prompt_sha256": "2ad7453b7de68db131cf4be5abf6a2fc782ea280bba72e54574d6c46c2351136",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 575519,
+    "reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4631400,
+  "response_sha256": "9fac5da6e1dd225841ba69b9c29a654d0d50f2de2843c0c8ad1c1101fa138f0e",
+  "response_structure": {
+    "created": 1791604530,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4629984
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1349
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "bifang-strike-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3472487,
+  "sha256": "48f98281e295264527d143ea184c070b32f02c3a98e8bebd1977286649935489",
+  "elapsed_seconds": 52.889
+}

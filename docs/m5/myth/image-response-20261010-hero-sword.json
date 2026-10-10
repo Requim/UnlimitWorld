@@ -1,0 +1,50 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2512,
+    "prompt_sha256": "a6a34eb83de6a9d3bad9dda3cbcd8c5fc86ca28f30b8ac6332d63b8b723c5f4e",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 504578,
+    "reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 147,
+  "response_sha256": "9af017ee0d59f5d3c225e5ea58b74fe5c3c5187c3c30daf40c2daf5cce687432",
+  "response_structure": {
+    "created": 1791603810,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 105
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "hero-sword-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1648
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": false,
+  "bytes": 5228768,
+  "sha256": "84e1ccc3226a46f7ce244194e5aab60abdc9dc2bff0ae9001dde7e7169be42e0",
+  "elapsed_seconds": 75.608
+}

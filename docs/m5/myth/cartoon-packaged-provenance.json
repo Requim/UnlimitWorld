@@ -1,0 +1,90 @@
+{
+  "version": "bifang-v1",
+  "status": "seed-review",
+  "model_requested": "gpt-image-2",
+  "quality_requested": "high",
+  "dimensions_met": true,
+  "assets": {
+    "hero": {
+      "url": "/assets/myth/seeds/hero.png",
+      "requested_size": [
+        2048,
+        3072
+      ],
+      "source_size": [
+        2048,
+        3072
+      ],
+      "output_size": [
+        2048,
+        3072
+      ],
+      "visible_bounds": [
+        371,
+        93,
+        1743,
+        2981
+      ],
+      "native_target_met": true,
+      "alpha_method": "provided-alpha-cutout",
+      "source_sha256": "346ad0c86066019696ce7249f095fd5b5e60cb1582eadf476de18c899c664cdd",
+      "prepared_input_sha256": "b2c5a5e792b8cc7e3d47807c1e098503a580d443574cc731ad683e44a69ca658",
+      "output_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+      "bytes": 2975058
+    },
+    "bifang": {
+      "url": "/assets/myth/seeds/bifang.png",
+      "requested_size": [
+        2048,
+        3072
+      ],
+      "source_size": [
+        2048,
+        3072
+      ],
+      "output_size": [
+        2048,
+        3072
+      ],
+      "visible_bounds": [
+        77,
+        91,
+        1867,
+        2990
+      ],
+      "native_target_met": true,
+      "alpha_method": "provided-alpha-cutout",
+      "source_sha256": "8dd8ebda40eea01c7774de97a6cf09de4aad7ed8d1d296409088a6b22599491d",
+      "prepared_input_sha256": "3c15565352f9355d33169cf49fe814348ce454ef651db334c0ca530a1e94ba39",
+      "output_sha256": "a2bbb223fb3819c09dd5c71b93450914165766ae083fbeb259e961f41b088680",
+      "bytes": 3500927
+    },
+    "scene": {
+      "url": "/assets/myth/seeds/zhang-e-mountain.webp",
+      "requested_size": [
+        3840,
+        2160
+      ],
+      "source_size": [
+        3840,
+        2160
+      ],
+      "output_size": [
+        3840,
+        2160
+      ],
+      "visible_bounds": [
+        0,
+        0,
+        3840,
+        2160
+      ],
+      "native_target_met": true,
+      "alpha_method": "not-applicable",
+      "source_sha256": "8125cc3422d83cab57d2a0f2b1196bb52be5b7a3adcb57ecacf23a9f7f623f3b",
+      "prepared_input_sha256": "8125cc3422d83cab57d2a0f2b1196bb52be5b7a3adcb57ecacf23a9f7f623f3b",
+      "output_sha256": "ea55dbdeb8f75e000e56972b28e5b24457644b4b504dbde5aee45f7a21392c75",
+      "bytes": 772494
+    }
+  }
+}

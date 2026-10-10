@@ -14,9 +14,13 @@
 更卡通、诙谐搞怪。旧种子与旧提示词不再作为当前美术验收输入；
 3B 实施中止并保留交接。用户随后确认新单张方案，卡通毕方一次生成成功，
 实际 2048×3072。用户随后认可实际毕方；配套修士 2048×3072、
-场景 3840×2160 各一次生成成功，已核验并合成静态构图，两张仍待用户认可。
-未恢复 3B 草稿、未生成动作或卡面，未将样张写入游戏 manifest。
-Task 1 与 3A 保持已完成，Task 4 仍须实际种子认可；不重新派已完成任务。
+场景 3840×2160 各一次生成成功，已核验并合成静态构图。
+用户随后反馈「认可，战斗状态是 角色是会动的」，三种子实际认可完成。
+现恢复 3B 草稿与 Task 4；先验证参考图 edit 路径，再按动作各一次请求。
+真实姿态变化是硬验收项，静态立绘晃动不算角色动作。
+Task 1 与 3A 保持已完成，不重新派已完成任务。当前三种子已整理入独立目录，
+九条实际动作发布为 animation-review；畸形退场拒绝且无重试，九张卡面未生成，
+3B 与完整动作体验验收仍在推进，不称 Task4 或 M5 完成。
 
 ## Global Constraints
 
@@ -98,7 +102,7 @@ def test_myth_start_has_story_and_sample_deck(client):
 **Steps**
 - [x] Prompts: guofeng animation-style adult swordsman and one-legged Bifang on flat magenta; bare jade mountain and clear combat terrace. No rendered UI/text or existing IP copying.
   三张新提示词与原图已取得，旧 `seeds.jsonl` 仅作为历史请求；毕方已认可，
-  配套修士/场景仍待实际视觉审核。
+  三张卡通实际图片已获得用户视觉认可。
 - [x] Original CLI generate-batch uses exact user host, gpt-image-2/high, 3 jobs and max-attempts 1; no extra paid attempts if returns wrong size.
   首轮返回解析失败已归档；2026-10-09 用户授权项目适配器并取得毕方。
   2026-10-10 用户要求继续实施，缺失修士/场景沿用已验证适配器各请求一次，
@@ -106,10 +110,13 @@ def test_myth_start_has_story_and_sample_deck(client):
 - [x] Inspect all returned images and actual dimensions; preserve SHA256 and requested/actual dimensions without credential. Only correctly sized images labelled native-target-met.
   卡通三图实际精确目标尺寸，来源分开记录；不继承被拒绝写实图的认可状态。
 - [x] Original chroma-key tool removes backgrounds; inspect full limbs/weapon/beak/feather edges, never claim original alpha.
-  仅完成本地审核候选与检查；细发/羽缘紫边还须精修，不等于正式精灵可发布。
-- [ ] Save final images in independent myth directory and manifest status seed-review, not animation-ready. Existing assets remain intact.
-- [ ] Add preparation checks (dimension mismatch, invalid target/path, alpha preservation) before implementation when a normalization tool is needed; do not upscale low-resolution source.
-- [ ] Show the three local files to user with actual decoded dimensions. No card/sprite generation until user approves these actual seeds.
+  已检查并整理进入独立种子目录；少量细发/羽缘紫边保留为精修风险，
+  不等于所有动作或整场视觉已验收。
+- [x] Save final images in independent myth directory and manifest status seed-review, not animation-ready. Existing assets remain intact.
+  先 seed-review 发布；接入九条动作后变为 animation-review，而非 ready。
+- [x] Add preparation checks (dimension mismatch, invalid target/path, alpha preservation) before implementation when a normalization tool is needed; do not upscale low-resolution source.
+- [x] Show the three local files to user with actual decoded dimensions. No card/sprite generation until user approves these actual seeds.
+  2026-10-10 三张卡通实际种子获用户认可；正式边缘与动作仍须单独验证。
 - [ ] Record actual test/visual result in M5 and Chinese commit/push reviewed seed unit.
 
 ## Task 3: 独立入口与生命周期安全的表现队列
@@ -181,6 +188,9 @@ def test_myth_start_has_story_and_sample_deck(client):
 **Steps**
 - [ ] Approved seed reference -> whole horizontal strip with consistent anchors, not independent frame generation. Hero idle/sword/cast/hurt/defeat; Bifang idle/charge/strike/hurt/retreat.
 - [ ] Original normalization scripts, inspect every pose/limb/one-leg, record source/frame dimensions/count/duration/anchor and DPR suitability.
+  原参考图 canvas/色键工具配合 cartoon Lanczos 共同缩放规范化；
+  九条已检查并记录四帧768像素、FPS与reference_height。
+  退场畸形未通过、最终DPR/实际动作体验尚未全验收，不打勾。
 - [ ] Generate only the 9 spec card illustrations at 1536x1152; DOM renders readable text.
 - [ ] Connect real sprite clips to ordered effects: sword/fire feather/shield/thunder/redirect/last hit. Reduced motion turns off shake/strong flashes without losing state feedback.
 - [ ] Use actual current server and normal UI through three archetypes, choices, wins/deaths/reset/refresh/restart, unknown response/exact retry/409/401/late callbacks.

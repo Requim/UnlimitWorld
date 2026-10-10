@@ -1,12 +1,17 @@
 {
   "date": "2026-10-10",
-  "status": "companion-seeds-saved-awaiting-user-visual-approval",
+  "status": "all-cartoon-seeds-user-approved-nine-action-clips-in-review",
+  "user_approval_date": "2026-10-10",
+  "user_approval_feedback": "认可，战斗状态是 角色是会动的",
   "authorization": "User accepted the displayed Bifang and continuation follows the approved plan to unify the cultivator and scene.",
   "provider_requested": "https://api2.jojocode.com/v1",
   "tool": "tools/jojocode_image.py",
   "tool_sha256": "0be36fed20d7c36cd52633ef905ce7ec284fdc4eaa5cb44d2c7e8eae6ff1574f",
   "mode": "authorized-project-CLI-adapter-generation",
   "style_conditioning": "Text descriptions matching the accepted style; no reference-image upload.",
+  "historical_request_scope": "Generation counters, conditioning and tool digest in this record refer only to the two companion seeds, before action edit requests.",
+  "current_packaged_provenance_file": "docs/m5/myth/cartoon-packaged-provenance.json",
+  "current_animation_provenance_file": "docs/m5/myth/cartoon-animation-provenance.json",
   "image_posts_this_continuation": 2,
   "automatic_retries": 0,
   "images_saved_this_continuation": 2,
@@ -14,10 +19,10 @@
   "animation_or_card_posts": 0,
   "billing_status": "unknown",
   "game_manifest_updated": false,
-  "all_seed_visual_approval": false,
+  "all_seed_visual_approval": true,
   "required_seed_count": 3,
   "decoded_cartoon_seed_count": 3,
-  "user_approved_seed_count": 1,
+  "user_approved_seed_count": 3,
   "approved_bifang_provenance": "docs/m5/myth/cartoon-provenance.json",
   "assets": [
     {
@@ -33,7 +38,7 @@
       "exact_requested_dimensions": true,
       "local_upscaling": false,
       "provider_internal_upscaling": "unknown",
-      "user_visual_approval": false,
+      "user_visual_approval": true,
       "visual_review": "Adult right-facing swordsman with a tense smile and sweat, full feet and sword; cartoon character proportions remain subject to review."
     },
     {
@@ -49,7 +54,7 @@
       "exact_requested_dimensions": true,
       "local_upscaling": false,
       "provider_internal_upscaling": "unknown",
-      "user_visual_approval": false,
+      "user_visual_approval": true,
       "visual_review": "Bare jade cliffs, oversized broken arch, bright terrace and distant red fracture; some painterly rock texture remains, subject to review."
     }
   ],

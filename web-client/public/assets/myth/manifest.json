@@ -1,9 +1,121 @@
 {
   "version": "bifang-v1",
-  "status": "blocked-generation",
-  "dimensions_met": false,
-  "reason": "missing-image-payload",
-  "seeds": {},
-  "animations": {},
+  "status": "animation-review",
+  "dimensions_met": true,
+  "seeds": {
+    "hero": {
+      "url": "/assets/myth/seeds/hero.png",
+      "size": [
+        2048,
+        3072
+      ],
+      "bounds": [
+        371,
+        93,
+        1743,
+        2981
+      ]
+    },
+    "bifang": {
+      "url": "/assets/myth/seeds/bifang.png",
+      "size": [
+        2048,
+        3072
+      ],
+      "bounds": [
+        77,
+        91,
+        1867,
+        2990
+      ]
+    },
+    "scene": {
+      "url": "/assets/myth/seeds/zhang-e-mountain.webp",
+      "size": [
+        3840,
+        2160
+      ],
+      "bounds": [
+        0,
+        0,
+        3840,
+        2160
+      ]
+    }
+  },
+  "animations": {
+    "hero_idle": {
+      "url": "/assets/myth/animations/hero_idle.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 4,
+      "anchor": [0.5, 1],
+      "reference_height": 762
+    },
+    "hero_sword": {
+      "url": "/assets/myth/animations/hero_sword.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 634
+    },
+    "hero_cast": {
+      "url": "/assets/myth/animations/hero_cast.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 768
+    },
+    "hero_hurt": {
+      "url": "/assets/myth/animations/hero_hurt.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 768
+    },
+    "hero_defeat": {
+      "url": "/assets/myth/animations/hero_defeat.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 768
+    },
+    "bifang_idle": {
+      "url": "/assets/myth/animations/bifang_idle.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 4,
+      "anchor": [0.5, 1],
+      "reference_height": 764
+    },
+    "bifang_charge": {
+      "url": "/assets/myth/animations/bifang_charge.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 679
+    },
+    "bifang_strike": {
+      "url": "/assets/myth/animations/bifang_strike.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 662
+    },
+    "bifang_hurt": {
+      "url": "/assets/myth/animations/bifang_hurt.png",
+      "frame_size": [768, 768],
+      "frames": 4,
+      "fps": 8,
+      "anchor": [0.5, 1],
+      "reference_height": 768
+    }
+  },
   "cards": {}
 }

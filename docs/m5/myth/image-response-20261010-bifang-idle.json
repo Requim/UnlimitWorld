@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1258,
+    "prompt_sha256": "e90695ba793a1f7ffc05e18dc7d4c8f7b022696debf4347b7c8ddca5913b06f2",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 575519,
+    "reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4511089,
+  "response_sha256": "a4c7fa869ecdabea2f13554f9f022c5e6440f859a26e95e83778322c416f6cff",
+  "response_structure": {
+    "created": 1791604397,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4509764
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1258
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "bifang-idle-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3382322,
+  "sha256": "69097af62bff60eae3c2f910c41f27d32f3dfdc4befc51186121c41abbc0cdc0",
+  "elapsed_seconds": 50.017
+}

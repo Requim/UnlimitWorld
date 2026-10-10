@@ -1,0 +1,52 @@
+{
+  "name": "hero_defeat",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "a93a7d787be8443b82a815f44511c5e8997e343f54cb3205e0692f3b891877bd",
+  "anchor_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+  "shared_scale": 0.7007299270072993,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/hero_defeat.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 768
+  },
+  "seed_scale": 0.37976437976437977,
+  "curated_pose_centers": [
+    [
+      400,
+      650
+    ],
+    [
+      1350,
+      750
+    ],
+    [
+      2210,
+      920
+    ],
+    [
+      3250,
+      980
+    ]
+  ],
+  "extra_component_centers": null,
+  "visible_source_pixels": 1110354,
+  "unassigned_pixels": 1838,
+  "alpha_coverage": 0.9983446720595414,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "bbd18e0f54ed2a691e20fd78c52b3854a46d549cf9ff668b30ef48a60721454f",
+  "output_bytes": 1394720
+}

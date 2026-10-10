@@ -1,0 +1,51 @@
+{
+  "name": "bifang_charge",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "32c99f1bf118cd560b3d1d1b17f6daabfc537d36907f4a7e659ccb3acdc02480",
+  "anchor_sha256": "a2bbb223fb3819c09dd5c71b93450914165766ae083fbeb259e961f41b088680",
+  "shared_scale": 0.7917525773195876,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/bifang_charge.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8.0,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 679
+  },
+  "seed_scale": 0.29582326544701415,
+  "curated_pose_centers": [
+    [
+      480,
+      650
+    ],
+    [
+      1330,
+      680
+    ],
+    [
+      2270,
+      640
+    ],
+    [
+      3310,
+      670
+    ]
+  ],
+  "visible_source_pixels": 971085,
+  "unassigned_pixels": 535,
+  "alpha_coverage": 0.999449069854853,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "2c4d8ab55329f1a82bc6eb169d2f23405001e671a8fee08591e8d2b3530d5f1a",
+  "output_bytes": 1390912
+}

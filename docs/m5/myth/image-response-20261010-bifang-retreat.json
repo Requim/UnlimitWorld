@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1309,
+    "prompt_sha256": "db2dbdac3d81be0da3cc7f5f984fada2073de2f7a683bb66f9f0358f19d1a234",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 575519,
+    "reference_sha256": "f1b3218ad3371a871cc6a4a100c81141ef18b7da9fa350d27d1e2b3c8a71c152"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4094236,
+  "response_sha256": "5485a4cdb16da01a2de8d4cde57103ea85ba19000913df2ff38ff07d4b89ed2b",
+  "response_structure": {
+    "created": 1791604680,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4092860
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1309
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "bifang-retreat-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3069645,
+  "sha256": "6d563109744b3543799c7f58b67d14f98eabd9f2100f3c496add49aa07b26c3b",
+  "elapsed_seconds": 45.798
+}

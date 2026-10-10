@@ -1,0 +1,98 @@
+{
+  "name": "bifang_strike",
+  "source_size": [
+    3840,
+    1280
+  ],
+  "source_sha256": "ad5fbd3fb4ed4f44f0f5ec527606685a99b10c2a58def3784a71937973a5a204",
+  "anchor_sha256": "a2bbb223fb3819c09dd5c71b93450914165766ae083fbeb259e961f41b088680",
+  "shared_scale": 0.7293447293447294,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/bifang_strike.png",
+    "frame_size": [
+      768,
+      768
+    ],
+    "frames": 4,
+    "fps": 8,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 662
+  },
+  "seed_scale": 0.3134276838108388,
+  "curated_pose_centers": [
+    [
+      430,
+      650
+    ],
+    [
+      1300,
+      730
+    ],
+    [
+      2240,
+      650
+    ],
+    [
+      3300,
+      650
+    ]
+  ],
+  "extra_component_centers": [
+    [
+      2,
+      2299,
+      346
+    ],
+    [
+      0,
+      501,
+      469
+    ],
+    [
+      1,
+      1353,
+      456
+    ],
+    [
+      3,
+      3435,
+      469
+    ],
+    [
+      2,
+      2217,
+      449
+    ],
+    [
+      3,
+      3214,
+      771
+    ],
+    [
+      3,
+      3356,
+      387
+    ],
+    [
+      2,
+      2535,
+      697
+    ],
+    [
+      0,
+      423,
+      376
+    ]
+  ],
+  "visible_source_pixels": 1030159,
+  "unassigned_pixels": 357,
+  "alpha_coverage": 0.9996534515545659,
+  "minimum_alpha_coverage": 0.998,
+  "output_sha256": "61f17153322d4ce65a61f124f9d8a5c9e560dc1aaef89ba5eb23bbd8aad3d482",
+  "output_bytes": 1427031
+}

@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x1280",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 1263,
+    "prompt_sha256": "41768dcef37181933b708fa7459b61f0dd8ac13de10aa6f0eab0e242ed149320",
+    "operation": "edit",
+    "reference_size": [
+      3840,
+      3840
+    ],
+    "reference_bytes": 504578,
+    "reference_sha256": "125e35308568636ad22e772c8d483d59f1fff2c5e2bb6869accf5b8d4d63981b"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4492318,
+  "response_sha256": "f4885d87b91ef80fa8b1c6c42edbe7742cc8da151f7a83d2be5ae4b421fe7661",
+  "response_structure": {
+    "created": 1791604531,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4490988
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 1263
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "hero-hurt-strip.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    3840,
+    1280
+  ],
+  "requested_size": [
+    3840,
+    1280
+  ],
+  "native_target_met": true,
+  "bytes": 3368241,
+  "sha256": "50b5c9be9dfcd02debc88e36ef50dd04cd9639587e370db941bf5be7289f8e4c",
+  "elapsed_seconds": 45.384
+}

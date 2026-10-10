@@ -5,6 +5,9 @@ import importlib
 import io
 import json
 from pathlib import Path
+from email.parser import BytesParser
+from email.policy import default
+from hashlib import sha256
 import socket
 import sys
 
@@ -413,3 +416,125 @@ def test_cli_rejects_multi_job_input_before_any_paid_request(tmp_path, monkeypat
                                      "--out-dir", str(target), "--allow-paid-request"])
     assert adapter().main() == 1
     assert not target.exists()
+
+
+def edit_execute(tmp_path, payload, status=200, calls=None):
+    calls = [] if calls is None else calls
+    reference = tmp_path / "reference.png"
+    reference.write_bytes(bitmap())
+
+    def handle(request):
+        request.read()
+        calls.append(request)
+        return httpx.Response(status, json=payload)
+
+    with httpx.Client(transport=httpx.MockTransport(handle),
+                      params={"api_key": KEY}, headers={"X-API-Key": KEY}) as client:
+        report = adapter().edit_image(
+            JOB, reference, tmp_path / "attempt", KEY,
+            allow_paid_request=True, client=client)
+    return report, calls, reference
+
+
+def test_edit_uploads_exact_reference_and_preserves_approved_parameters(tmp_path):
+    raw = bitmap()
+    report, calls, reference = edit_execute(
+        tmp_path, {"data": [{"b64_json": base64.b64encode(raw).decode()}]})
+    assert len(calls) == 1
+    request = calls[0]
+    assert str(request.url) == "https://api2.jojocode.com/v1/images/edits"
+    assert request.headers["authorization"] == f"Bearer {KEY}"
+    assert "x-api-key" not in request.headers
+    message = BytesParser(policy=default).parsebytes(
+        ("Content-Type: " + request.headers["content-type"] + "\r\n\r\n").encode()
+        + request.content)
+    fields = {part.get_param("name", header="content-disposition"): part
+              for part in message.iter_parts()}
+    assert fields["image[]"].get_payload(decode=True) == reference.read_bytes()
+    assert fields["model"].get_content().strip() == "gpt-image-2"
+    assert fields["prompt"].get_content().strip() == JOB["prompt"]
+    assert fields["size"].get_content().strip() == "2048x3072"
+    assert fields["n"].get_content().strip() == "1"
+    assert fields["quality"].get_content().strip() == "high"
+    assert fields["output_format"].get_content().strip() == "png"
+    assert "input_fidelity" not in fields and "background" not in fields
+    assert report["request"]["operation"] == "edit"
+    assert report["request"]["reference_sha256"] == sha256(raw).hexdigest()
+    assert report["request"]["reference_size"] == [32, 48]
+    assert str(reference) not in json.dumps(report)
+
+
+@pytest.mark.parametrize("contents", [b"not an image", b""])
+def test_edit_invalid_reference_fails_before_network_or_output(tmp_path, contents):
+    source = tmp_path / "reference.png"
+    source.write_bytes(contents)
+    calls = []
+    with httpx.Client(transport=httpx.MockTransport(
+            lambda request: calls.append(request))) as client:
+        with pytest.raises(adapter().ImageGenerationError):
+            adapter().edit_image(JOB, source, tmp_path / "attempt", KEY,
+                                 allow_paid_request=True, client=client)
+    assert calls == []
+    assert not (tmp_path / "attempt").exists()
+
+
+def test_edit_missing_reference_is_safe_and_does_not_generate_without_it(tmp_path):
+    with pytest.raises(adapter().ImageGenerationError, match="INVALID_REFERENCE_IMAGE"):
+        adapter().edit_image(JOB, tmp_path / "private-missing.png",
+                             tmp_path / "attempt", KEY, allow_paid_request=True)
+    assert not (tmp_path / "attempt").exists()
+
+
+def test_edit_http_failure_is_not_retried_or_replaced_by_generation(tmp_path):
+    calls = []
+    with pytest.raises(adapter().ImageGenerationError, match="API_HTTP_500"):
+        edit_execute(tmp_path, {"error": {"message": KEY + URL}}, status=500, calls=calls)
+    assert [str(request.url) for request in calls] == [
+        "https://api2.jojocode.com/v1/images/edits"]
+    report = json.loads((tmp_path / "attempt/response-report.json").read_text())
+    assert report["image_posts"] == 1
+    assert report["request"]["operation"] == "edit"
+    assert KEY not in json.dumps(report) and URL not in json.dumps(report)
+
+
+def test_edit_dry_run_inspects_reference_without_sending_or_echoing_it(
+        tmp_path, monkeypatch, capsys):
+    source, job = tmp_path / "reference.png", tmp_path / "job.json"
+    source.write_bytes(bitmap())
+    job.write_text(json.dumps(JOB))
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setattr(sys, "argv", ["jojocode_image", "--input", str(job),
+                                     "--image", str(source),
+                                     "--out-dir", str(tmp_path / "attempt")])
+    assert adapter().main() == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["dry_run"] is True
+    assert report["operation"] == "edit"
+    assert report["reference_size"] == [32, 48]
+    assert str(source) not in json.dumps(report)
+    assert not (tmp_path / "attempt").exists()
+
+
+def test_live_cli_image_flag_sends_edit_and_never_generation(tmp_path, monkeypatch, capsys):
+    source, job = tmp_path / "reference.png", tmp_path / "job.json"
+    source.write_bytes(bitmap())
+    job.write_text(json.dumps(JOB))
+    calls = []
+
+    def handle(request):
+        request.read()
+        calls.append(request)
+        return httpx.Response(200, json={"data": [{
+            "b64_json": base64.b64encode(bitmap()).decode()}]})
+
+    client = httpx.Client(transport=httpx.MockTransport(handle))
+    monkeypatch.setattr(adapter().httpx, "Client", lambda **kwargs: client)
+    monkeypatch.setenv("OPENAI_API_KEY", KEY)
+    monkeypatch.setattr(sys, "argv", ["jojocode_image", "--input", str(job),
+                                     "--image", str(source), "--allow-paid-request",
+                                     "--out-dir", str(tmp_path / "attempt")])
+    assert adapter().main() == 0
+    assert [str(request.url) for request in calls] == [
+        "https://api2.jojocode.com/v1/images/edits"]
+    assert KEY not in capsys.readouterr().out
+    assert (tmp_path / "attempt/bifang-seed.png").read_bytes() == bitmap()
