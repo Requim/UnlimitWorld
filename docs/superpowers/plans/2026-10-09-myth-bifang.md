@@ -20,7 +20,8 @@
 真实姿态变化是硬验收项，静态立绘晃动不算角色动作。
 Task 1 与 3A 保持已完成，不重新派已完成任务。当前三种子已整理入独立目录，
 九条实际动作发布为 animation-review；畸形退场拒绝且无重试，九张卡面未生成，
-3B 与完整动作体验验收仍在推进，不称 Task4 或 M5 完成。
+3B技术入口、浏览器验证及加载门控修复已独立复审通过；
+完整动作体验仍待用户判断，不称 Task4 或 M5 完成。
 
 ## Global Constraints
 
@@ -117,7 +118,9 @@ def test_myth_start_has_story_and_sample_deck(client):
 - [x] Add preparation checks (dimension mismatch, invalid target/path, alpha preservation) before implementation when a normalization tool is needed; do not upscale low-resolution source.
 - [x] Show the three local files to user with actual decoded dimensions. No card/sprite generation until user approves these actual seeds.
   2026-10-10 三张卡通实际种子获用户认可；正式边缘与动作仍须单独验证。
-- [ ] Record actual test/visual result in M5 and Chinese commit/push reviewed seed unit.
+- [x] Record actual test/visual result in M5 and Chinese commit/push reviewed seed unit.
+  资源/工具独立归档 `44f5682`，远端完整SHA已核对；
+  九条动作部分发布不代表 Task4 完成。
 
 ## Task 3: 独立入口与生命周期安全的表现队列
 
@@ -153,7 +156,7 @@ def test_myth_start_has_story_and_sample_deck(client):
 - [x] 跑 npm test、typecheck、build、check:functions；经典真实 Chrome smoke/恢复路径不回退。自审、独立审查。
 - [x] 控制器补文档、中文归档与 push；完成后在本计划 ledger 记录确切远端 SHA。
 
-### 3B 可见入口与场景（保留待实施）
+### 3B 可见入口与场景（技术验证完成）
 
 **Files**
 - Modify: `web-client/src/main.tsx`, `api/client.ts`, `state/storage.ts`, `hooks/useGameSession.ts`
@@ -165,15 +168,18 @@ def test_myth_start_has_story_and_sample_deck(client):
 - Add: mode/storage tests and `web-client/e2e/myth.spec.ts`
 
 **Steps**
-- [ ] Route by pathname `/myth` without adding router dependency; root remains existing App.
-- [ ] Mode-aware API create optional parameter; hook mode optional classic; mode-specific storage preserves root credential and default existing key. Test independent keys, restore mismatch rejection and late response after mode/reset.
-- [ ] Myth first screen is actual three-archetype choice; story shows complete tradeoffs from server. All commands go through existing idempotent queue.
-- [ ] Scene fills available space with shared portrait/landscape geometry for target hitboxes. Pending seed art explicitly marked unaccepted via UI state, never silently substituted with old comic character.
-- [ ] Implement pure injectable presentation queue TDD: events ordered, revision duplicate ignored, final outcome delayed, cancellation generation isolation, adapter failure unlock and authority resync; test with deferred promises (no arbitrary sleeps).
-- [ ] DOM HP/resource display consumes event.state_after during presentation then authoritative run; selection commands disabled during presentation and network uncertainty separately.
-- [ ] Technical runtime supports texture animation clips from manifest; no strips means pending required actions, not movement of a static seed called real animation.
-- [ ] Test startup/story/all choices/battle refresh/reset, 401/409/exact retry/unmount and lethal ending delay. Four viewport screenshots and actual canvas pixel/target checks.
+- [x] Route by pathname `/myth` without adding router dependency; root remains existing App.
+- [x] Mode-aware API create optional parameter; hook mode optional classic; mode-specific storage preserves root credential and default existing key. Test independent keys, restore mismatch rejection and late response after mode/reset.
+- [x] Myth first screen is actual three-archetype choice; story shows complete tradeoffs from server. All commands go through existing idempotent queue.
+- [x] Scene fills available space with shared portrait/landscape geometry for target hitboxes. Pending seed art explicitly marked unaccepted via UI state, never silently substituted with old comic character.
+- [x] Implement pure injectable presentation queue TDD: events ordered, revision duplicate ignored, final outcome delayed, cancellation generation isolation, adapter failure unlock and authority resync; test with deferred promises (no arbitrary sleeps).
+- [x] DOM HP/resource display consumes event.state_after during presentation then authoritative run; selection commands disabled during presentation and network uncertainty separately.
+- [x] Technical runtime supports texture animation clips from manifest; no strips means pending required actions, not movement of a static seed called real animation.
+- [x] Test startup/story/all choices/battle refresh/reset, 401/409/exact retry/unmount and lethal ending delay. Four viewport screenshots and actual canvas pixel/target checks.
 - [ ] Run npm test, npm run typecheck, npm run build, npm run check:functions, relevant Chrome E2E; self-review, document and Chinese commit; independent task review then controller push.
+  技术与独立复审完成：`5c776a6`、修复`c622716`；
+  最新121单测/38Chrome/类型构建/68文件函数检查通过，
+  两项Important及清单Minor已处理，推送闭环完成后才勾选本项。
 
 ## Task 4: 认可种子后的动作、卡面与最终验收
 
