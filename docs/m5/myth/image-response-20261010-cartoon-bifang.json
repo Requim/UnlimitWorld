@@ -1,0 +1,41 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "2048x3072",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2519,
+    "prompt_sha256": "a1cae27e8f28da6e296ce0e79830bf48498530e1203c22d18046c768d61bbfee"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4763554,
+  "response_sha256": "f323eca377cdf5b6081f020e204d415ca0c316922f415061bd020049076cb4ae",
+  "response_structure": {
+    "created": 1791596961,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4760960
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 2519
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "bifang-cartoon-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [2048, 3072],
+  "requested_size": [2048, 3072],
+  "native_target_met": true,
+  "bytes": 3570719,
+  "sha256": "8dd8ebda40eea01c7774de97a6cf09de4aad7ed8d1d296409088a6b22599491d",
+  "elapsed_seconds": 43.661
+}

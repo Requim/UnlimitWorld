@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-10",
+  "status": "single-style-sample-awaiting-user-visual-approval",
+  "authorization": "User approved the proposed guofeng animation direction and one Bifang style sample with deadpan, indignant comedy.",
+  "direction_approved": true,
+  "user_visual_approval": false,
+  "provider_requested": "https://api2.jojocode.com/v1",
+  "tool": "tools/jojocode_image.py",
+  "tool_sha256": "0be36fed20d7c36cd52633ef905ce7ec284fdc4eaa5cb44d2c7e8eae6ff1574f",
+  "prompt_file": "docs/m5/myth/prompts/bifang-cartoon-20261010.json",
+  "report_file": "docs/m5/myth/image-response-20261010-cartoon-bifang.json",
+  "image_posts": 1,
+  "automatic_retries": 0,
+  "images_saved": 1,
+  "hero_or_scene_posts": 0,
+  "animation_or_card_posts": 0,
+  "billing_status": "unknown",
+  "game_manifest_updated": false,
+  "old_realistic_seed_provenance": "docs/m5/myth/seed-provenance.json",
+  "asset": {
+    "id": "bifang-cartoon-style-v1",
+    "source_path": ".data/imagegen/myth-seeds/cartoon-20261010-bifang-1/bifang-cartoon-seed.png",
+    "requested_size": [2048, 3072],
+    "actual_size": [2048, 3072],
+    "source_bytes": 3570719,
+    "source_sha256": "8dd8ebda40eea01c7774de97a6cf09de4aad7ed8d1d296409088a6b22599491d",
+    "decoded_dimensions_verified": true,
+    "exact_requested_dimensions": true,
+    "local_upscaling": false,
+    "provider_internal_upscaling": "unknown",
+    "visual_review": {
+      "single_visible_leg_and_foot": true,
+      "teal_red_ivory_identity": true,
+      "whole_subject_visible": true,
+      "animation_like_simplification": true,
+      "expression": "Haughty, skeptical and indignant; intended humor remains subject to user review.",
+      "ten_percent_margin_met": false,
+      "remaining_issues": [
+        "Smaller margins than requested; future sprite layout needs padding rather than cropping.",
+        "Fine feathers retain some magenta fringe after local chroma removal."
+      ]
+    }
+  },
+  "alpha_preview": {
+    "path": ".data/imagegen/myth-seeds/cartoon-20261010-bifang-1/bifang-cartoon-alpha-v2.png",
+    "status": "style-preview-only-needs-edge-cleanup",
+    "tool": "remove_chroma_key.py",
+    "tool_sha256": "fa2989807052b857bed08f7fee0caa2502b54c46afc0a6f28cd706c25f636630",
+    "options": ["--auto-key", "corners", "--tolerance", "96", "--edge-contract", "1", "--edge-feather", "0.4"],
+    "size": [2048, 3072],
+    "mode": "RGBA",
+    "bytes": 3737387,
+    "sha256": "85b65b4405af6277128a72105aae20d817486a19ae6bff848c82790049bcdf93",
+    "alpha_bounds": [74, 83, 1868, 2992],
+    "transparent_pixels": 4121400,
+    "partial_pixels": 58830,
+    "opaque_rgb_changed_pixels": 0,
+    "canvas_resized": false,
+    "native_transparency": false,
+    "extra_image_posts": 0
+  },
+  "earlier_alpha_candidate": {
+    "path": ".data/imagegen/myth-seeds/cartoon-20261010-bifang-1/bifang-cartoon-alpha.png",
+    "options": ["--auto-key", "corners", "--tolerance", "32"],
+    "bytes": 3781696,
+    "sha256": "061a1ad0e68b0134b78f8a8e23f00687bb5200cb5408eefa2749282ecff3bea0",
+    "issue": "More background noise and magenta fringe remain; not selected for display."
+  },
+  "verification": {
+    "adapter_tests_passed": 45,
+    "source_report_and_prompt_consistent": true,
+    "preview_canvas_matches_source": true,
+    "gameplay_or_frontend_completion_claimed": false
+  }
+}
