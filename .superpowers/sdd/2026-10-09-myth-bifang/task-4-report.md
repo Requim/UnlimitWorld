@@ -23,7 +23,7 @@
 - `web-client/src/myth/createMythGame.ts`
   - 移除固定 900ms 截断；事件片段等待真实完成，取消后不再继续后续片段。
   - generation 隔离旧回调；destroy/减少动态使在途播放失效；败北/退场保留末帧直到结算。
-  - 保持旧边界：strip 加载失败仍锁命令但场景 ready，减少动态继续短反馈，idle 正常循环。
+  - 保持旧边界：strip 加载失败不发布 runtime ready 并锁住命令，减少动态继续短反馈，idle 正常循环。
 - `web-client/e2e/myth.spec.ts`
   - 使用 `page.route` 注入单 clip 合成 4x4/4x3 SVG 图集，不增加对外 debug API。
   - 验证真实 Phaser 16 帧行优先顺序、减少动态取消、12 帧终局末帧保持；截图只代表技术 fixture，不代表生产美术或用户认可。
@@ -77,7 +77,7 @@
 - TypeScript：`npm run typecheck` 通过；输出 `.data/playtest-myth-smooth-4a/typecheck.log`。
 - 构建：`npm run build` 通过；输出 `.data/playtest-myth-smooth-4a/build.log`。
 - Chrome：41 passed；合成 16 帧顺序、取消、12 帧终局均包含在内。
-- 函数长度：Python 42 个函数、前端 src 70 个函数，均无超过 50 个有效行；输出 `python-functions.log`、`frontend-functions.log`。
+- 函数长度：Python 检查 42 个函数；前端检查 70 个 source files，均无超过 50 个有效行的函数；输出 `python-functions.log`、`frontend-functions.log`。
 - 截图：`synthetic-hero-sword-mid.png`、`synthetic-cancelled-to-seed.png`、`synthetic-bifang-retreat-final.png`，均位于 `.data/playtest-myth-smooth-4a/`，只作技术验证。
 
 ## 自审
@@ -96,3 +96,28 @@
 - 受控单 clip 在本机 Chrome 通过，不能代表实体手机加载全套资源的性能；原生 704 槽、实际约 594 内容高度也不能等同 768 细节或全 DPR 保证。
 - 构建仍有 Phaser 约 1,350.47 kB（gzip 350.57 kB）大 chunk 警告；Vitest 仍有 jsdom runner 性能提示。
 - Windows 原生开发服务器提前退出的历史风险仍未定位；最终串行验证只隔离了业务正确性，没有修复或掩盖该风险。
+
+## 独立 Review 修复轮 1
+
+- 修复代码 SHA：`82122c2`（`修复神话动作缩放等待悬挂`）。
+- 问题：播放中 resize 原先经 `positionWorld -> restoreActor -> actor.stop()` 停止当前动作，但等待器只监听 `animationcomplete-<key>`；Phaser 的 stop 不发送该完成事件，导致表现 Promise、pending 取消项和命令锁永久悬挂。
+- 最终方案：resize 查询 actor 当前非 idle clip，只重算位置、尺寸和锚点，不 stop 或重播；动作继续产生原完成事件。已完成的终局 clip 同样保留末帧，idle 仍使用原恢复路径。
+- 接口注释：`waitForMythAnimation` 已补齐 actor、key、signal、track、返回结果及 `actor.play` 同步异常会使 Promise reject 的约定。
+
+### Review RED / GREEN
+
+- 原问题 RED：`npx playwright test e2e/myth.spec.ts -g '播放中 resize' --workers=1 --reporter=line`
+  - canvas resize 后 `data-presentation-busy` 持续为 `true`，300ms 断言失败；输出 `.data/playtest-myth-smooth-4a/review-resize-red.log`。
+- 方案校正 RED：统一取消虽可解锁，但 canvas 已完成 resize 后动作已提前结束，无法保持当前 clip；输出 `.data/playtest-myth-smooth-4a/review-resize-preserve-red.log`。该方案未保留。
+- 最终聚焦 GREEN：同一 resize 用例 1 passed，确认 canvas 尺寸已变化时仍保持 busy，随后由真实完成事件结算并重新启用命令；输出 `.data/playtest-myth-smooth-4a/review-resize-preserve-green.log`。
+- 相关 Chrome GREEN：`npx playwright test e2e/myth.spec.ts -g 'synthetic smooth-v2' --workers=1 --reporter=line`，帧序、减少动态取消、播放中 resize、终局末帧 4 passed；输出 `.data/playtest-myth-smooth-4a/review-chrome-final.log`。
+- 聚焦单测 GREEN：`npm test -- --run src/myth/mythClipPlayback.test.ts src/myth/MythStage.test.tsx src/myth/createMythGame.test.ts`，3 files / 5 tests passed；输出 `.data/playtest-myth-smooth-4a/review-unit-final.log`。
+- `npm run typecheck` 通过；输出 `.data/playtest-myth-smooth-4a/review-typecheck.log`。
+- `npm run check:functions`：Checked 70 source files，0 functions over 50 effective lines；输出 `.data/playtest-myth-smooth-4a/review-functions.log`。
+- Python 工具及测试未修改，本轮未重复运行 Python。
+
+### Review 自审
+
+- resize 不修改权威状态、不新建 UI 状态或 debug API，也不再停止在途动作。
+- AbortSignal、减少动态和 destroy 仍走统一取消；resize 只保持当前 clip 并更新几何，职责边界互不混用。
+- 正式资源、manifest、provenance 与控制器阶段文档未修改。
