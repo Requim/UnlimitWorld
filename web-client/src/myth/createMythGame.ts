@@ -1,6 +1,6 @@
 import * as Phaser from "phaser";
 import type { GameEvent } from "../api/types";
-import { clipKeysForEvent, impactIndexForClips, mythClipPose, type MythClipKey } from "./mythAnimation";
+import { clipKeysForEvent, impactIndexForClips, isMythClipKey, mythClipPose, type MythClipKey } from "./mythAnimation";
 import type { MythClip, MythManifest } from "./mythAssets";
 import { isTerminalMythClip, waitForMythAnimation, type MythPlaybackResult } from "./mythClipPlayback";
 import { mythLayout, type ActorLayout } from "./mythLayout";
@@ -36,11 +36,18 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
     } });
   const adapter: MythSceneAdapter = {
     present: (event, signal) => presentEvent(world, event, signal),
-    resize: (w, h) => { world.width = w; world.height = h; game.scale.resize(Math.max(1, w), Math.max(1, h)); positionWorld(world); },
+    resize: (w, h) => resizeWorld(world, game, w, h),
     setReducedMotion: (value) => setReducedMotion(world, value),
     destroy: () => destroyWorld(world, game),
   };
   return adapter;
+}
+
+function resizeWorld(world: World, game: Phaser.Game, width: number, height: number): void {
+  world.width = width;
+  world.height = height;
+  game.scale.resize(Math.max(1, width), Math.max(1, height));
+  positionWorld(world);
 }
 
 function preload(scene: Phaser.Scene, world: World, error: (message: string) => void): void {
@@ -78,8 +85,21 @@ function positionWorld(world: World): void {
   const layout = mythLayout(width, height, manifest.seeds.hero, manifest.seeds.bifang);
   const scale = Math.max(width / manifest.seeds.scene.size[0], height / manifest.seeds.scene.size[1]);
   world.background.setPosition(width / 2, height / 2).setScale(scale);
-  restoreActor(world, "hero", layout.hero);
-  restoreActor(world, "bifang", layout.bifang);
+  positionNamedActor(world, "hero", layout.hero);
+  positionNamedActor(world, "bifang", layout.bifang);
+}
+
+function positionNamedActor(world: World, name: "hero" | "bifang", layout: ActorLayout): void {
+  const actor = name === "hero" ? world.hero : world.bifang;
+  const key = actor?.anims.currentAnim?.key;
+  if (actor && key && isMythClipKey(key) && !key.endsWith("_idle")) {
+    const clip = world.manifest.animations[key];
+    if (clip) {
+      positionClip(world, actor, key, clip);
+      return;
+    }
+  }
+  restoreActor(world, name, layout);
 }
 
 function positionActor(sprite: Phaser.GameObjects.Sprite, actor: ActorLayout): void {

@@ -124,6 +124,30 @@ test("synthetic smooth-v2 演出可由减少动态及时取消并稳定回种子
   expect(await canvasStayedStable(page, 300)).toBe(true);
 });
 
+test("synthetic smooth-v2 播放中 resize 会保留动作并在完成后解锁命令", async ({ page }) => {
+  const synthetic = await routeSyntheticClip(page, "hero_sword", 16, 24, SMOOTH_COLORS);
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  await synthetic.loaded;
+  const run = await readRun(page);
+  const routed = await routeSwordResponse(page, run);
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.getByTestId("taunt").click();
+  expect((await routed.received).kind).toBe("taunt");
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
+  const canvas = page.locator(".myth-canvas canvas");
+  const initialWidth = (await canvas.boundingBox())!.width;
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect.poll(async () => (await canvas.boundingBox())!.width).not.toBe(initialWidth);
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
+  await expect(page.getByTestId("myth-root")).toHaveAttribute(
+    "data-presentation-busy", "false", { timeout: 1_500 });
+  await expect(page.getByTestId("taunt")).toBeEnabled();
+  await expect(page.getByTestId("end-turn")).toBeEnabled();
+  expect(pageErrors).toEqual([]);
+});
+
 test("synthetic smooth-v2 终局退场保留第12帧直到结算", async ({ page }) => {
   const colors = SMOOTH_COLORS.slice(0, 12);
   await routeSyntheticClip(page, "bifang_retreat", 12, 24, colors);

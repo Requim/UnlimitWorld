@@ -11,7 +11,14 @@ export type MythPlaybackResult = "completed" | "cancelled";
 /** 登记可取消资源并返回反登记函数，用于场景 destroy 和设置切换。 */
 export type TrackMythCancellation = (cancel: () => void) => () => void;
 
-/** 播放指定 Phaser 动作并等待其精确完成事件；取消会解绑所有旧回调。 */
+/**
+ * 播放 Phaser 动作并等待其精确完成事件。
+ * @param actor 提供播放及完成事件订阅能力的 Phaser sprite。
+ * @param key 要播放并等待的清单动作键。
+ * @param signal 外部取消信号；已取消或播放中取消均返回 cancelled。
+ * @param track 向场景登记取消函数，并返回用于完成后反登记的函数。
+ * @returns completed 或 cancelled；actor.play 同步抛错时 Promise 以原错误 reject。
+ */
 export function waitForMythAnimation(actor: AnimationActor, key: MythClipKey,
   signal: AbortSignal, track: TrackMythCancellation): Promise<MythPlaybackResult> {
   if (signal.aborted) return Promise.resolve("cancelled");
