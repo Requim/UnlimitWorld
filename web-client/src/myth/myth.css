@@ -1,0 +1,149 @@
+.myth-shell, .myth-start, .myth-system {
+  --myth-ink: #191b19;
+  --myth-paper: #f5f1e5;
+  --myth-jade: #2f8278;
+  --myth-cinnabar: #c63d32;
+  --myth-gold: #e5b83b;
+  --myth-stone: #87918d;
+  color: var(--myth-ink);
+  font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif;
+}
+
+.myth-start { position: relative; min-height: 100dvh; overflow: hidden; display: grid; align-content: end; padding: 8vh 7vw; color: white; }
+.myth-start > img, .myth-start-shade { position: absolute; inset: 0; width: 100%; height: 100%; }
+.myth-start > img { object-fit: cover; object-position: center; }
+.myth-start-shade { background: rgba(14, 18, 17, .48); }
+.myth-start header, .myth-archetypes { position: relative; z-index: 1; width: min(100%, 1040px); }
+.myth-start header span, .myth-story .myth-eyebrow { color: #f3d66f; font-weight: 800; }
+.myth-start h1 { margin: 6px 0; font: 900 72px "STKaiti", "KaiTi", serif; letter-spacing: 0; }
+.myth-start header p { margin: 0 0 24px; max-width: 620px; font-size: 18px; }
+.myth-archetypes { display: grid; grid-template-columns: repeat(3, 1fr); border-block: 1px solid rgba(255,255,255,.7); }
+.myth-archetype { min-width: 0; min-height: 112px; padding: 16px; border: 0; border-right: 1px solid rgba(255,255,255,.45); color: white; background: rgba(20, 24, 22, .78); display: grid; grid-template-columns: 42px 1fr auto; align-items: center; gap: 12px; text-align: left; cursor: pointer; }
+.myth-archetype:last-child { border-right: 0; }
+.myth-archetype:hover { background: rgba(245, 241, 229, .94); color: var(--myth-ink); }
+.myth-archetype > svg { width: 34px; height: 34px; }
+.myth-archetype.sword > svg { color: #75d2c5; }
+.myth-archetype.fire > svg { color: #f06d58; }
+.myth-archetype.talisman > svg { color: #f0c94f; }
+.myth-archetype span { display: flex; flex-direction: column; min-width: 0; }
+.myth-archetype b { font: 900 24px "STKaiti", "KaiTi", serif; }
+.myth-archetype small { line-height: 1.45; opacity: .82; }
+.myth-archetype em { font-style: normal; font-weight: 900; }
+
+.myth-shell { min-height: 100dvh; padding-top: 58px; background: #d9ddd7; }
+.myth-header { position: fixed; z-index: 60; inset: 0 0 auto; height: 58px; display: grid; grid-template-columns: 230px 1fr 44px; align-items: center; gap: 16px; padding: 0 16px; background: rgba(245,241,229,.97); border-bottom: 2px solid var(--myth-ink); }
+.myth-brand { display: flex; flex-direction: column; }
+.myth-brand span { color: var(--myth-cinnabar); font-size: 10px; font-weight: 900; }
+.myth-brand b { font: 900 20px "STKaiti", "KaiTi", serif; }
+.myth-player-stats { display: flex; justify-content: center; align-items: center; gap: 18px; white-space: nowrap; }
+.myth-player-stats span { display: flex; align-items: center; gap: 6px; }
+.myth-player-stats i, .myth-enemy-panel i { width: 92px; height: 7px; background: #c8cec8; overflow: hidden; }
+.myth-player-stats u, .myth-enemy-panel u { display: block; height: 100%; background: var(--myth-cinnabar); text-decoration: none; }
+.myth-player-stats .wrath { color: var(--myth-cinnabar); }
+.myth-header > button { width: 38px; height: 38px; border: 1px solid transparent; background: transparent; display: grid; place-items: center; cursor: pointer; }
+.myth-header > button:hover { border-color: var(--myth-ink); }
+
+.myth-story { min-height: calc(100dvh - 58px); padding: clamp(40px, 9vh, 100px) max(24px, 9vw); background: var(--myth-paper); }
+.myth-story h1 { margin: 8px 0 18px; font: 900 56px "STKaiti", "KaiTi", serif; }
+.myth-story-body { width: min(720px, 100%); font-size: 18px; line-height: 1.9; }
+.myth-story-choices { width: min(1050px, 100%); margin-top: 44px; display: grid; grid-template-columns: repeat(3, 1fr); border: 2px solid var(--myth-ink); }
+.myth-story-choices button { min-height: 168px; padding: 22px; border: 0; border-right: 1px solid var(--myth-ink); background: transparent; display: flex; flex-direction: column; gap: 14px; text-align: left; cursor: pointer; }
+.myth-story-choices button:last-child { border-right: 0; }
+.myth-story-choices button:hover { background: #e6d69b; }
+.myth-story-choices strong { font: 900 24px "STKaiti", "KaiTi", serif; }
+.myth-story-choices span { line-height: 1.6; color: #4c5551; }
+
+.myth-battle { height: calc(100dvh - 58px); min-height: 610px; display: grid; grid-template-rows: 38px minmax(270px, 1fr) 54px 162px 42px; overflow: hidden; background: #e2e4de; }
+.myth-combat-strip { display: flex; align-items: center; justify-content: safe center; gap: 18px; padding: 6px 12px; overflow-x: auto; color: white; background: var(--myth-ink); font-size: 12px; }
+.myth-combat-strip span { display: flex; flex: 0 0 auto; align-items: center; gap: 5px; white-space: nowrap; }
+.myth-combat-strip svg { width: 16px; height: 16px; }
+.myth-stage-wrap { position: relative; min-height: 0; overflow: hidden; background: #bac0b9; }
+.myth-stage { position: absolute; inset: 0; overflow: hidden; }
+.myth-canvas { position: absolute; inset: 0; }
+.myth-canvas canvas { display: block; width: 100% !important; height: 100% !important; }
+.myth-target { position: absolute; z-index: 8; padding: 0; border: 2px solid transparent; background: transparent; cursor: crosshair; }
+.myth-target:not(:disabled):hover { border-color: var(--myth-cinnabar); background: rgba(255,255,255,.18); }
+.myth-enemy-panel { position: absolute; z-index: 12; top: 12px; right: 14px; width: 250px; padding: 10px 12px; color: white; background: rgba(25,27,25,.84); display: flex; flex-direction: column; gap: 3px; pointer-events: none; }
+.myth-enemy-panel > span { color: #f1ce5d; font-size: 10px; font-weight: 900; }
+.myth-enemy-panel > b { font-size: 17px; }
+.myth-enemy-panel > small, .myth-enemy-panel > em { font-size: 11px; font-style: normal; }
+.myth-enemy-panel i { width: 100%; margin-top: 5px; }
+.myth-animation-status { position: absolute; z-index: 12; left: 12px; bottom: 10px; display: flex; align-items: center; gap: 5px; padding: 5px 8px; color: white; background: rgba(25,27,25,.78); font-size: 10px; }
+.myth-animation-status.ready { background: rgba(47,130,120,.9); }
+.myth-animation-status svg { width: 13px; height: 13px; color: var(--myth-gold); }
+.myth-asset-error { position: absolute; z-index: 20; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 8px; padding: 10px; background: var(--myth-paper); border: 2px solid var(--myth-ink); }
+.myth-asset-error button { width: 34px; height: 34px; border: 1px solid var(--myth-ink); background: white; display: grid; place-items: center; }
+
+.myth-commands { display: flex; justify-content: center; gap: 8px; padding: 6px 10px; background: var(--myth-paper); border-block: 1px solid var(--myth-ink); }
+.myth-commands button { min-width: 160px; border: 1px solid var(--myth-ink); background: white; padding: 5px 10px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.myth-commands button:first-child { max-width: 360px; }
+.myth-commands button > svg { flex: 0 0 auto; }
+.myth-commands button span { min-width: 0; flex: 1; display: flex; flex-direction: column; text-align: left; }
+.myth-commands small { color: #606964; font-size: 10px; }
+.myth-hand { min-height: 0; display: flex; align-items: stretch; justify-content: safe center; gap: 8px; padding: 9px 12px; overflow-x: auto; }
+.myth-card { position: relative; flex: 0 0 130px; width: 130px; min-height: 144px; padding: 28px 9px 8px; border: 2px solid var(--myth-ink); border-radius: 4px; background: #f8f5ea; display: grid; grid-template-rows: 45px auto 1fr; gap: 3px; text-align: left; cursor: pointer; }
+.myth-card.selected { transform: translateY(-4px); box-shadow: 0 5px 0 var(--myth-gold); }
+.myth-card.sword { border-bottom: 6px solid var(--myth-jade); }
+.myth-card.fire { border-bottom: 6px solid var(--myth-cinnabar); }
+.myth-card.talisman { border-bottom: 6px solid var(--myth-gold); }
+.myth-card > span { position: absolute; top: 5px; left: 6px; width: 25px; height: 25px; border: 1px solid var(--myth-ink); border-radius: 50%; background: var(--myth-gold); display: grid; place-items: center; font-weight: 900; }
+.myth-card > small { position: absolute; top: 8px; right: 7px; color: #626966; font-size: 9px; }
+.myth-card > i { display: grid; place-items: center; color: #5d6964; border-bottom: 1px solid #adb3ae; }
+.myth-card > i svg { width: 32px; height: 32px; }
+.myth-card > b { text-align: center; font: 900 17px "STKaiti", "KaiTi", serif; }
+.myth-card > em { font-size: 10px; line-height: 1.35; font-style: normal; }
+.myth-cast { border: 0; border-top: 1px solid var(--myth-ink); background: var(--myth-gold); font-weight: 900; cursor: pointer; }
+
+.myth-ending { min-height: calc(100dvh - 58px); padding: 8vw; display: flex; flex-direction: column; justify-content: center; background: var(--myth-paper); }
+.myth-ending > span { color: var(--myth-cinnabar); font-weight: 900; }
+.myth-ending h1 { width: min(800px, 100%); font: 900 64px/1.35 "STKaiti", "KaiTi", serif; }
+.myth-ending button, .myth-system button { width: max-content; border: 2px solid var(--myth-ink); background: var(--myth-gold); padding: 11px 16px; display: flex; align-items: center; gap: 7px; font-weight: 900; }
+.myth-system { min-height: 100dvh; padding: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: var(--myth-paper); }
+.myth-system > svg { width: 58px; height: 58px; color: var(--myth-cinnabar); }
+.myth-toast { position: fixed; z-index: 75; right: 16px; bottom: 16px; max-width: min(460px, calc(100% - 32px)); padding: 10px 12px; color: white; background: var(--myth-ink); display: flex; align-items: center; gap: 8px; box-shadow: 5px 5px 0 var(--myth-gold); }
+.myth-toast.error { background: var(--myth-cinnabar); }
+.myth-toast button { border: 1px solid white; background: transparent; color: white; padding: 5px 7px; display: flex; align-items: center; gap: 4px; }
+
+@media (max-width: 720px) {
+  .myth-start { padding: 28px 14px; align-content: end; }
+  .myth-start h1 { font-size: 42px; }
+  .myth-start header p { font-size: 14px; }
+  .myth-archetypes { grid-template-columns: 1fr; border: 1px solid rgba(255,255,255,.7); }
+  .myth-archetype { min-height: 84px; border-right: 0; border-bottom: 1px solid rgba(255,255,255,.45); padding: 10px 12px; }
+  .myth-archetype:last-child { border-bottom: 0; }
+  .myth-archetype b { font-size: 21px; }
+  .myth-shell { padding-top: 52px; }
+  .myth-header { height: 52px; grid-template-columns: 36px 1fr 38px; gap: 4px; padding: 0 7px; }
+  .myth-brand span, .myth-brand b { display: none; }
+  .myth-brand::before { content: "方"; width: 32px; height: 32px; display: grid; place-items: center; color: white; background: var(--myth-cinnabar); font: 900 17px "STKaiti", "KaiTi", serif; }
+  .myth-player-stats { justify-content: flex-start; gap: 6px; overflow: hidden; font-size: 11px; }
+  .myth-player-stats i { display: none; }
+  .myth-story { min-height: calc(100dvh - 52px); padding: 28px 16px; }
+  .myth-story h1 { font-size: 34px; }
+  .myth-story-body { font-size: 15px; line-height: 1.7; }
+  .myth-story-choices { margin-top: 22px; grid-template-columns: 1fr; }
+  .myth-story-choices button { min-height: 105px; padding: 13px; border-right: 0; border-bottom: 1px solid var(--myth-ink); }
+  .myth-story-choices button:last-child { border-bottom: 0; }
+  .myth-battle { height: calc(100dvh - 52px); min-height: 580px; grid-template-rows: 34px minmax(250px, 1fr) 60px 158px 38px; }
+  .myth-combat-strip { justify-content: flex-start; gap: 12px; font-size: 10px; }
+  .myth-enemy-panel { top: 7px; right: 7px; width: 190px; padding: 6px 8px; }
+  .myth-enemy-panel > b { font-size: 14px; }
+  .myth-enemy-panel > small, .myth-enemy-panel > em { font-size: 9px; }
+  .myth-animation-status { left: 6px; bottom: 6px; }
+  .myth-commands { justify-content: stretch; padding: 5px; }
+  .myth-commands button { min-width: 0; flex: 1; padding: 4px 6px; font-size: 11px; }
+  .myth-commands button:first-child { max-width: none; }
+  .myth-commands small { max-width: none; overflow: visible; white-space: normal; line-height: 1.15; }
+  .myth-hand { justify-content: flex-start; padding: 7px; }
+  .myth-card { flex-basis: 112px; width: 112px; min-height: 144px; grid-template-rows: 36px auto 1fr; }
+  .myth-card > i svg { width: 26px; height: 26px; }
+  .myth-card > b { font-size: 15px; }
+  .myth-card > em { font-size: 9px; }
+  .myth-ending { min-height: calc(100dvh - 52px); padding: 26px; }
+  .myth-ending h1 { font-size: 40px; }
+  .myth-toast { right: 8px; bottom: 8px; max-width: calc(100% - 16px); font-size: 11px; }
+}
+
+@media (max-height: 760px) {
+  .myth-battle { grid-template-rows: 32px minmax(220px, 1fr) 58px 158px 36px; }
+}
