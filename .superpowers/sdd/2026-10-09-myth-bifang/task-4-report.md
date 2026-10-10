@@ -121,3 +121,37 @@
 - resize 不修改权威状态、不新建 UI 状态或 debug API，也不再停止在途动作。
 - AbortSignal、减少动态和 destroy 仍走统一取消；resize 只保持当前 clip 并更新几何，职责边界互不混用。
 - 正式资源、manifest、provenance 与控制器阶段文档未修改。
+
+## 独立 Review 修复轮 2
+
+- 修复代码 SHA：`c941640`（`修复减少动态后的缩放几何`）。
+- 新 Important：Phaser `stop()` 和 `setTexture(seed)` 不清除历史 `currentAnim`；减少动态恢复 seed 后再 resize，旧实现会把历史动作误判为当前 clip，用方形动作几何拉伸静态 seed。
+- 最终方案：reduced-motion 在 resize 时优先恢复 seed；只有 `actor.anims.isPlaying` 的非 idle clip，或运行时显式记录的已完成终局末帧，才按 clip 几何重定位。恢复 seed/idle 或开始新动作会清除旧终局记录。
+- 终局 fixture：控制器完整 Chrome 在 HEAD `6778356` 得到 41 passed / 1 failed，唯一失败为终局用例未进入 busy；原始输出保留于 `.data/playtest-myth-smooth-4a/controller-final-chrome.log`，未略去或改写为全绿。
+
+### 终局失败根因证据
+
+- trace：`web-client/test-results/myth-synthetic-smooth-v2-终局退场保留第12帧直到结算/trace.zip`。
+- story-choice POST 于 trace monotonic `39537.982` 发出并成功返回 combat revision 1；fixture 的 `readRun` GET 于 `39543.323` 并发读取到 revision 0、phase event、combat null。
+- fixture 因此用旧 GET 构造 completed revision 1。随后 `end_turn` POST 确实发出，request 为 `expected_revision:1`，受控响应也以 200、`_wasFulfilled:true` 返回；但响应 revision 仍为 1。
+- `useMythPresentation` 对“响应 revision 与已展示 revision 相同”直接返回，不进入 presentation queue，所以 root 始终 combat/revision1/network false/presentation false。断点在 fixture 读取权威局面的时序，不在点击、route、网络响应、Phaser 或采样器。
+- 修正：fixture 在读取 run 前等待 UI 明确进入 combat，并等待 synthetic 资源完成；`end_turn` route 记录实际 ActionRequest，断言其 kind 后再检查 busy。未增加 sleep、自动 retry 或放宽表现断言。
+
+### Review 2 RED / GREEN
+
+- 几何 RED：`npx playwright test e2e/myth.spec.ts -g '减少动态后 resize' --workers=1 --reporter=line`
+  - resize 后 seed 与再次执行正确 reduced-motion 恢复后的 seed 像素差为 `0.2802734375`，预期 `<0.01`；输出 `.data/playtest-myth-smooth-4a/review2-reduced-resize-red.log`。
+- 几何 GREEN：同命令 1 passed；输出 `.data/playtest-myth-smooth-4a/review2-reduced-resize-green.log`。
+- 终局 GREEN：`npx playwright test e2e/myth.spec.ts -g '终局退场' --workers=1 --reporter=line`，1 passed；输出 `.data/playtest-myth-smooth-4a/review2-terminal-green.log`。
+- 相关 Chrome GREEN：`npx playwright test e2e/myth.spec.ts -g 'synthetic smooth-v2' --workers=1 --reporter=line`，帧序、取消、减少动态后 resize、播放中 resize、终局末帧 5 passed；输出 `.data/playtest-myth-smooth-4a/review2-chrome.log`。
+- 聚焦单测：`npm test -- --run src/myth/mythClipPlayback.test.ts src/myth/MythStage.test.tsx src/myth/createMythGame.test.ts`，3 files / 5 tests passed；输出 `.data/playtest-myth-smooth-4a/review2-unit.log`。
+- `npm run typecheck` 通过；输出 `.data/playtest-myth-smooth-4a/review2-typecheck.log`。
+- `npm run check:functions`：Checked 70 source files，0 functions over 50 effective lines；输出 `.data/playtest-myth-smooth-4a/review2-functions.log`。
+- Python 工具未修改，本轮未重复运行 Python；本实施者未重跑或覆盖控制器的完整 Chrome 日志。
+
+### Review 2 自审
+
+- 活动动作 resize 仍不中断；AbortSignal、减少动态、destroy 仍会结算等待并清理回调。
+- 减少动态后 resize 始终使用 seed 布局；历史 `currentAnim` 不再影响静态几何。
+- 终局末帧使用显式状态保留，不依赖 Phaser 历史 animation key。
+- 404 门控、正式资源、manifest、provenance、控制器阶段文档均未修改。
