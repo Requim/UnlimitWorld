@@ -176,10 +176,11 @@ def test_myth_start_has_story_and_sample_deck(client):
 - [x] DOM HP/resource display consumes event.state_after during presentation then authoritative run; selection commands disabled during presentation and network uncertainty separately.
 - [x] Technical runtime supports texture animation clips from manifest; no strips means pending required actions, not movement of a static seed called real animation.
 - [x] Test startup/story/all choices/battle refresh/reset, 401/409/exact retry/unmount and lethal ending delay. Four viewport screenshots and actual canvas pixel/target checks.
-- [ ] Run npm test, npm run typecheck, npm run build, npm run check:functions, relevant Chrome E2E; self-review, document and Chinese commit; independent task review then controller push.
+- [x] Run npm test, npm run typecheck, npm run build, npm run check:functions, relevant Chrome E2E; self-review, document and Chinese commit; independent task review then controller push.
   技术与独立复审完成：`5c776a6`、修复`c622716`；
   最新121单测/38Chrome/类型构建/68文件函数检查通过，
-  两项Important及清单Minor已处理，推送闭环完成后才勾选本项。
+  两项Important及清单Minor已处理，文档归档`b7c237b`已推送，
+  远端完整SHA与本地核对一致。本项仅技术交付，Task4不因此完成。
 
 ## Task 4: 认可种子后的动作、卡面与最终验收
 
