@@ -13,8 +13,9 @@
 **2026-10-10 恢复与调整：** 修士/毕方/场景写实原图已取得，但用户明确要求
 更卡通、诙谐搞怪。旧种子与旧提示词不再作为当前美术验收输入；
 3B 实施中止并保留交接。用户随后确认新单张方案，卡通毕方一次生成成功，
-实际 2048×3072；先等待用户对真实样张的视觉评价，再统一其他种子。
-本轮未恢复 3B 草稿、未生成动作或卡面，未将样张写入游戏 manifest。
+实际 2048×3072。用户随后认可实际毕方；配套修士 2048×3072、
+场景 3840×2160 各一次生成成功，已核验并合成静态构图，两张仍待用户认可。
+未恢复 3B 草稿、未生成动作或卡面，未将样张写入游戏 manifest。
 Task 1 与 3A 保持已完成，Task 4 仍须实际种子认可；不重新派已完成任务。
 
 ## Global Constraints
@@ -95,14 +96,17 @@ def test_myth_start_has_story_and_sample_deck(client):
 - Tests/tool if needed: `tests/test_myth_assets.py`, `tools/prepare_myth_assets.py`
 
 **Steps**
-- [x] Prompts: realistic full-body travelling swordsman on flat magenta; one-legged giant Bifang, teal feathers/red markings/white beak on flat magenta; bare jade mountain and fractured stone combat terrace without forest. No rendered UI/text or existing IP copying.
-  此项只归档旧写实提示词完成，最新卡通方向尚未完成提示词/样张审核。
+- [x] Prompts: guofeng animation-style adult swordsman and one-legged Bifang on flat magenta; bare jade mountain and clear combat terrace. No rendered UI/text or existing IP copying.
+  三张新提示词与原图已取得，旧 `seeds.jsonl` 仅作为历史请求；毕方已认可，
+  配套修士/场景仍待实际视觉审核。
 - [x] Original CLI generate-batch uses exact user host, gpt-image-2/high, 3 jobs and max-attempts 1; no extra paid attempts if returns wrong size.
   首轮返回解析失败已归档；2026-10-09 用户授权项目适配器并取得毕方。
   2026-10-10 用户要求继续实施，缺失修士/场景沿用已验证适配器各请求一次，
   原参数与提示词不变，保留脱敏证据，不再运行已知无法解析 URL 的原工具。
-- [ ] Inspect all returned images and actual dimensions; preserve SHA256 and requested/actual dimensions without credential. Only correctly sized images labelled native-target-met.
-- [ ] Original chroma-key tool removes backgrounds; inspect full limbs/weapon/beak/feather edges, never claim original alpha.
+- [x] Inspect all returned images and actual dimensions; preserve SHA256 and requested/actual dimensions without credential. Only correctly sized images labelled native-target-met.
+  卡通三图实际精确目标尺寸，来源分开记录；不继承被拒绝写实图的认可状态。
+- [x] Original chroma-key tool removes backgrounds; inspect full limbs/weapon/beak/feather edges, never claim original alpha.
+  仅完成本地审核候选与检查；细发/羽缘紫边还须精修，不等于正式精灵可发布。
 - [ ] Save final images in independent myth directory and manifest status seed-review, not animation-ready. Existing assets remain intact.
 - [ ] Add preparation checks (dimension mismatch, invalid target/path, alpha preservation) before implementation when a normalization tool is needed; do not upscale low-resolution source.
 - [ ] Show the three local files to user with actual decoded dimensions. No card/sprite generation until user approves these actual seeds.

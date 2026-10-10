@@ -1,0 +1,37 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "3840x2160",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2650,
+    "prompt_sha256": "8569ed4e122af34a7fa1b80a8072828c1f7d402c41754f89fba3510fa9e83374"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 143,
+  "response_sha256": "68d260929cf85dbb2807c467b25bb47f9c9a694703460194e3aa8993a29003bb",
+  "response_structure": {
+    "created": 1791598177,
+    "data": [
+      {
+        "url": {
+          "type": "string",
+          "characters": 101
+        }
+      }
+    ]
+  },
+  "source": "url",
+  "file": "zhang-e-mountain-cartoon-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [3840, 2160],
+  "requested_size": [3840, 2160],
+  "native_target_met": true,
+  "bytes": 9274546,
+  "sha256": "8125cc3422d83cab57d2a0f2b1196bb52be5b7a3adcb57ecacf23a9f7f623f3b",
+  "elapsed_seconds": 46.311
+}

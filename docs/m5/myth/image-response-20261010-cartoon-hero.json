@@ -1,0 +1,41 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "2048x3072",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 2464,
+    "prompt_sha256": "883c9defa364fa352813485054beff4cffb45af9d040e14e1b5e9881a441eed2"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 4358977,
+  "response_sha256": "bc83c2ef8403634dafa737425101bb534ec02ea3564b6e44aec1b88e60b9687a",
+  "response_structure": {
+    "created": 1791598135,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 4356440
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 2464
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "hero-cartoon-seed.png",
+  "actual_format": "PNG",
+  "actual_size": [2048, 3072],
+  "requested_size": [2048, 3072],
+  "native_target_met": true,
+  "bytes": 3267329,
+  "sha256": "346ad0c86066019696ce7249f095fd5b5e60cb1582eadf476de18c899c664cdd",
+  "elapsed_seconds": 31.513
+}

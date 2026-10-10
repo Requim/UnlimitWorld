@@ -1,9 +1,12 @@
 {
   "date": "2026-10-10",
-  "status": "single-style-sample-awaiting-user-visual-approval",
+  "status": "bifang-approved-companion-seeds-awaiting-review",
+  "scope": "This record describes the single Bifang sample, not approval of companion seeds or production animation.",
   "authorization": "User approved the proposed guofeng animation direction and one Bifang style sample with deadpan, indignant comedy.",
   "direction_approved": true,
-  "user_visual_approval": false,
+  "user_visual_approval": true,
+  "approval_date": "2026-10-10",
+  "approval_feedback": "User reviewed the displayed cartoon Bifang sample and said this one is acceptable.",
   "provider_requested": "https://api2.jojocode.com/v1",
   "tool": "tools/jojocode_image.py",
   "tool_sha256": "0be36fed20d7c36cd52633ef905ce7ec284fdc4eaa5cb44d2c7e8eae6ff1574f",
@@ -17,6 +20,7 @@
   "billing_status": "unknown",
   "game_manifest_updated": false,
   "old_realistic_seed_provenance": "docs/m5/myth/seed-provenance.json",
+  "companion_provenance_file": "docs/m5/myth/cartoon-companion-provenance.json",
   "asset": {
     "id": "bifang-cartoon-style-v1",
     "source_path": ".data/imagegen/myth-seeds/cartoon-20261010-bifang-1/bifang-cartoon-seed.png",
@@ -33,7 +37,7 @@
       "teal_red_ivory_identity": true,
       "whole_subject_visible": true,
       "animation_like_simplification": true,
-      "expression": "Haughty, skeptical and indignant; intended humor remains subject to user review.",
+      "expression": "Haughty, skeptical and indignant; the user accepted this cartoon sample.",
       "ten_percent_margin_met": false,
       "remaining_issues": [
         "Smaller margins than requested; future sprite layout needs padding rather than cropping.",
