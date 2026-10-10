@@ -1,0 +1,41 @@
+{
+  "name": "hero_sword",
+  "source_size": [
+    2816,
+    2816
+  ],
+  "source_slot_size": [
+    704,
+    704
+  ],
+  "source_sha256": "3d3484fb809ab7e3e1b28b447f2dc93a79f06a902e05f2a6bdeefa81424bffd5",
+  "anchor_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+  "shared_scale": 1,
+  "local_upscaling": false,
+  "frame_one_locked": true,
+  "clip": {
+    "url": "/assets/myth/animations/hero_sword.png",
+    "frame_size": [
+      704,
+      704
+    ],
+    "frames": 16,
+    "fps": 24.0,
+    "anchor": [
+      0.5,
+      1
+    ],
+    "reference_height": 594,
+    "profile": "smooth-v2",
+    "columns": 4,
+    "rows": 4
+  },
+  "seed_scale": 0.20582120582120583,
+  "curated_pose_centers": null,
+  "extra_component_centers": null,
+  "visible_source_pixels": 1407268,
+  "unassigned_pixels": 0,
+  "alpha_coverage": 1,
+  "output_sha256": "4cd8aaa2b2a0c4f5e581cab681cd02616a4ec7a03736a6422de5e64cbfa89355",
+  "output_bytes": 3334936
+}

@@ -131,7 +131,9 @@
 
 ### 终局失败根因证据
 
-- trace：`web-client/test-results/myth-synthetic-smooth-v2-终局退场保留第12帧直到结算/trace.zip`。
+- 原始 trace 分析位置：`web-client/test-results/myth-synthetic-smooth-v2-终局退场保留第12帧直到结算/trace.zip`。
+  后续 Playwright 运行清理了该输出，ZIP 未另行归档；以下时序来自实施者当时
+  读取 trace 的执行记录，不把此路径当作当前仍可打开的原件。控制器原失败日志仍保留。
 - story-choice POST 于 trace monotonic `39537.982` 发出并成功返回 combat revision 1；fixture 的 `readRun` GET 于 `39543.323` 并发读取到 revision 0、phase event、combat null。
 - fixture 因此用旧 GET 构造 completed revision 1。随后 `end_turn` POST 确实发出，request 为 `expected_revision:1`，受控响应也以 200、`_wasFulfilled:true` 返回；但响应 revision 仍为 1。
 - `useMythPresentation` 对“响应 revision 与已展示 revision 相同”直接返回，不进入 presentation queue，所以 root 始终 combat/revision1/network false/presentation false。断点在 fixture 读取权威局面的时序，不在点击、route、网络响应、Phaser 或采样器。
@@ -155,3 +157,18 @@
 - 减少动态后 resize 始终使用 seed 布局；历史 `currentAnim` 不再影响静态几何。
 - 终局末帧使用显式状态保留，不依赖 Phaser 历史 animation key。
 - 404 门控、正式资源、manifest、provenance、控制器阶段文档均未修改。
+
+## 控制器最终技术验收
+
+- 源码快照 `4d4025b`（生产修复 `c941640`），限定复审轮2
+  Spec / Quality Approved，无剩余阻塞 finding；完整真实样片及4B/M5仍未完成。
+- 控制器实际复跑：28 files / 136 Vitest，43 Chrome / 1.3分钟，
+  typecheck随build通过，71个src及E2E文件函数检查无超限。
+- 原始输出：`.data/playtest-myth-smooth-4a/controller-round2-{unit,chrome,build,ui}.log`。
+  正常UI真服攻击revision2/player60/enemy42、刷新和四视口像素/命中检查通过，
+  pageerror0；人工查看四张实际截图，现有资源仍为旧四帧，不冒称新美术上线。
+- Python本轮控制器此前复跑182passed/2权限跳过，后续前端修复未改Python。
+- 原41/1失败日志保留，终局fixture权威读竞态已修正；
+  原失败trace ZIP未额外归档，不把历史路径当作当前可复核原件。
+- 390/360顶部资源条末项旧裁切、包体、开发服务原生退出及实体手机/
+  全套资源内存/DPR仍待后续，不属于新正式动作已验收的证据。

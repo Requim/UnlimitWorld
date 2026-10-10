@@ -186,6 +186,77 @@ def test_myth_start_has_story_and_sample_deck(client):
 
 必须在 Task 2 实际图片取得用户视觉认可后执行；不以直接实施授权替代视觉审核。
 
+### 4A 本次实施：连续挥剑样片与多帧通路
+
+2026-10-10 用户已确认补帧方案。本次只先生成一条挥剑样片，实际体验
+认可后才展开其余动作；Task4全套尚未完成，不重新实施Task1/2/3。
+
+**实施者范围**
+- Modify: `tools/prepare_myth_animation.py`、`tests/test_myth_animation_assets.py`；
+  必要时新增单一职责的网格切片辅助模块与对应测试，不改原装插件。
+- Modify: `web-client/src/myth/mythAssets.ts`、`mythAnimation.ts`、对应测试、
+  `createMythGame.ts`；必要时新增单一职责的可取消播放辅助模块与测试。
+- Add focused real-browser regression in `web-client/e2e/myth.spec.ts`；
+  既有经典入口、规则、存档、加载失败门控保持不变。
+- 控制器独占提示词、收费API、正式PNG/manifest/provenance及阶段文档；
+  实施者不生成图片、不重写manifest、不派生代理、不push。
+
+**精确契约**
+- 新清单每clip可选 `profile: "smooth-v2"`；缺字段为既有四帧档位，
+  仍验证768方帧、idle4fps/其他8fps、anchor[0.5,1]及原版本/状态。
+- smooth-v2统一704×704运行帧、四列、按行顺序，无边距无间隔；
+  `columns:4`，`rows:3`或`rows:4`必须与帧数匹配。
+- hero_idle/bifang_idle：12帧12fps；hero_sword/hero_cast/bifang_charge/
+  bifang_strike：16帧24fps；hero_hurt/hero_defeat/bifang_hurt/bifang_retreat：
+  12帧24fps。未知profile、错误帧数/fps/几何/锚点必须拒绝，不放宽成任意数值。
+- 规范化工具保留旧调用和四帧行为；新增显式frame_count及source_columns，
+  源网格按行切片，非整除/空槽/相邻重复/少于frame_count-2种不同姿态拒绝。
+  共同scale≤1、首帧锁认可种子、bottom-center、配件alpha覆盖≥99.8%、
+  来源/最终摘要、损失记录及原子发布继续成立。输出为四列真实网格，
+  元数据包含profile、columns、rows、实际源尺寸与source-slot尺寸。
+- smooth源槽每边必须≥704；带留白的原生槽允许透明padding，
+  共享scale=min(1,704/max_content)，绝不放大内容。小于704的源槽拒绝；
+  legacy原有低清拒绝不变。测试原生704槽/620内容padding与低清槽负例。
+- 不用复制或插值姿态补帧；曲线、纹理尺寸等界面代码不得计算伤害或生死。
+- Phaser按全部真实帧播放，动作不得因固定900ms上限提前结束；
+  动作完整结束后才命中/受击/结算，保持AbortSignal、destroy、世代隔离，
+  取消及时释放资源和旧回调。倒地/退场最后姿态不得先跳回待机再结算。
+- 减少动态仍使用简短静态反馈；资源缺失或加载失败不得解锁战斗命令。
+- 现有完成9/10数量不是smooth-v2完成数；如显示进度，应明确区分档位，
+  不能因旧clip存在就宣称全套补帧完成。不要添加无关UI或对外新调试API。
+
+**测试与报告**
+- TDD先观察12/16帧网格、坏尺寸/空槽/重复、源/最终去重、scale/锚点/
+  首帧锁、事务失败及legacy兼容的预期失败，再实现。
+- 前端TDD验证两档位严格解析、全帧播放/终局末帧、取消/destroy与减少动态，
+  守住404资源门控；真实Chrome验证发布样片完整帧序与四视口无剪切/命中偏移。
+- 聚焦迭代；提交前一次完整前端单测、typecheck/build/check:functions，
+  Python相关工具测试及函数长度/diff检查。不要把旧全仓失败改写为通过。
+- 自审、中文仅代码提交；详细报告写入本计划工作区，含RED/GREEN命令、
+  原始输出位置、实际文件、未验证项和既有警告；控制器安排独立双维度审查。
+
+**控制器资源与验收**
+- 原API/model gpt-image-2/high/png/n=1，单次edit请求2816×2816，
+  同一认可修士参考，4×4连续16姿态。保留实际返回像素，不自动重试。
+- 原图逐帧检查后规范化，版本化发布hero_sword_smooth_v2.png并更新
+  对应clip元数据，不覆盖其余旧动作；实际样片仍为animation-review。
+- 正常UI真服攻击、四视口截图/像素/帧序证据、样片动图；记录实际解码尺寸/
+  内存与DPR边界，不把本机Chrome采样当作实体手机性能保证。
+- 文档、独立审查、最终验证、中文commit/push闭环；样片交给用户判断。
+
+**本次检查点**
+- 多帧技术子单元完成：实现8baa00d，修复82122c2/c941640；
+  限定复审Spec/Quality Approved，最终136单测/43Chrome/类型构建/71文件
+  函数检查通过，Python相关182passed/2权限跳过。
+- 真实样片未完成：第4帧双剑与时序跳变拒绝，正式PNG/manifest不变，
+  新规格发布0条；需要另行确认一次收费重试，不自动扩批。
+- 当前只归档技术子单元与失败来源；完整4A样片仍待用户实际体验认可，
+  4B和M5均未完成。实体手机/全套多帧内存/DPR、旧包体/服务器风险保留。
+
+### 4B 后续：其余动作、九卡画与最终VFX
+
+本项保留在同一已确认计划中，依赖4A实际样片体验认可，不在本次先收费扩批。
+
 **Files**
 - Create: `docs/m5/myth/prompts/animations.jsonl`, `cards.jsonl`
 - Final: `web-client/public/assets/myth/animations/`, `cards/`, update myth manifest/provenance
@@ -193,11 +264,12 @@ def test_myth_start_has_story_and_sample_deck(client):
 - Update: `M5-card-roguelike.md`, `PROJECT_STATUS.md`
 
 **Steps**
-- [ ] Approved seed reference -> whole horizontal strip with consistent anchors, not independent frame generation. Hero idle/sword/cast/hurt/defeat; Bifang idle/charge/strike/hurt/retreat.
+- [ ] Approved seed reference -> whole four-column grid with consistent anchors, not independent frame generation. Use the approved smooth-v2 12/16-frame contracts for hero idle/sword/cast/hurt/defeat and Bifang idle/charge/strike/hurt/retreat.
 - [ ] Original normalization scripts, inspect every pose/limb/one-leg, record source/frame dimensions/count/duration/anchor and DPR suitability.
   原参考图 canvas/色键工具配合 cartoon Lanczos 共同缩放规范化；
-  九条已检查并记录四帧768像素、FPS与reference_height。
-  退场畸形未通过、最终DPR/实际动作体验尚未全验收，不打勾。
+  九条旧四帧已检查并记录768像素、FPS与reference_height，不计为补帧完成；
+  新规格按4A记录原生槽、704运行帧、实际内容与共同scale。
+  退场畸形未通过、新挥剑候选被拒绝、最终DPR/实际动作体验尚未全验收，不打勾。
 - [ ] Generate only the 9 spec card illustrations at 1536x1152; DOM renders readable text.
 - [ ] Connect real sprite clips to ordered effects: sword/fire feather/shield/thunder/redirect/last hit. Reduced motion turns off shake/strong flashes without losing state feedback.
 - [ ] Use actual current server and normal UI through three archetypes, choices, wins/deaths/reset/refresh/restart, unknown response/exact retry/409/401/late callbacks.

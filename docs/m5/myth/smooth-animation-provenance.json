@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-10",
+  "status": "first-sword-candidate-rejected-visual-quality",
+  "approved_scope": "sample-first; one sword edit before expanding remaining animations",
+  "frame_targets": {
+    "idle": { "frames": 12, "fps": 12 },
+    "attack_cast_charge_strike": { "frames": 16, "fps": 24 },
+    "hurt_defeat_retreat": { "frames": 12, "fps": 24 }
+  },
+  "provider_requested": "https://api2.jojocode.com/v1",
+  "model_requested": "gpt-image-2",
+  "quality_requested": "high",
+  "output_format": "png",
+  "operation": "reference-image-edit",
+  "image_posts_this_sample": 1,
+  "automatic_retries": 0,
+  "billing_status": "unknown",
+  "provider_internal_upscaling": "unknown",
+  "local_upscaling": false,
+  "requested_size": [2816, 2816],
+  "actual_size": [2816, 2816],
+  "source_slot_size": [704, 704],
+  "source_grid": { "columns": 4, "rows": 4, "order": "row-major" },
+  "native_target_met": true,
+  "source_bytes": 4515197,
+  "source_sha256": "48e7e23521d2e00e4777d57713ec26aad98b13bdfbbbde4b913011d2b545f56e",
+  "reference": {
+    "approved_seed": "web-client/public/assets/myth/seeds/hero.png",
+    "approved_seed_sha256": "ce2591de9f0331b3296305f8516adfc5bb4cf677c39918ecd01544e2951fe3d5",
+    "canvas_size": [2816, 2816],
+    "canvas_sha256": "b9015c5868bbb66a5c048742f720dcbf71eb2411163ffbdce7595137746aa498",
+    "method": "Original build_sprite_edit_canvas.py frames=4, slot=640, canvas=2816; extract first slot [128,1088,768,1728], alpha-composite at [32,32] on a uniform magenta grid. No seed upscaling or tool modification."
+  },
+  "alpha_preview": {
+    "tool": "remove_chroma_key.py",
+    "options": ["--auto-key", "corners", "--tolerance", "96", "--edge-contract", "1", "--edge-feather", "0.2"],
+    "native_transparency": false,
+    "canvas_resized": false,
+    "sha256": "3d3484fb809ab7e3e1b28b447f2dc93a79f06a902e05f2a6bdeefa81424bffd5"
+  },
+  "normalization_preview": {
+    "status": "review-only-not-published",
+    "frame_count": 16,
+    "frame_size": [704, 704],
+    "fps": 24,
+    "reference_height": 594,
+    "shared_scale": 1,
+    "anchor": [0.5, 1],
+    "frame_one_locked_to_approved_seed": true,
+    "provenance_file": "docs/m5/myth/hero-sword-smooth-rejected-packaged-provenance.json",
+    "warning": "The packaged clip URL is a proposed semantic default, not a published URL or a manifest change.",
+    "gif_preview_duration_ms": 660,
+    "gif_warning": "GIF centisecond timing approximates 24fps; it is not browser engine timing evidence."
+  },
+  "visual_review": {
+    "accepted": false,
+    "reasons": [
+      "Frame 4 has duplicate blades extending behind the head and across the chest.",
+      "Several consecutive steps abruptly change blade orientation instead of a continuous single cut; a hash-distinct pose gate cannot validate motion quality."
+    ],
+    "paid_retry": false,
+    "candidate_original_directory": ".data/imagegen/myth-smooth/hero-sword-16-1",
+    "public_manifest_changed": false,
+    "public_animation_assets_changed": false,
+    "user_sample_approval": false
+  },
+  "clips_published_this_sample": 0,
+  "new_card_illustrations_generated": 0,
+  "remaining": "A visually acceptable sword sample; then all remaining smooth actions, Bifang retreat, nine card illustrations and final VFX.",
+  "task4_complete": false,
+  "milestone5_complete": false
+}

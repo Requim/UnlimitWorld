@@ -1,0 +1,54 @@
+{
+  "status": "saved",
+  "request": {
+    "model": "gpt-image-2",
+    "size": "2816x2816",
+    "quality": "high",
+    "output_format": "png",
+    "n": 1,
+    "prompt_characters": 4198,
+    "prompt_sha256": "493dc542a9037a348443863a4639132de923ffc22afa2796c76e0751189c3a28",
+    "operation": "edit",
+    "reference_size": [
+      2816,
+      2816
+    ],
+    "reference_bytes": 249708,
+    "reference_sha256": "b9015c5868bbb66a5c048742f720dcbf71eb2411163ffbdce7595137746aa498"
+  },
+  "image_posts": 1,
+  "http_status": 200,
+  "billing_status": "unknown",
+  "response_bytes": 6024535,
+  "response_sha256": "94aaf1d83dfb4b6b351ef4872acbd064cc701cdd62de2540d186b3c1fcb9f31e",
+  "response_structure": {
+    "created": 1791612021,
+    "data": [
+      {
+        "b64_json": {
+          "type": "string",
+          "characters": 6020264
+        },
+        "revised_prompt": {
+          "type": "string",
+          "characters": 4198
+        }
+      }
+    ]
+  },
+  "source": "b64_json",
+  "file": "hero-sword-smooth-sheet.png",
+  "actual_format": "PNG",
+  "actual_size": [
+    2816,
+    2816
+  ],
+  "requested_size": [
+    2816,
+    2816
+  ],
+  "native_target_met": true,
+  "bytes": 4515197,
+  "sha256": "48e7e23521d2e00e4777d57713ec26aad98b13bdfbbbde4b913011d2b545f56e",
+  "elapsed_seconds": 38.916
+}
