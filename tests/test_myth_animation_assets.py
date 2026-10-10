@@ -25,6 +25,34 @@ def fixture_strip(path: Path, empty=False):
     return path
 
 
+def fixture_grid(path: Path, frame_count: int, *, content_size=620,
+                 slot_size=704, empty_slot=None, duplicate_slot=None):
+    rows = frame_count // 4
+    image = Image.new("RGBA", (slot_size * 4, slot_size * rows))
+    for frame in range(frame_count):
+        if frame == empty_slot:
+            continue
+        source = duplicate_slot[1] if duplicate_slot and frame == duplicate_slot[0] else frame
+        width = content_size - source * 3
+        color = (20 + source * 7, 80 + source * 5, 110 + source * 3, 255)
+        shape = Image.new("RGBA", (width, content_size), color)
+        column, row = frame % 4, frame // 4
+        image.alpha_composite(shape, (
+            column * slot_size + (slot_size - width) // 2,
+            row * slot_size + slot_size - content_size,
+        ))
+    image.save(path)
+    return path
+
+
+def fixture_anchor(path: Path, *, height=620):
+    image = Image.new("RGBA", (704, 704))
+    image.alpha_composite(Image.new("RGBA", (620, height), (220, 50, 40, 255)),
+                          (42, 704 - height))
+    image.save(path)
+    return path
+
+
 def test_packaged_strip_has_real_frames_shared_anchor_and_no_upscale(tmp_path):
     source = fixture_strip(tmp_path / "raw.png")
     reference = Image.new("RGBA", (300, 400))
@@ -46,6 +74,119 @@ def test_packaged_strip_has_real_frames_shared_anchor_and_no_upscale(tmp_path):
     assert report["clip"]["frames"] == 4
     assert report["clip"]["fps"] == 8
     assert report["clip"]["url"] == "/assets/myth/animations/hero_sword.png"
+
+
+@pytest.mark.parametrize(("name", "frame_count", "fps", "rows"), [
+    ("hero_sword", 16, 24, 4),
+    ("hero_hurt", 12, 24, 3),
+])
+def test_smooth_grid_is_row_major_native_padding_without_upscale(
+        tmp_path, name, frame_count, fps, rows):
+    source = fixture_grid(tmp_path / "raw.png", frame_count)
+    anchor = fixture_anchor(tmp_path / "anchor.png")
+    report = pipeline().prepare_animation(
+        source, anchor, tmp_path / "output", name=name, profile="smooth-v2",
+        frame_size=704, frame_count=frame_count, source_columns=4, fps=fps)
+    with Image.open(tmp_path / f"output/{name}.png") as sheet:
+        assert sheet.size == (2816, 704 * rows)
+        frames = [sheet.crop(((index % 4) * 704, (index // 4) * 704,
+                              (index % 4 + 1) * 704, (index // 4 + 1) * 704))
+                  for index in range(frame_count)]
+    assert frames[0].getpixel((352, 200))[:3] == (220, 50, 40)
+    assert frames[4].getpixel((352, 200))[:3] == (48, 100, 122)
+    assert report["shared_scale"] == 1
+    assert report["seed_scale"] == 1
+    assert report["source_size"] == [2816, 704 * rows]
+    assert report["source_slot_size"] == [704, 704]
+    assert (report["profile"], report["columns"], report["rows"]) == ("smooth-v2", 4, rows)
+    assert report["clip"] == {
+        "url": f"/assets/myth/animations/{name}.png",
+        "frame_size": [704, 704], "frames": frame_count, "fps": fps,
+        "anchor": [0.5, 1], "reference_height": 620,
+        "profile": "smooth-v2", "columns": 4, "rows": rows,
+    }
+
+
+def test_smooth_grid_rejects_source_slots_smaller_than_native_frame(tmp_path):
+    source = fixture_grid(tmp_path / "raw.png", 16, content_size=600, slot_size=700)
+    anchor = fixture_anchor(tmp_path / "anchor.png", height=600)
+    with pytest.raises(ValueError, match="source slot"):
+        pipeline().prepare_animation(
+            source, anchor, tmp_path / "output", name="hero_sword", profile="smooth-v2",
+            frame_size=704, frame_count=16, source_columns=4, fps=24)
+    assert not (tmp_path / "output").exists()
+
+
+@pytest.mark.parametrize(("name", "frame_count", "fps"), [
+    ("hero_sword", 12, 24),
+    ("hero_sword", 16, 12),
+    ("hero_idle", 12, 24),
+])
+def test_smooth_profile_rejects_wrong_clip_contract(tmp_path, name, frame_count, fps):
+    with pytest.raises(ValueError, match="smooth-v2"):
+        pipeline().prepare_animation(
+            tmp_path / "missing.png", tmp_path / "anchor.png", tmp_path / "output",
+            name=name, profile="smooth-v2", frame_size=704,
+            frame_count=frame_count, source_columns=4, fps=fps)
+
+
+def test_unknown_profile_is_rejected_before_reading_input(tmp_path):
+    with pytest.raises(ValueError, match="profile"):
+        pipeline().prepare_animation(
+            tmp_path / "missing.png", tmp_path / "anchor.png", tmp_path / "output",
+            name="hero_sword", profile="smooth-v3", frame_size=704,
+            frame_count=16, source_columns=4, fps=24)
+
+
+def test_smooth_grid_rejects_non_divisible_geometry_and_empty_slot(tmp_path):
+    source = fixture_grid(tmp_path / "raw.png", 16)
+    with Image.open(source) as image:
+        image.crop((0, 0, image.width - 1, image.height)).save(source)
+    anchor = fixture_anchor(tmp_path / "anchor.png")
+    with pytest.raises(ValueError, match="divisible"):
+        pipeline().prepare_animation(
+            source, anchor, tmp_path / "bad-geometry", name="hero_sword", profile="smooth-v2",
+            frame_size=704, frame_count=16, source_columns=4, fps=24)
+    source = fixture_grid(tmp_path / "empty.png", 16, empty_slot=7)
+    with pytest.raises(ValueError, match="empty"):
+        pipeline().prepare_animation(
+            source, anchor, tmp_path / "empty-output", name="hero_sword", profile="smooth-v2",
+            frame_size=704, frame_count=16, source_columns=4, fps=24)
+
+
+def test_smooth_grid_rejects_adjacent_and_insufficient_unique_poses(tmp_path):
+    anchor = fixture_anchor(tmp_path / "anchor.png")
+    adjacent = fixture_grid(tmp_path / "adjacent.png", 16, duplicate_slot=(5, 4))
+    with pytest.raises(ValueError, match="duplicate"):
+        pipeline().prepare_animation(
+            adjacent, anchor, tmp_path / "adjacent-output", name="hero_sword", profile="smooth-v2",
+            frame_size=704, frame_count=16, source_columns=4, fps=24)
+    source = fixture_grid(tmp_path / "few.png", 16)
+    with Image.open(source) as image:
+        image.load()
+        for index in range(13, 16):
+            source_index = index - 13
+            source_box = ((source_index % 4) * 704, (source_index // 4) * 704,
+                          (source_index % 4 + 1) * 704, (source_index // 4 + 1) * 704)
+            target = ((index % 4) * 704, (index // 4) * 704)
+            image.paste(image.crop(source_box), target)
+        image.save(source)
+    with pytest.raises(ValueError, match="distinct"):
+        pipeline().prepare_animation(
+            source, anchor, tmp_path / "few-output", name="hero_sword", profile="smooth-v2",
+            frame_size=704, frame_count=16, source_columns=4, fps=24)
+
+
+def test_smooth_final_frames_recheck_anchor_replacement_duplicates(tmp_path):
+    source = fixture_grid(tmp_path / "raw.png", 16)
+    with Image.open(source) as image:
+        second = image.crop((704, 0, 1408, 704))
+        second.save(tmp_path / "anchor.png")
+    with pytest.raises(ValueError, match="duplicate"):
+        pipeline().prepare_animation(
+            source, tmp_path / "anchor.png", tmp_path / "output",
+            name="hero_sword", profile="smooth-v2", frame_size=704,
+            frame_count=16, source_columns=4, fps=24)
 
 
 def test_empty_frame_cannot_be_published_as_real_animation(tmp_path):

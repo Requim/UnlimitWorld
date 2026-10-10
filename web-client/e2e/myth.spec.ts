@@ -8,6 +8,9 @@ import type { StoredSession } from "../src/state/storage";
 const MYTH_KEY = "tiandao.cardRogue.mythBifang.session.v1";
 const CLASSIC_KEY = "tiandao.cardRogue.session.v1";
 const ACTION_ROUTE = "**/api/v2/runs/*/actions";
+const SMOOTH_COLORS = Array.from({ length: 16 }, (_, index) => [
+  32 + index * 11, 35 + (index * 47) % 190, 40 + (index * 83) % 180,
+] as [number, number, number]);
 
 for (const [archetype, choice] of [
   ["sword", "borrow_fire"], ["fire", "seal_evidence"], ["talisman", "destroy_scroll"],
@@ -83,6 +86,66 @@ test("双角色 idle 持续播放且减少动态设置会停在静态种子", as
   await page.getByRole("button", { name: "减少动态效果" }).click();
   await expect(page.getByTestId("myth-root")).toHaveClass(/reduced-motion/);
   expect(await canvasStayedStable(page, 600)).toBe(true);
+});
+
+test("synthetic smooth-v2 挥剑在真实 Phaser 中按行播放全部16帧", async ({ page }) => {
+  await routeSyntheticClip(page, "hero_sword", 16, 24, SMOOTH_COLORS);
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-phase", "combat");
+  const run = await readRun(page);
+  await routeSwordResponse(page, run);
+  const sampled = sampleSyntheticFrames(page, SMOOTH_COLORS, [.04, .46, .12, .98]);
+  await playFlyingSword(page);
+  await page.waitForTimeout(250);
+  await saveSmoothEvidence(page, "synthetic-hero-sword-mid.png");
+  const sequence = compressFrames(await sampled).filter((frame) => frame >= 0);
+  expect(sequence).toEqual(Array.from({ length: 16 }, (_, index) => index));
+});
+
+test("synthetic smooth-v2 演出可由减少动态及时取消并稳定回种子", async ({ page }) => {
+  const synthetic = await routeSyntheticClip(page, "hero_sword", 16, 24, SMOOTH_COLORS);
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  await synthetic.loaded;
+  const run = await readRun(page);
+  const routed = await routeSwordResponse(page, run);
+  await expect(page.getByTestId("taunt")).toBeEnabled();
+  const pageErrors: string[] = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.getByTestId("taunt").click();
+  expect((await routed.received).kind).toBe("taunt");
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
+  expect(pageErrors).toEqual([]);
+  await page.getByTestId("settings-open").click();
+  await page.getByRole("button", { name: "减少动态效果" }).click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "false", { timeout: 300 });
+  await saveSmoothEvidence(page, "synthetic-cancelled-to-seed.png");
+  expect(await canvasStayedStable(page, 300)).toBe(true);
+});
+
+test("synthetic smooth-v2 终局退场保留第12帧直到结算", async ({ page }) => {
+  const colors = SMOOTH_COLORS.slice(0, 12);
+  await routeSyntheticClip(page, "bifang_retreat", 12, 24, colors);
+  await openStory(page, "sword");
+  await page.getByTestId("story-choice-borrow_fire").click();
+  const run = await readRun(page);
+  const defeated = lethalRun(run);
+  await page.route(ACTION_ROUTE, (route) => route.fulfill({ json: { run: defeated, events: [
+    { kind: "completed", text: defeated.epitaph!, source: "system", target: "enemy", visual: "defeat",
+      state_after: { player: run.player, enemy: { hp: 0, block: 0, burn: 0, weak: 0 } } },
+  ] } }));
+  const sampled = sampleSyntheticFrames(page, colors, [.5, .98, .05, .98]);
+  await expect(page.getByTestId("end-turn")).toBeEnabled();
+  await page.getByTestId("end-turn").click();
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-presentation-busy", "true");
+  await page.waitForTimeout(470);
+  await saveSmoothEvidence(page, "synthetic-bifang-retreat-final.png");
+  const sequence = compressFrames(await sampled);
+  const visible = sequence.filter((frame) => frame >= 0);
+  expect(visible).toEqual(Array.from({ length: 12 }, (_, index) => index));
+  expect(sequence.slice(sequence.lastIndexOf(11) + 1)).not.toContain(-1);
+  await expect(page.getByTestId("myth-root")).toHaveAttribute("data-phase", "completed");
 });
 
 test("已登记动作条带加载失败时锁住战斗命令且保留安全操作", async ({ page }) => {
@@ -166,6 +229,98 @@ async function openStory(page: Page, archetype: "sword" | "fire" | "talisman"): 
   await expect(page.locator('[data-testid^="story-choice-"]')).toHaveCount(3);
 }
 
+async function routeSyntheticClip(page: Page, key: "hero_sword" | "bifang_retreat",
+  frames: number, fps: number, colors: Array<[number, number, number]>): Promise<{ loaded: Promise<void> }> {
+  await page.addInitScript((settingsKey) => localStorage.removeItem(settingsKey),
+    "tiandao.cardRogue.settings.v1");
+  const rows = frames / 4;
+  const url = `/assets/myth/animations/synthetic-${key}.png`;
+  let markLoaded!: () => void;
+  const loaded = new Promise<void>((resolve) => { markLoaded = resolve; });
+  await page.route("**/assets/myth/manifest.json", async (route) => {
+    const response = await route.fetch();
+    const manifest = await response.json();
+    manifest.animations[key] = { url, frame_size: [704, 704], frames, fps,
+      anchor: [0.5, 1], reference_height: 620, profile: "smooth-v2", columns: 4, rows };
+    await route.fulfill({ response, json: manifest });
+  });
+  await page.route(`**${url}`, async (route) => {
+    await route.fulfill({ contentType: "image/svg+xml", body: syntheticSheetSvg(colors, rows) });
+    markLoaded();
+  });
+  return { loaded };
+}
+
+function syntheticSheetSvg(colors: Array<[number, number, number]>, rows: number): string {
+  const rects = colors.map(([red, green, blue], index) => {
+    const x = (index % 4) * 704;
+    const y = Math.floor(index / 4) * 704;
+    return `<rect x="${x}" y="${y}" width="704" height="704" fill="rgb(${red},${green},${blue})"/>`;
+  }).join("");
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="2816" height="${rows * 704}" viewBox="0 0 2816 ${rows * 704}">${rects}</svg>`;
+}
+
+async function routeSwordResponse(page: Page, run: RunView): Promise<{ received: Promise<ActionRequest> }> {
+  const after = { ...run, revision: run.revision + 1 };
+  const state = { player: run.player, enemy: run.combat?.enemy,
+    turn: run.combat?.turn, energy: run.combat?.energy };
+  let accept!: (action: ActionRequest) => void;
+  const received = new Promise<ActionRequest>((resolve) => { accept = resolve; });
+  await page.route(ACTION_ROUTE, async (route) => {
+    const action = route.request().postDataJSON() as ActionRequest;
+    await route.fulfill({ json: { run: after, events: [
+      { kind: "damage", text: "synthetic frame order", source: "player", target: "enemy",
+        visual: "sword", amount: 1, state_after: state },
+    ] } });
+    accept(action);
+  });
+  return { received };
+}
+
+async function playFlyingSword(page: Page): Promise<void> {
+  await page.locator('[data-testid^="hand-card-"][data-card-id="flying_sword"]').first().click();
+  await page.getByTestId("enemy-target").click();
+}
+
+async function sampleSyntheticFrames(page: Page, colors: Array<[number, number, number]>,
+  region: [number, number, number, number]): Promise<number[]> {
+  return page.evaluate(async ({ palette, box }) => {
+    const root = document.querySelector<HTMLElement>('[data-testid="myth-root"]')!;
+    const samples: number[] = [];
+    const readFrame = (canvas: HTMLCanvasElement) => {
+      const context = canvas.getContext("2d");
+      if (!context) return -1;
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      const counts = palette.map(() => 0);
+      const left = Math.floor(canvas.width * box[0]); const right = Math.floor(canvas.width * box[1]);
+      const top = Math.floor(canvas.height * box[2]); const bottom = Math.floor(canvas.height * box[3]);
+      for (let y = top; y < bottom; y += 4) for (let x = left; x < right; x += 4) {
+        const offset = (y * canvas.width + x) * 4;
+        const index = palette.findIndex((color) => color[0] === pixels[offset]
+          && color[1] === pixels[offset + 1] && color[2] === pixels[offset + 2]);
+        if (index >= 0) counts[index] += 1;
+      }
+      const maximum = Math.max(...counts);
+      return maximum >= 20 ? counts.indexOf(maximum) : -1;
+    };
+    const deadline = performance.now() + 5_000;
+    while (root.dataset.presentationBusy !== "true" && performance.now() < deadline) {
+      await new Promise(requestAnimationFrame);
+    }
+    const canvas = document.querySelector<HTMLCanvasElement>(".myth-canvas canvas");
+    if (!canvas) return samples;
+    while (root.dataset.presentationBusy === "true" && performance.now() < deadline) {
+      samples.push(readFrame(canvas));
+      await new Promise(requestAnimationFrame);
+    }
+    return samples;
+  }, { palette: colors, box: region });
+}
+
+function compressFrames(frames: number[]): number[] {
+  return frames.filter((frame, index) => index === 0 || frame !== frames[index - 1]);
+}
+
 async function readSession(page: Page): Promise<StoredSession> {
   return page.evaluate((key) => JSON.parse(localStorage.getItem(key)!), MYTH_KEY);
 }
@@ -189,6 +344,12 @@ async function captureViewports(page: Page): Promise<void> {
 
 async function saveEvidence(page: Page, name: string): Promise<void> {
   const evidence = path.resolve("..", ".data", "playtest-myth-3b");
+  await mkdir(evidence, { recursive: true });
+  await page.screenshot({ path: path.join(evidence, name) });
+}
+
+async function saveSmoothEvidence(page: Page, name: string): Promise<void> {
+  const evidence = path.resolve("..", ".data", "playtest-myth-smooth-4a");
   await mkdir(evidence, { recursive: true });
   await page.screenshot({ path: path.join(evidence, name) });
 }

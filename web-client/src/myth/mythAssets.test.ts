@@ -25,6 +25,35 @@ it("动作条带必须读取固定键、帧规格、速率和归一化锚点", (
 });
 
 it.each([
+  ["hero_idle", 12, 12, 3],
+  ["hero_sword", 16, 24, 4],
+  ["hero_hurt", 12, 24, 3],
+  ["bifang_strike", 16, 24, 4],
+  ["bifang_retreat", 12, 24, 3],
+] as const)("smooth-v2 %s 严格读取真实多帧网格", (key, frames, fps, rows) => {
+  const clip = { url: `/assets/myth/animations/${key}.png`, frame_size: [704, 704],
+    frames, fps, anchor: [0.5, 1], reference_height: 620,
+    profile: "smooth-v2", columns: 4, rows };
+  const manifest = parseMythManifest({ ...root, status: "animation-review",
+    animations: { [key]: clip }, cards: {} });
+  expect(manifest.animations[key]).toEqual(clip);
+});
+
+it.each([
+  { profile: "smooth-v3", columns: 4, rows: 4, frames: 16, fps: 24, frame_size: [704, 704] },
+  { profile: "smooth-v2", columns: 3, rows: 4, frames: 16, fps: 24, frame_size: [704, 704] },
+  { profile: "smooth-v2", columns: 4, rows: 3, frames: 16, fps: 24, frame_size: [704, 704] },
+  { profile: "smooth-v2", columns: 4, rows: 4, frames: 12, fps: 24, frame_size: [704, 704] },
+  { profile: "smooth-v2", columns: 4, rows: 4, frames: 16, fps: 12, frame_size: [704, 704] },
+  { profile: "smooth-v2", columns: 4, rows: 4, frames: 16, fps: 24, frame_size: [768, 768] },
+])("smooth-v2 未知档位或错误帧数/fps/几何会拒绝", (invalid) => {
+  const clip = { url: "/assets/myth/animations/hero_sword.png", anchor: [0.5, 1],
+    reference_height: 620, ...invalid };
+  expect(() => parseMythManifest({ ...root, status: "animation-review",
+    animations: { hero_sword: clip }, cards: {} })).toThrow();
+});
+
+it.each([
   { hero_sword: { url: "/assets/myth/animations/hero-sword.png", frame_size: [768, 768], frames: 4, fps: 8 } },
   { hero_sword: { url: "/assets/myth/animations/hero-sword.png", frame_size: [768, 768], frames: 4, fps: 8,
     anchor: [1.2, 1], reference_height: 634 } },
@@ -54,6 +83,9 @@ it.each([
   { ...root, status: "animation-review", animations: { hero_sword: {
     url: "/assets/myth/animations/hero-sword.png", frame_size: [768, 768], frames: 4, fps: 8,
     anchor: [0.5, 0.94], reference_height: 634 } } },
+  { ...root, status: "animation-review", animations: { hero_sword: {
+    url: "/assets/myth/animations/hero-sword.png", frame_size: [768, 768], frames: 4, fps: 8,
+    anchor: [0.5, 1], reference_height: 634, columns: 4, rows: 1 } } },
 ])("非当前版本、状态或动作协议会拒绝载入", (invalid) => {
   expect(() => parseMythManifest(invalid)).toThrow();
 });

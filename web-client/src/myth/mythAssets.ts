@@ -8,6 +8,7 @@ export interface MythSeed extends ActorMetrics { url: string }
 export interface MythClip {
   url: string; frame_size: [number, number]; frames: number; fps: number;
   anchor: [number, number]; reference_height: number;
+  profile?: "smooth-v2"; columns?: number; rows?: number;
 }
 export type MythManifestStatus = "seed-review" | "animation-review";
 /** `/myth` 唯一资源协议；animations 可部分交付，cards 在正式卡面到位前保持空对象。 */
@@ -87,6 +88,13 @@ function parseSeed(value: unknown): MythSeed {
 
 function parseClip(key: MythClipKey, value: unknown): MythClip {
   const clip = object(value);
+  if (clip.profile === undefined) return parseLegacyClip(key, clip);
+  if (clip.profile !== "smooth-v2") throw new Error("未知动作档位");
+  return parseSmoothClip(key, clip);
+}
+
+function parseLegacyClip(key: MythClipKey, clip: Record<string, unknown>): MythClip {
+  if (clip.columns !== undefined || clip.rows !== undefined) throw new Error("legacy 动作不得声明网格档位");
   const frameSize = dimensions(clip.frame_size);
   const fps = key.endsWith("_idle") ? 4 : 8;
   if (frameSize[0] !== 768 || frameSize[1] !== 768 || clip.frames !== 4 || clip.fps !== fps) {
@@ -97,6 +105,27 @@ function parseClip(key: MythClipKey, value: unknown): MythClip {
   return { url: assetPath(clip.url), frame_size: frameSize,
     frames: 4, fps, anchor,
     reference_height: positiveNumber(clip.reference_height, "动作参考高度无效") };
+}
+
+function parseSmoothClip(key: MythClipKey, clip: Record<string, unknown>): MythClip {
+  const frameSize = dimensions(clip.frame_size);
+  const [frames, fps] = smoothSpec(key);
+  const rows = frames / 4;
+  if (frameSize[0] !== 704 || frameSize[1] !== 704 || clip.frames !== frames
+    || clip.fps !== fps || clip.columns !== 4 || clip.rows !== rows) {
+    throw new Error("smooth-v2 动作条带规格无效");
+  }
+  const anchor = normalizedPoint(clip.anchor);
+  if (anchor[0] !== .5 || anchor[1] !== 1) throw new Error("动作锚点规格无效");
+  return { url: assetPath(clip.url), frame_size: frameSize, frames, fps, anchor,
+    reference_height: positiveNumber(clip.reference_height, "动作参考高度无效"),
+    profile: "smooth-v2", columns: 4, rows };
+}
+
+function smoothSpec(key: MythClipKey): [number, number] {
+  if (key.endsWith("_idle")) return [12, 12];
+  if (["hero_sword", "hero_cast", "bifang_charge", "bifang_strike"].includes(key)) return [16, 24];
+  return [12, 24];
 }
 
 function parseAnimations(value: unknown): Partial<Record<MythClipKey, MythClip>> {

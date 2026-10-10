@@ -2,6 +2,7 @@ import * as Phaser from "phaser";
 import type { GameEvent } from "../api/types";
 import { clipKeysForEvent, impactIndexForClips, mythClipPose, type MythClipKey } from "./mythAnimation";
 import type { MythClip, MythManifest } from "./mythAssets";
+import { isTerminalMythClip, waitForMythAnimation, type MythPlaybackResult } from "./mythClipPlayback";
 import { mythLayout, type ActorLayout } from "./mythLayout";
 import { missingTextureKeys, mythClipTexture } from "./mythRuntimeAssets";
 import type { PresentationAdapter } from "./presentationQueue";
@@ -17,6 +18,7 @@ interface World {
   scene: Phaser.Scene | null; hero: Phaser.GameObjects.Sprite | null; bifang: Phaser.GameObjects.Sprite | null;
   background: Phaser.GameObjects.Image | null; width: number; height: number;
   manifest: MythManifest; pending: Set<() => void>; reducedMotion: boolean; loadFailed: boolean;
+  generations: Record<"hero" | "bifang", number>; destroyed: boolean;
 }
 
 /** 在 parent 加载独立种子及已登记条带；ready 后可播放，loaderror 显式通知，返回销毁门面。 */
@@ -24,7 +26,8 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
   reducedMotion: boolean, ready: (adapter: MythSceneAdapter) => void,
   error: (message: string) => void): MythSceneAdapter {
   const world: World = { scene: null, hero: null, bifang: null, background: null,
-    width, height, manifest, pending: new Set(), reducedMotion, loadFailed: false };
+    width, height, manifest, pending: new Set(), reducedMotion, loadFailed: false,
+    generations: { hero: 0, bifang: 0 }, destroyed: false };
   const game = new Phaser.Game({ type: Phaser.CANVAS, parent, width: Math.max(1, width), height: Math.max(1, height),
     transparent: true, render: { antialias: true }, scale: { mode: Phaser.Scale.NONE },
     scene: {
@@ -35,7 +38,7 @@ export function createMythGame(parent: HTMLElement, manifest: MythManifest, widt
     present: (event, signal) => presentEvent(world, event, signal),
     resize: (w, h) => { world.width = w; world.height = h; game.scale.resize(Math.max(1, w), Math.max(1, h)); positionWorld(world); },
     setReducedMotion: (value) => setReducedMotion(world, value),
-    destroy: () => { world.pending.forEach((cancel) => cancel()); world.pending.clear(); game.destroy(true); },
+    destroy: () => destroyWorld(world, game),
   };
   return adapter;
 }
@@ -96,7 +99,7 @@ async function playEventClips(world: World, keys: MythClipKey[], signal: AbortSi
   showImpact: () => void): Promise<void> {
   if (world.reducedMotion) {
     showImpact();
-    await waitForClip(world, signal, 60, null);
+    await waitForDelay(world, signal, 60);
     return;
   }
   const playable = keys.flatMap((key) => {
@@ -106,24 +109,23 @@ async function playEventClips(world: World, keys: MythClipKey[], signal: AbortSi
   });
   if (playable.length === 0) {
     showImpact();
-    await waitForClip(world, signal, 140, null);
+    await waitForDelay(world, signal, 140);
     return;
   }
   const impactIndex = impactIndexForClips(playable.map(({ key }) => key));
   for (const [index, item] of playable.entries()) {
     if (index === impactIndex) showImpact();
     if (signal.aborted) break;
-    playClip(world, item.actor, item.key, item.clip);
-    await waitForClip(world, signal, Math.min(900, item.clip.frames / item.clip.fps * 1000), actorName(item.key));
+    const result = await playClip(world, item.actor, item.key, item.clip, signal);
+    if (result === "cancelled") break;
   }
   if (impactIndex === playable.length && !signal.aborted) {
     showImpact();
-    await waitForClip(world, signal, 140, null);
+    await waitForDelay(world, signal, 140);
   }
 }
 
-function waitForClip(world: World, signal: AbortSignal, duration: number,
-  restore: "hero" | "bifang" | null): Promise<void> {
+function waitForDelay(world: World, signal: AbortSignal, duration: number): Promise<void> {
   const scene = world.scene;
   if (!scene || signal.aborted) return Promise.resolve();
   return new Promise<void>((resolve) => {
@@ -134,7 +136,6 @@ function waitForClip(world: World, signal: AbortSignal, duration: number,
       timer.remove(false);
       signal.removeEventListener("abort", finish);
       world.pending.delete(finish);
-      if (restore) restoreNamedActor(world, restore);
       resolve();
     };
     const timer = scene.time.delayedCall(duration, finish);
@@ -144,25 +145,59 @@ function waitForClip(world: World, signal: AbortSignal, duration: number,
   });
 }
 
-function actorName(key: MythClipKey): "hero" | "bifang" {
-  return key.startsWith("bifang") ? "bifang" : "hero";
-}
-
 function setReducedMotion(world: World, value: boolean): void {
   world.reducedMotion = value;
+  invalidatePlaybacks(world);
   restoreNamedActor(world, "hero");
   restoreNamedActor(world, "bifang");
 }
 
-function playClip(world: World, actor: Phaser.GameObjects.Sprite, key: MythClipKey, clip: MythClip): void {
+async function playClip(world: World, actor: Phaser.GameObjects.Sprite, key: MythClipKey,
+  clip: MythClip, signal: AbortSignal): Promise<MythPlaybackResult> {
+  const name = actorName(key);
+  const generation = ++world.generations[name];
+  positionClip(world, actor, key, clip);
+  const result = await waitForMythAnimation(actor, key, signal, (cancel) => trackCancellation(world, cancel));
+  restoreAfterPlayback(world, name, key, generation, result);
+  return result;
+}
+
+function positionClip(world: World, actor: Phaser.GameObjects.Sprite, key: MythClipKey, clip: MythClip): void {
   const layout = mythLayout(world.width, world.height, world.manifest.seeds.hero, world.manifest.seeds.bifang);
   const name = key.startsWith("bifang") ? "bifang" : "hero";
   const target = key.startsWith("bifang") ? layout.bifang : layout.hero;
   const seed = world.manifest.seeds[name];
   const visibleHeight = target.height * visibleRatio(seed);
   const pose = mythClipPose(target.x, target.y, visibleHeight, world.width, clip);
-  actor.play(key).setPosition(pose.x, pose.y).setOrigin(...pose.origin);
-  actor.setDisplaySize(pose.width, pose.height);
+  actor.setPosition(pose.x, pose.y).setOrigin(...pose.origin).setDisplaySize(pose.width, pose.height);
+}
+
+function restoreAfterPlayback(world: World, name: "hero" | "bifang", key: MythClipKey,
+  generation: number, result: MythPlaybackResult): void {
+  if (world.destroyed || world.generations[name] !== generation) return;
+  if (result === "cancelled" || !isTerminalMythClip(key)) restoreNamedActor(world, name);
+}
+
+function actorName(key: MythClipKey): "hero" | "bifang" {
+  return key.startsWith("bifang") ? "bifang" : "hero";
+}
+
+function trackCancellation(world: World, cancel: () => void): () => void {
+  world.pending.add(cancel);
+  return () => world.pending.delete(cancel);
+}
+
+function invalidatePlaybacks(world: World): void {
+  world.generations.hero += 1;
+  world.generations.bifang += 1;
+  [...world.pending].forEach((cancel) => cancel());
+  world.pending.clear();
+}
+
+function destroyWorld(world: World, game: Phaser.Game): void {
+  world.destroyed = true;
+  invalidatePlaybacks(world);
+  game.destroy(true);
 }
 
 function restoreNamedActor(world: World, name: "hero" | "bifang"): void {
@@ -177,7 +212,10 @@ function restoreActor(world: World, name: "hero" | "bifang", layout: ActorLayout
   const key = `${name}_idle` as MythClipKey;
   const idle = world.manifest.animations[key];
   actor.stop();
-  if (idle && !world.reducedMotion) playClip(world, actor, key, idle);
+  if (idle && !world.reducedMotion) {
+    positionClip(world, actor, key, idle);
+    actor.play(key);
+  }
   else positionActor(actor.setTexture(`myth-${name}`), layout);
 }
 
